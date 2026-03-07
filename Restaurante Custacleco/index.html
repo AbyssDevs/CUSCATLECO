@@ -1,44 +1,30 @@
 <!DOCTYPE html>
 <html lang="es">
-
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Restaurante Cuscatleco</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
 
     <!-- LOGIN -->
     <div class="login" id="login">
-
         <h2>RESTAURANTE CUSCATLECO</h2>
-
         <input type="text" id="usuario" placeholder="Usuario">
         <input type="password" id="password" placeholder="Contraseña">
-
-
         <button onclick="login()">INICIAR SESIÓN</button>
-
     </div>
 
     <!-- DASHBOARD -->
     <div class="dashboard hidden" id="dashboard">
-
         <aside class="sidebar">
-
             <h3 id="rolTitulo"></h3>
-
             <button onclick="cerrarSesion()">Cerrar sesión</button>
-
         </aside>
-
         <main class="main" id="contenido"></main>
-
     </div>
 
     <script src="script.js"></script>
-
 </body>
-
 </html>
