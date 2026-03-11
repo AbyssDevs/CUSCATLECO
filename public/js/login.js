@@ -1,124 +1,77 @@
-const usuarios = [
-  { usuario: "admin", password: "123", rol: "administrador" },
-  { usuario: "mesero1", password: "123", rol: "mesero" }
-];
 
-let pedidos = [];
-let ventas = 0;
+document.addEventListener('DOMContentLoaded', () => {
 
-function login(){
-  const usuarioInput = document.getElementById("usuario").value;
-  const passwordInput = document.getElementById("password").value;
+  const btnLogin       = document.getElementById('btnLogin');
+  const inputUsuario   = document.getElementById('usuario_email');
+  const inputContrasena = document.getElementById('usuario_password');
+  const mensajeError   = document.getElementById('mensajeError');
 
-  if(usuarioInput === "" || passwordInput === ""){
-    alert("Complete todos los campos");
-    return;
-  }
+  
+  btnLogin.addEventListener('click', async () => {
 
-  const usuarioEncontrado = usuarios.find(
-    u => u.usuario === usuarioInput && u.password === passwordInput
-  );
+   
+    const usuario_email = inputUsuario.value.trim();
+    const usuario_password = inputContrasena.value.trim();
 
-  if(!usuarioEncontrado){
-    alert("Usuario o contraseña incorrectos");
-    return;
-  }
+    // Validación del lado del cliente (rápida, antes de ir al servidor)
+    if (!usuario_email || !usuario_password) {
+      mostrarError('Por favor completa todos los campos.');
+      return;
+    }
 
-  const rol = usuarioEncontrado.rol;
+    // Desactivamos el botón mientras esperamos respuesta
+    btnLogin.disabled    = true;
+    btnLogin.textContent = 'Verificando...';
+    ocultarError();
 
-  document.getElementById("login").classList.add("hidden");
-  document.getElementById("dashboard").classList.remove("hidden");
-  document.getElementById("rolTitulo").innerText = rol.toUpperCase();
+    try {
+      const respuesta = await fetch('/api/login', {
+        method : 'POST',
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({
+          usuario_email : usuario_email,
+          usuario_password : usuario_password
+        }) 
+      });
 
-  cargarVista(rol);
-}
+      
+      const datos = await respuesta.json();
 
-function cargarVista(rol){
-  const contenido = document.getElementById("contenido");
+      if (respuesta.ok) {
+        
+        if (datos.rol === 'Administrador') {
+          window.location.href = '/admin';
+        } else if (datos.rol === 'Mesero') {
+          window.location.href = '/mesero';
+        }else if (datos.rol === 'Cocina') {
+          window.location.href = '/cocina';
+        }else if (datos.rol === 'Cajero') {
+          window.location.href = '/cajero';
+        }
+      } else {
+        mostrarError(datos.error || 'Credenciales inválidas');
+      }
 
-  if(rol === "administrador"){
-    contenido.innerHTML = `
-      <div class="card">
-        <h2>Panel Administrador</h2>
-        <p>Total ventas: $${ventas}</p>
-        <p>Total pedidos: ${pedidos.length}</p>
-      </div>
-    `;
-  }
+    } catch (err) {
+      
+      mostrarError('No se pudo conectar al servidor. ¿Está corriendo Node.js?');
+      console.error(err);
+    }
 
-  if(rol === "mesero"){
-    contenido.innerHTML = `
-      <div class="card">
-        <h2>Crear Pedido</h2>
-        <input type="text" id="mesa" placeholder="Mesa">
-        <input type="text" id="detalle" placeholder="Detalle del pedido">
-        <input type="number" id="precio" placeholder="Precio" min="0">
-        <button onclick="agregarPedido()">Enviar Pedido</button>
-      </div>
-      <h2>Pedidos Activos</h2>
-      <div id="listaPedidos" class="contenedor-pedidos"></div>
-    `;
-  }
-}
-
-function agregarPedido(){
-  const mesa = document.getElementById("mesa").value;
-  const detalle = document.getElementById("detalle").value;
-  const precio = document.getElementById("precio").value;
-
-  if(mesa === "" || detalle === "" || precio === ""){
-    alert("Complete todos los campos");
-    return;
-  }
-
-  if(precio <= 0){
-    alert("El precio debe ser mayor a 0");
-    return;
-  }
-
-  pedidos.push({ 
-    mesa: mesa, 
-    detalle: detalle, 
-    precio: precio 
+    btnLogin.disabled    = false;
+    btnLogin.textContent = 'Ingresar';
   });
-  
-  mostrarPedidos();
 
-  document.getElementById("mesa").value = "";
-  document.getElementById("detalle").value = "";
-  document.getElementById("precio").value = "";
-}
-
-function mostrarPedidos(){
-  const contenedor = document.getElementById("listaPedidos");
-  
-  if(!contenedor) return;
-  
-  contenedor.innerHTML = "";
-
-  pedidos.forEach((pedido, index) => {
-    contenedor.innerHTML += `
-      <div class="pedido-card">
-        <h3>Mesa ${pedido.mesa}</h3>
-        <p>${pedido.detalle}</p>
-        <p>$${pedido.precio}</p>
-        <button onclick="cancelarPedido(${index})" style="background:crimson; color:white; border:none; padding:8px 12px; margin-top:10px; border-radius:4px; cursor:pointer; width:100%;">
-          Cancelar pedido
-        </button>
-      </div>
-    `;
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') btnLogin.click();
   });
-}
 
-function cancelarPedido(index){
-  if(confirm("¿Seguro que deseas cancelar este pedido?")){
-    pedidos.splice(index, 1);
-    mostrarPedidos();
-    alert("Pedido cancelado");
+  function mostrarError(msg) {
+    mensajeError.textContent = msg;
+    mensajeError.style.display = 'block';
   }
-}
+  function ocultarError() {
+    mensajeError.style.display = 'none';
+  }
+});
 
-function cerrarSesion(){
-  document.getElementById("dashboard").classList.add("hidden");
-  document.getElementById("login").classList.remove("hidden");
-}
