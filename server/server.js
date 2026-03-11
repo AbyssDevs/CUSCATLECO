@@ -13,11 +13,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/views/index.html'));
 });
 
-app.get('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.redirect('/');
-  });
-});
+
 
 app.use(session({
   secret: 'clave-secreta-del-sistema',
@@ -26,6 +22,12 @@ app.use(session({
   rolling: true,
    cookie: { maxAge: 1000 * 60 * 30 }  // La sesión dura 30 minutos
 }));
+
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/');
+  });
+});
 
 app.get('/403', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/views/403.html'));
