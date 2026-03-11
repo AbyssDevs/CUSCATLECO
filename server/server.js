@@ -24,7 +24,7 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   rolling: true,
-   cookie: { maxAge: 1000 * 10 }  // La sesión dura 30 minutos
+   cookie: { maxAge: 1000 * 60 * 30 }  // La sesión dura 30 minutos
 }));
 
 app.get('/403', (req, res) => {
