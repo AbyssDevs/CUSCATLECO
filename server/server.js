@@ -13,6 +13,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/index.html"));
 });
 
+<<<<<<< hu02-empleados
 app.use(
   session({
     secret: "clave-secreta-del-sistema",
@@ -22,6 +23,9 @@ app.use(
     cookie: { maxAge: 1000 * 60 * 30 }, // La sesión dura 30 minutos
   }),
 );
+=======
+
+>>>>>>> main
 
 const db = mysql.createConnection({
   host: "localhost",
@@ -30,10 +34,21 @@ const db = mysql.createConnection({
   database: "cuscatleco",
 });
 
+<<<<<<< hu02-empleados
 app.get("/logout", (req, res) => {
   req.session.destroy(() => {
     res.redirect("/");
   });
+=======
+app.get('/logout', (req, res) => {
+  req.session.destroy(() => {
+    res.redirect('/');
+  });
+});
+
+app.get('/403', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/views/403.html'));
+>>>>>>> main
 });
 
 app.get("/403", (req, res) => {
