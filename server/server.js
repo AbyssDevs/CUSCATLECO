@@ -24,12 +24,14 @@ app.use(session({
    cookie: { maxAge: 1000 * 60 * 30 }  // La sesión dura 30 minutos
 }));
 
+
 const db =  mysql.createConnection({
   host     : 'localhost',
   user     : 'root',
   password : '315412',          
   database : 'cuscatleco'
 });
+
 
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
@@ -41,6 +43,15 @@ app.get('/403', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/views/403.html'));
 });
 
+
+
+
+const db = mysql.createConnection({
+  host     : 'localhost',
+  user     : 'root',
+  password : '315412',          
+  database : 'cuscatleco'
+});
 
 
 db.connect((error) => {
@@ -149,6 +160,7 @@ app.post('/api/login', (req, res) => {
 
 });
 
+
 app.post('/api/empleados', (req, res) => {
 
   const { nombre, email, password, telefono, rol } = req.body;
@@ -244,6 +256,7 @@ app.delete('/api/empleados/:id', requireRole('Administrador'), (req, res) =>{
     res.json({ mensaje: "Empleado eliminado correctamente" });
   });
 });
+
 
 app.listen(PORT, () => {
   console.log(` Servidor corriendo en http://localhost:${PORT}`);
