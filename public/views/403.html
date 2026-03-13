@@ -1,14 +1,238 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-  <title>Acceso denegado</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso Denegado - Sabor Cuscatleco</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #ea667c 0%, #2c0202 100%);
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
+
+    .container {
+      text-align: center;
+      background: white;
+      padding: 3rem 4rem;
+      border-radius: 20px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      margin: 20px;
+      animation: slideIn 0.5s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateY(-50px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    .error-code {
+      font-size: 8rem;
+      font-weight: 800;
+      color: #dc3545;
+      line-height: 1;
+      margin-bottom: 0.5rem;
+      text-shadow: 3px 3px 0 rgba(220, 53, 69, 0.2);
+    }
+
+    h1 {
+      color: #333;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+    }
+
+    .divider {
+      width: 80px;
+      height: 4px;
+      background: linear-gradient(90deg, #dc3545, #ff6b6b);
+      margin: 1.5rem auto;
+      border-radius: 2px;
+    }
+
+    p {
+      color: #666;
+      font-size: 1.2rem;
+      margin-bottom: 2rem;
+      line-height: 1.6;
+    }
+
+    .user-role {
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 10px;
+      margin-bottom: 2rem;
+      font-size: 0.95rem;
+      border-left: 4px solid #dc3545;
+      text-align: left;
+    }
+
+    .user-role strong {
+      color: #dc3545;
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 1.1rem;
+    }
+
+    .user-role ul {
+      list-style: none;
+      padding-left: 0;
+    }
+
+    .user-role li {
+      color: #555;
+      padding: 0.3rem 0;
+      padding-left: 1.5rem;
+      position: relative;
+    }
+
+    .user-role li:before {
+      content: "•";
+      color: #dc3545;
+      font-weight: bold;
+      position: absolute;
+      left: 0.5rem;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 0.8rem 2rem;
+      border-radius: 50px;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      display: inline-block;
+      border: 2px solid transparent;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+    }
+
+    .btn-outline {
+      background: transparent;
+      border-color: #667eea;
+      color: #667eea;
+    }
+
+    .btn-outline:hover {
+      background: #667eea;
+      color: white;
+    }
+
+    .icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+      display: inline-block;
+      background: #fff5f5;
+      width: 100px;
+      height: 100px;
+      line-height: 100px;
+      border-radius: 50%;
+      color: #dc3545;
+    }
+
+    @media (max-width: 480px) {
+      .container {
+        padding: 2rem;
+      }
+      
+      .error-code {
+        font-size: 6rem;
+      }
+      
+      h1 {
+        font-size: 1.5rem;
+      }
+      
+      .button-group {
+        flex-direction: column;
+      }
+      
+      .btn {
+        width: 100%;
+        text-align: center;
+      }
+    }
+
+    /* Efecto de fondo */
+    .bg-icon {
+      position: fixed;
+      font-size: 20rem;
+      opacity: 0.03;
+      bottom: -5rem;
+      right: -5rem;
+      transform: rotate(15deg);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 2rem;
+      font-size: 0.8rem;
+      color: #999;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
+    <div class="icon">🔒</div>
+    <div class="error-code">403</div>
+    <h1>Acceso Denegado</h1>
+    <div class="divider"></div>
+    <p>No tienes permisos para acceder a esta sección del sistema.</p>
+    
+    <div class="user-role">
+      <strong>🔐 Información de Seguridad:</strong>
+      <ul>
+        <li>Tu rol actual no tiene autorización para esta ruta</li>
+        <li>Cada rol (Mesero, Cocina, Cajero, Admin) tiene áreas específicas</li>
+        <li>Si crees que esto es un error, contacta al administrador</li>
+      </ul>
+    </div>
 
-<h1>Acceso denegado</h1>
-<p>No tienes permiso para acceder a esta sección.</p>
+    <div class="button-group">
+      <a href="/dashboard" class="btn btn-primary">Ir a mi dashboard</a> <!-- Este enlace debería redirigir al dashboard correspondiente según el rol, pero no esta programado aun. -->
+      <a href="/" class="btn btn-outline">Volver al login</a>
+    </div>
 
-<a href="/">Volver al login</a>
+    <div class="footer">
+      ⚡ Restaurante Sabor Cuscatleco - Sistema POS
+    </div>
+  </div>
+
+  <div class="bg-icon">🚫</div>
 
 </body>
 </html>
