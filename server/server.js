@@ -252,6 +252,43 @@ app.delete("/api/empleados/:id", requireRole("Administrador"), (req, res) => {
   });
 });
 
+app.put("/api/empleados/:id", requireRole("Administrador"), (req, res) => {
+  const { id } = req.params;
+  const { nombre, email, telefono, rol } = req.body;
+
+  const sqlUsuario = `
+    UPDATE usuarios
+    SET usuario_nombre = ?, usuario_email = ?, usuario_telefono = ?
+    WHERE id_usuario = ?
+  `;
+
+  db.query(sqlUsuario, [nombre, email, telefono, id], (error) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Error al actualizar usuario" });
+    }
+
+    // actualizar rol
+    const sqlRol = `
+      UPDATE usuario_rol ur
+      JOIN roles r ON ur.id_rol = r.id_rol
+      SET ur.id_rol = (
+        SELECT id_rol FROM roles WHERE rol_nombre = ?
+      )
+      WHERE ur.id_usuario = ?
+    `;
+
+    db.query(sqlRol, [rol, id], (error2) => {
+      if (error2) {
+        console.error(error2);
+        return res.status(500).json({ error: "Error al actualizar rol" });
+      }
+
+      res.json({ mensaje: "Empleado actualizado correctamente" });
+    });
+  });
+});
+
 app.listen(PORT, () => {
   console.log(` Servidor corriendo en http://localhost:${PORT}`);
   console.log(` Abre esa URL en tu navegador para ver el login`);
