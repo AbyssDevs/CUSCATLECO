@@ -24,7 +24,9 @@ app.use(
   }),
 );
 
-
+// -----------------------------------------------------------------------------------------
+//-------------------CONEXIÓN A LA BASE DE DATOS--------------------------------------------
+// -----------------------------------------------------------------------------------------
 const db = mysql.createConnection({
   host: "localhost",
   user: "root",
@@ -32,13 +34,17 @@ const db = mysql.createConnection({
   database: "cuscatleco",
 });
 
-
+// -----------------------------------------------------------------------------------------
+//-------------------LOG OUT-------------------------------------------------------
+// -----------------------------------------------------------------------------------------
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');
   });
 });
-
+// -----------------------------------------------------------------------------------------
+//-------------------PÁGINA 403--------------------------------------------------------
+// -----------------------------------------------------------------------------------------
 app.get('/403', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/views/403.html'));
 });
@@ -47,6 +53,10 @@ app.get("/403", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/403.html"));
 });
 
+
+// -----------------------------------------------------------------------------------------
+//-------------------CONEXIÓN A LA BASE DE DATOS--------------------------------------------
+// -----------------------------------------------------------------------------------------
 db.connect((error) => {
   if (error) {
     console.error("Error al conectar a MySQL:", error.message);
@@ -68,6 +78,9 @@ db.connect((error) => {
 //}
 //}
 
+// -----------------------------------------------------------------------------------------
+//-------------------RUTAS POR ROL--------------------------------------------------------
+// -----------------------------------------------------------------------------------------
 function requireRole(...rolesPermitidos) {
   return (req, res, next) => {
 
@@ -83,7 +96,9 @@ function requireRole(...rolesPermitidos) {
   };
 }
 
-
+// -----------------------------------------------------------------------------------------
+//-------------------RUTAS POR ROL--------------------------------------------------------
+// -----------------------------------------------------------------------------------------
 
 app.get("/admin", requireRole("Administrador"), (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/administrador.html"));
@@ -100,6 +115,10 @@ app.get("/cocina", requireRole("Cocina"), (req, res) => {
 app.get("/cajero", requireRole("Cajero"), (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/cajero.html"));
 });
+
+// -----------------------------------------------------------------------------------------
+//-------------------LOGIN--------------------------------------------------------
+// -----------------------------------------------------------------------------------------
 
 app.post("/api/login", (req, res) => {
   const { usuario_email, usuario_password } = req.body;
@@ -153,6 +172,10 @@ app.post("/api/login", (req, res) => {
   });
 });
 
+// -----------------------------------------------------------------------------------------
+//-------------------OBTENER USUARIO-------------------------------------------------------
+// -----------------------------------------------------------------------------------------
+
 app.get("/api/usuario", (req, res) => {
 
   if (!req.session || !req.session.usuario) {
@@ -163,6 +186,9 @@ app.get("/api/usuario", (req, res) => {
 
 });
 
+// -----------------------------------------------------------------------------------------
+//-------------------CREAR EMPLEADO--------------------------------------------------------
+// -----------------------------------------------------------------------------------------
 app.post("/api/empleados", (req, res) => {
   const { nombre, email, password, telefono, rol } = req.body;
 
@@ -213,6 +239,10 @@ app.post("/api/empleados", (req, res) => {
   );
 });
 
+// -----------------------------------------------------------------------------------------
+//-------------------MOSRAR EMPLEADOS--------------------------------------------------------
+// -----------------------------------------------------------------------------------------
+
 app.get("/api/empleados", requireRole("Administrador"), (req, res) => {
   const sql = `
 SELECT 
@@ -238,6 +268,10 @@ WHERE u.usuario_activo = TRUE
   });
 });
 
+// -----------------------------------------------------------------------------------------
+//-------------------ELIMINAR EMPLEADO--------------------------------------------------------
+// -----------------------------------------------------------------------------------------
+
 app.delete("/api/empleados/:id", requireRole("Administrador"), (req, res) => {
   const { id } = req.params;
 
@@ -252,17 +286,24 @@ app.delete("/api/empleados/:id", requireRole("Administrador"), (req, res) => {
   });
 });
 
+// -----------------------------------------------------------------------------------------
+//-------------------EDITAR EMPLEADO--------------------------------------------------------
+// ---------------------------------------------------------------------------------
 app.put("/api/empleados/:id", requireRole("Administrador"), (req, res) => {
   const { id } = req.params;
-  const { nombre, email, telefono, rol } = req.body;
+  const { nombre, email, telefono, rol, password } = req.body; // agregamos contraseña
 
   const sqlUsuario = `
     UPDATE usuarios
-    SET usuario_nombre = ?, usuario_email = ?, usuario_telefono = ?
+    SET usuario_nombre = ?, usuario_email = ?, usuario_telefono = ?${password ? ", usuario_password = ?" : ""}
     WHERE id_usuario = ?
   `;
 
-  db.query(sqlUsuario, [nombre, email, telefono, id], (error) => {
+  const params = password
+    ? [nombre, email, telefono, password, id]  // si viene contraseña, la agregamos
+    : [nombre, email, telefono, id];             // si no, solo actualizamos los demás campos
+
+  db.query(sqlUsuario, params, (error) => {
     if (error) {
       console.error(error);
       return res.status(500).json({ error: "Error al actualizar usuario" });
@@ -289,6 +330,7 @@ app.put("/api/empleados/:id", requireRole("Administrador"), (req, res) => {
   });
 });
 
+// Iniciar el servidor
 app.listen(PORT, () => {
   console.log(` Servidor corriendo en http://localhost:${PORT}`);
   console.log(` Abre esa URL en tu navegador para ver el login`);
