@@ -1,3 +1,4 @@
+En el administrador.html:
 <!DOCTYPE html>
 <html lang="en">
 
@@ -12,7 +13,9 @@
     <!-- Google Fonts: Playfair Display for headings, Roboto for inputs -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap"
+        rel="stylesheet">
 
     <link rel="stylesheet" href="../css/administrador.css">
 
@@ -27,10 +30,11 @@
             <h2>RESTAURANTE CUSCATLECO</h2>
 
             <ul>
-                <li onclick="mostrar('resumen')">Resumen</li>
+                <li onclick="mostrar('resumen')">📑 Resumen</li>
                 <!-- <li onclick="mostrar('ordenes')">Ver órdenes</li> -->
-                <li onclick="mostrar('empleados')">Empleados</li>
-                <li onclick="cerrarSesion()">Cerrar sesión</li>
+                <li onclick="mostrar('empleados')">📋 Ver Empleados</li>
+                <li onclick="mostrar('registrarEmpleado')">➕ Añadir Empleados</li>
+                <li onclick="cerrarSesion()">🚪 Cerrar sesión</li>
             </ul>
 
         </div>
@@ -113,41 +117,44 @@
 
             <!-- EMPLEADOS -->
 
-            <div id="empleados">
+            <div id="registrarEmpleado" style="display: none;">
 
                 <h2>Registrar empleado</h2>
 
                 <div class="admin-empleados-form">
                     <input type="text" id="usuario_nombre" placeholder="Nombre completo">
                     <input type="text" id="usuario_email" placeholder="Email">
+                    <input type="text" id="usuario_telefono" placeholder="Teléfono">
                     <input type="password" id="usuario_password" placeholder="Contraseña">
+
                     <select id="rol_nombre">
                         <option value="administrador">Administrador</option>
                         <option value="Mesero">Mesero</option>
                         <option value="Cajero">Cajero</option>
                         <option value="Cocina">Cocina</option>
                     </select>
+
                     <button onclick="registrarEmpleado()">Registrar empleado</button>
                 </div>
 
-                <h3>Lista de empleados</h3>
+            </div>
+
+            <div id="empleados" style="display: none;">
+
+                <h2>Lista de empleados</h2>
 
                 <div id="listaEmpleados" class="empleados-grid"></div>
 
             </div>
 
-        </div>
 
-    </div>
-
-    
-    <script src="js/empleados.js"></script>
-    <script>
-        function toggleMenu() {
-            document.getElementById('sidebar').classList.toggle('active');
-            document.getElementById('menuBackdrop').classList.toggle('active');
-        }
-    </script>
+            <script src="js/empleados.js"></script>
+            <script>
+                function toggleMenu() {
+                    document.getElementById('sidebar').classList.toggle('active');
+                    document.getElementById('menuBackdrop').classList.toggle('active');
+                }
+            </script>
 
 </body>
 
