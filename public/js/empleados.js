@@ -1,9 +1,15 @@
+En el empleao.js lo siguiente:
 function mostrar(seccion) {
   document.getElementById("resumen").style.display = "none";
   document.getElementById("empleados").style.display = "none";
+  document.getElementById("registrarEmpleado").style.display = "none";
   // document.getElementById("ordenes").style.display = "none"; // Para un Sprint futuro
 
   document.getElementById(seccion).style.display = "block";
+
+  if (seccion === "empleados") {
+    cargarEmpleados();
+  }
 }
 
 // REGISTRAR EMPLEADO
@@ -39,7 +45,7 @@ async function registrarEmpleado() {
 
       limpiarFormulario();
 
-      cargarEmpleados();
+      
     } else {
       alert(datos.error || "Error al registrar empleado");
     }
