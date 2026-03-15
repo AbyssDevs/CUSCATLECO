@@ -13,7 +13,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/index.html"));
 });
 
-<<<<<<< hu02-empleados
+
 app.use(
   session({
     secret: "clave-secreta-del-sistema",
@@ -23,9 +23,7 @@ app.use(
     cookie: { maxAge: 1000 * 60 * 30 }, // La sesión dura 30 minutos
   }),
 );
-=======
 
->>>>>>> main
 
 const db = mysql.createConnection({
   host: "localhost",
@@ -34,12 +32,7 @@ const db = mysql.createConnection({
   database: "cuscatleco",
 });
 
-<<<<<<< hu02-empleados
-app.get("/logout", (req, res) => {
-  req.session.destroy(() => {
-    res.redirect("/");
-  });
-=======
+
 app.get('/logout', (req, res) => {
   req.session.destroy(() => {
     res.redirect('/');
@@ -48,7 +41,6 @@ app.get('/logout', (req, res) => {
 
 app.get('/403', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/views/403.html'));
->>>>>>> main
 });
 
 app.get("/403", (req, res) => {
@@ -76,19 +68,22 @@ db.connect((error) => {
 //}
 //}
 
-function requireRole(rolPermitido) {
+function requireRole(...rolesPermitidos) {
   return (req, res, next) => {
+
     if (!req.session || !req.session.usuario) {
       return res.redirect("/");
     }
 
-    if (req.session.usuario.rol !== rolPermitido) {
+    if (!rolesPermitidos.includes(req.session.usuario.rol)) {
       return res.redirect("/403");
     }
 
     next();
   };
 }
+
+
 
 app.get("/admin", requireRole("Administrador"), (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/administrador.html"));
@@ -147,7 +142,7 @@ app.post("/api/login", (req, res) => {
     };
 
     console.log(
-      `Login exitoso: ${usuario.usuario_nombre} (${usuario.rol_nombre})`,
+      `Login exitoso: ${usuario.usuario_nombre} (${usuario.rol_nombre})`
     );
 
     res.json({
@@ -156,6 +151,16 @@ app.post("/api/login", (req, res) => {
       usuario: usuario.usuario_nombre,
     });
   });
+});
+
+app.get("/api/usuario", (req, res) => {
+
+  if (!req.session || !req.session.usuario) {
+    return res.status(401).json({ error: "Sesión no válida" });
+  }
+
+  res.json(req.session.usuario);
+
 });
 
 app.post("/api/empleados", (req, res) => {
@@ -191,9 +196,9 @@ app.post("/api/empleados", (req, res) => {
 
         // insertar relación
         const sqlAsignar = `
-        INSERT INTO usuario_rol (id_usuario, id_rol)
-        VALUES (?, ?)
-      `;
+          INSERT INTO usuario_rol (id_usuario, id_rol)
+          VALUES (?, ?)
+        `;
 
         db.query(sqlAsignar, [idUsuario, idRol], (error3) => {
           if (error3) {
@@ -204,7 +209,7 @@ app.post("/api/empleados", (req, res) => {
           res.json({ mensaje: "Empleado creado correctamente" });
         });
       });
-    },
+    }
   );
 });
 
@@ -214,7 +219,9 @@ SELECT
   u.id_usuario,
   u.usuario_nombre,
   u.usuario_email,
-  r.rol_nombre
+  u.usuario_telefono,
+  r.rol_nombre,
+  Date_Format(u.usuario_creado_en, '%Y-%m-%d') AS fecha_creacion
 FROM usuarios u
 JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
 JOIN roles r ON ur.id_rol = r.id_rol
@@ -242,6 +249,43 @@ app.delete("/api/empleados/:id", requireRole("Administrador"), (req, res) => {
       return res.status(500).json({ error: "Error del servidor" });
     }
     res.json({ mensaje: "Empleado eliminado correctamente" });
+  });
+});
+
+app.put("/api/empleados/:id", requireRole("Administrador"), (req, res) => {
+  const { id } = req.params;
+  const { nombre, email, telefono, rol } = req.body;
+
+  const sqlUsuario = `
+    UPDATE usuarios
+    SET usuario_nombre = ?, usuario_email = ?, usuario_telefono = ?
+    WHERE id_usuario = ?
+  `;
+
+  db.query(sqlUsuario, [nombre, email, telefono, id], (error) => {
+    if (error) {
+      console.error(error);
+      return res.status(500).json({ error: "Error al actualizar usuario" });
+    }
+
+    // actualizar rol
+    const sqlRol = `
+      UPDATE usuario_rol ur
+      JOIN roles r ON ur.id_rol = r.id_rol
+      SET ur.id_rol = (
+        SELECT id_rol FROM roles WHERE rol_nombre = ?
+      )
+      WHERE ur.id_usuario = ?
+    `;
+
+    db.query(sqlRol, [rol, id], (error2) => {
+      if (error2) {
+        console.error(error2);
+        return res.status(500).json({ error: "Error al actualizar rol" });
+      }
+
+      res.json({ mensaje: "Empleado actualizado correctamente" });
+    });
   });
 });
 
