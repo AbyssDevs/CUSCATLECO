@@ -1,4 +1,3 @@
-En el administrador.html:
 <!DOCTYPE html>
 <html lang="en">
 
@@ -28,6 +27,16 @@ En el administrador.html:
         <div class="sidebar" id="sidebar">
 
             <h2>RESTAURANTE CUSCATLECO</h2>
+
+            <div class="user-info" id="userInfo">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-circle-user"></i>
+                </div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Cargando...</span>
+                    <span class="user-role" id="userRole">Cargando...</span>
+                </div>
+            </div>
 
             <ul>
                 <li onclick="mostrar('resumen')">📑 Resumen</li>
@@ -120,7 +129,7 @@ En el administrador.html:
             <div id="registrarEmpleado" style="display: none;">
 
                 <h2>Registrar empleado</h2>
-
+                
                 <div class="admin-empleados-form">
                     <input type="text" id="usuario_nombre" placeholder="Nombre completo">
                     <input type="text" id="usuario_email" placeholder="Email">
@@ -134,26 +143,74 @@ En el administrador.html:
                         <option value="Cocina">Cocina</option>
                     </select>
 
-                    <button onclick="registrarEmpleado()">Registrar empleado</button>
+                    <button id="btnRegistrar" onclick="registrarEmpleado()">Registrar empleado</button>
                 </div>
 
             </div>
 
             <div id="empleados" style="display: none;">
 
-                <h2>Lista de empleados</h2>
+                <h2 style="text-align: center;">Lista de empleados</h2>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div class="contador-empleados">
+                        <span class="numero" id="contadorEmpleados">0</span>
+                        <span class="texto">Empleados</span>
+                    </div>
+                    <input type="text" id="buscarEmpleado" placeholder="Buscar empleado..." style="width:600px; padding:5px;">
+                </div>
+            
+                <table id="tablaEmpleados">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Rol</th>
+                            <th>Fecha de registro</th>
+                            <th>Editar</th>
+                            <th>Eliminar</th>
+                        </tr>
+                    </thead>
 
-                <div id="listaEmpleados" class="empleados-grid"></div>
+                    <tbody id="listaEmpleados"></tbody>
+                </table>
 
             </div>
 
-
+            
             <script src="js/empleados.js"></script>
             <script>
                 function toggleMenu() {
                     document.getElementById('sidebar').classList.toggle('active');
                     document.getElementById('menuBackdrop').classList.toggle('active');
                 }
+
+                document.getElementById("buscarEmpleado").addEventListener("input", function () {
+                    const filtro = this.value.toLowerCase();
+                    const tabla = document.getElementById("tablaEmpleados");
+                    const filas = tabla.getElementsByTagName("tr");
+
+                    for (let i = 1; i < filas.length; i++) { // comenzamos desde 1 para saltar el header
+                        const celdas = filas[i].getElementsByTagName("td");
+                        let textoFila = "";
+
+                        // Concatenamos ID, nombre, email, teléfono y rol
+                        for (let j = 0; j <= 4; j++) {
+                            textoFila += celdas[j].innerText.toLowerCase() + " ";
+                        }
+
+                        // Mostramos la fila si coincide
+                        if (textoFila.includes(filtro)) {
+                            filas[i].style.display = "";
+                        } else {
+                            filas[i].style.display = "none";
+                        }
+                    }
+
+                    contarEmpleados();;
+                });
             </script>
 
 </body>
