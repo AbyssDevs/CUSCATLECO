@@ -256,6 +256,7 @@ FROM usuarios u
 JOIN usuario_rol ur ON u.id_usuario = ur.id_usuario
 JOIN roles r ON ur.id_rol = r.id_rol
 WHERE u.usuario_activo = TRUE
+ORDER BY u.id_usuario DESC
 `;
 
   db.query(sql, (error, empleados) => {
