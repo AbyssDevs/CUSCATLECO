@@ -200,10 +200,10 @@ function editarEmpleado(id) {
   let celdas = fila.querySelectorAll("td");
 
   // Llenar el formulario
-  document.getElementById("usuario_nombre").value = celdas[0].innerText;
-  document.getElementById("usuario_email").value = celdas[1].innerText;
-  document.getElementById("usuario_telefono").value = celdas[2].innerText;
-  document.getElementById("rol_nombre").value = celdas[3].innerText;
+  document.getElementById("usuario_nombre").value = celdas[1].innerText;
+  document.getElementById("usuario_email").value = celdas[2].innerText;
+  document.getElementById("usuario_telefono").value = celdas[3].innerText;
+  document.getElementById("rol_nombre").value = celdas[4].innerText;
   document.getElementById("usuario_password").value = "";
 
   empleadoEditando = id;
@@ -217,7 +217,7 @@ function editarEmpleado(id) {
   let originalText = titulo.innerText;
   titulo.innerHTML =
     '✏️ Editando empleado: <span style="color: #000000; font-size: 1.2rem;">' +
-    celdas[0].innerText +
+    celdas[1].innerText +
     "</span>";
 
   // Crear botón para cancelar edición
