@@ -1,11 +1,127 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cajero</title>
+    <title>Panel Cocina</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS Específico de Cocina -->
+    <link rel="stylesheet" href="../css/cocina.css">
+
 </head>
+
 <body>
-    COCINA
+
+    <div class="dashboard">
+
+        <!-- BARRA LATERAL -->
+        <div class="sidebar" id="sidebar">
+
+            <h2>RESTAURANTE CUSCATLECO</h2>
+
+            <div class="user-info" id="userInfo">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-fire-burner"></i>
+                </div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Cargando...</span>
+                    <span class="user-role" id="userRole">Cocina</span>
+                </div>
+            </div>
+
+            <ul>
+                <li onclick="mostrarMenu('resumen')">Vista General</li>
+                <li onclick="mostrarMenu('ordenes')">Preparar Pedidos</li>
+                <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li>
+            </ul>
+
+        </div>
+
+        <div class="backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <div class="contenido">
+
+            <div class="header-mobile">
+                <button class="hamburger" onclick="toggleMenu()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+
+            <!-- RESUMEN -->
+            <div id="resumen">
+
+                <h1>Panel de Cocina</h1>
+                <p id="bienvenidaUsuario"></p>
+
+                <h2>Estadísticas</h2>
+                <div class="cards">
+                    <div class="card">
+                        <h3>En Preparación</h3>
+                        <p id="ordenesPreparando">0</p>
+                    </div>
+                    <div class="card">
+                        <h3>Listos</h3>
+                        <p id="ordenesListos">0</p>
+                    </div>
+                </div>
+
+            </div>
+
+
+            <!-- ÓRDENES -->
+            <div id="ordenes" style="display: none;">
+
+                <h1>Gestión de Platillos</h1>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <select id="filtroEstadoPlatillos" style="width: 200px;">
+                        <option value="todos">Todos</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="preparando">Preparando</option>
+                    </select>
+                </div>
+
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>Mesa</th>
+                            <th>Platillo</th>
+                            <th>Cantidad</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaOrdenesCocina">
+                        <!-- TR de ejemplo a generar mediante JS -->
+                        <!--
+                        <tr>
+                            <td>Mesa 4</td>
+                            <td>Pupusas Revueltas</td>
+                            <td>3</td>
+                            <td><span class="pendiente">Pendiente</span></td>
+                            <td>
+                                <button class="btn-editar">Preparar</button>
+                                <button class="btn-completar">Listo</button>
+                            </td>
+                        </tr>
+                        -->
+                    </tbody>
+                </table>
+
+            </div>
+            
+        </div>
+    </div>
 </body>
 </html>
