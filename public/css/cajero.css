@@ -1,0 +1,363 @@
+/* GLOBAL STYLES */
+body {
+    margin: 0;
+    font-family: 'Roboto', Arial, sans-serif;
+    background-color: #fafafa;
+    color: #333;
+}
+
+h1, h2, h3, h4, th {
+    font-family: Arial, sans-serif;
+}
+
+/* DASHBOARD LAYOUT */
+.dashboard {
+    display: flex;
+    height: 100vh;
+}
+
+/* SIDEBAR */
+.sidebar {
+    width: 260px;
+    background: #7a1d1d;
+    color: white;
+    padding: 30px 20px;
+    height: 100vh;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+}
+
+.sidebar h2 {
+    margin-top: 0;
+    margin-bottom: 30px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    font-size: 20px;
+    border-bottom: 2px solid #c1a257; /* Gold accent */
+    padding-bottom: 15px;
+    text-align: center;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar li {
+    padding: 12px 15px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    font-weight: 500;
+    transition: background 0.2s ease;
+}
+
+.sidebar li:hover {
+    background: #661515;
+}
+
+.sidebar i {
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+/* BACKDROP */
+.backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 998;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.backdrop.active {
+    display: block;
+    opacity: 1;
+}
+
+/* MOBILE HEADER */
+.header-mobile {
+    display: none;
+    padding-bottom: 20px;
+}
+
+.hamburger {
+    background: #7a1d1d;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* MAIN CONTENT */
+.contenido {
+    flex: 1;
+    padding: 40px;
+    background: #fafafa;
+    overflow-y: auto;
+    height: 100vh;
+    box-sizing: border-box;
+}
+
+/* CARDS */
+.cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 25px;
+    margin-top: 25px;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    width: 220px;
+    text-align: center;
+    border-top: 4px solid #c0392b;
+    box-sizing: border-box;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    font-size: 16px;
+    color: #666;
+    font-family: 'Roboto', sans-serif;
+    font-weight: 500;
+}
+
+.card p {
+    font-size: 32px;
+    font-weight: bold;
+    color: #7a1d1d;
+    margin: 0;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+    .header-mobile {
+        display: block;
+    }
+
+    .sidebar {
+        position: fixed;
+        left: -260px;
+        top: 0;
+        z-index: 999;
+        transition: left 0.3s ease;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .sidebar.active {
+        left: 0;
+    }
+
+    .contenido {
+        padding: 25px;
+    }
+
+    .cards {
+        flex-direction: column;
+    }
+
+    .card {
+        width: 100%;
+    }
+}
+
+/* FORMS & INPUTS */
+select,
+input[type="text"],
+input[type="number"],
+input[type="password"] {
+    padding: 12px 15px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: 'Roboto', sans-serif;
+    outline: none;
+    background: white;
+    transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+select:focus,
+input[type="text"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus {
+    border-color: #7a1d1d;
+    box-shadow: 0 0 0 3px rgba(122, 29, 29, 0.1);
+}
+
+button {
+    padding: 10px 15px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    background: #7a1d1d;
+    color: white;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    transition: background 0.2s ease;
+}
+
+button:hover {
+    background: #661515;
+}
+
+/* STATUS COLORS */
+.pendiente {
+    color: #e67e22; 
+    font-weight: bold;
+    background: rgba(230, 126, 34, 0.1);
+    padding: 5px 12px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+.completado {
+    color: #27ae60;
+    font-weight: bold;
+    background: rgba(39, 174, 96, 0.1);
+    padding: 5px 12px;
+    border-radius: 20px;
+    display: inline-block;
+}
+
+/* TABLES */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+th, td {
+    padding: 15px 20px;
+    text-align: center;
+}
+
+th {
+    background: #7a1d1d;
+    color: white;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+}
+
+tr {
+    border-bottom: 1px solid #eee;
+    transition: background 0.2s ease;
+}
+
+tr:last-child {
+    border-bottom: none;
+}
+
+tr:nth-child(even) {
+    background: #fdfdfd;
+}
+
+tr:hover {
+    background: #f5f5f5;
+}
+
+/* BOTONES DE TABLA MEJORADOS */
+.btn-editar, .btn-eliminar, .btn-completar, .btn-agregar {
+  color: white;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-editar { background-color: #f39c12; }
+.btn-editar:hover { background-color: #e67e22; }
+
+.btn-eliminar { background-color: #e74c3c; }
+.btn-eliminar:hover { background-color: #c0392b; }
+
+.btn-completar { background-color: #27ae60; }
+.btn-completar:hover { background-color: #219653; }
+
+.btn-agregar { background-color: #2980b9; }
+.btn-agregar:hover { background-color: #2471a3; }
+
+/* User Info en Sidebar */
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    border-left: 3px solid #c1a257;
+}
+
+.user-avatar {
+    font-size: 2.2rem;
+    color: #c1a257;
+    line-height: 1;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.user-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: white;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.user-role {
+    font-size: 0.8rem;
+    color: #c1a257;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 2px;
+}
+
+@media (max-width: 768px) {
+    .user-info {
+        padding: 12px;
+    }
+    
+    .user-avatar {
+        font-size: 1.8rem;
+    }
+    
+    .user-name {
+        font-size: 0.9rem;
+    }
+    
+    .user-role {
+        font-size: 0.7rem;
+    }
+}
