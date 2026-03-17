@@ -1,11 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cajero</title>
+    <title>Panel Cajero</title>
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <!-- CSS Específico de Cajero -->
+    <link rel="stylesheet" href="../css/cajero.css">
+
 </head>
+
 <body>
-    CAJERO
+
+    <div class="dashboard">
+
+        <!-- BARRA LATERAL -->
+        <div class="sidebar" id="sidebar">
+
+            <h2>RESTAURANTE CUSCATLECO</h2>
+
+            <div class="user-info" id="userInfo">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-cash-register"></i>
+                </div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Cargando...</span>
+                    <!-- Role label as Cajero -->
+                    <span class="user-role" id="userRole">Cajero</span>
+                </div>
+            </div>
+
+            <ul>
+                <li onclick="mostrarViews('cobros')">Facturar y Cobrar</li>
+                <li onclick="mostrarViews('tomar-pedido')">Nuevo Pedido</li>
+                <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li>
+            </ul>
+
+        </div>
+
+        <div class="backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <div class="contenido">
+
+            <div class="header-mobile">
+                <button class="hamburger" onclick="toggleMenu()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+
+            <!-- COBROS (Dashboard principal) -->
+            <div id="cobros">
+
+                <h1>Cobrar Órdenes</h1>
+                <p id="bienvenidaUsuario"></p>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <input type="text" id="buscarMesaCobro" placeholder="Buscar por mesa..." style="flex: 1;">
+                </div>
+
+                <table border="1">
+                    <thead>
+                        <tr>
+                            <th>ID Orden</th>
+                            <th>Mesa</th>
+                            <th>Mesero</th>
+                            <th>Total</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tablaCobros">
+                        <!-- Ejemplo de render -->
+                        <!--
+                        <tr>
+                            <td>#1002</td>
+                            <td>Mesa 3</td>
+                            <td>Juan Perez</td>
+                            <td>$15.50</td>
+                            <td><span class="pendiente">Pendiente de Pago</span></td>
+                            <td>
+                                <button class="btn-completar">Facturar y Cobrar</button>
+                            </td>
+                        </tr>
+                        -->
+                    </tbody>
+                </table>
+
+            </div>
+
+            <!-- TOMAR PEDIDO -->
+            <div id="tomar-pedido" style="display: none;">
+                <h1>Tomar Pedido Nuevo</h1>
+                
+                <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px;">
+                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                        <div style="flex: 1;">
+                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Número de Mesa</label>
+                            <input type="number" id="mesa_num" placeholder="Ej. 10" style="width: 100%; box-sizing: border-box;">
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seleccionar Platillos</h3>
+                    
+                    <div id="lista-platillos-pedido">
+                        <!-- Ejemplo de items a agregar -->
+                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                            <select style="flex: 2;">
+                                <option value="">Seleccione un platillo...</option>
+                                <option value="1">Pupusas Revueltas</option>
+                                <option value="2">Pupusas de Queso</option>
+                                <option value="3">Sopa de Gallina</option>
+                            </select>
+                            <input type="number" placeholder="Cant." min="1" value="1" style="flex: 1;">
+                            <button class="btn-eliminar"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </div>
+                    
+                    <button class="btn-agregar" style="margin-top: 10px; margin-bottom: 20px;"><i class="fa-solid fa-plus"></i> Añadir otro platillo</button>
+                    
+                    <button style="width: 100%; padding: 15px; font-size: 16px;">Enviar Pedido a Cocina</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
 </body>
+
 </html>
