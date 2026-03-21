@@ -4,17 +4,215 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Administracion</title>
+    <title>Panel Admin</title>
+
+    <!-- Font Awesome for hamburger icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <!-- Google Fonts: Playfair Display for headings, Roboto for inputs -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap"
+        rel="stylesheet">
+
+    <link rel="stylesheet" href="../css/administrador.css">
+
 </head>
 
 <body>
-    ADMINISTRACION
-    <button onclick="cerrarSesion()">Cerrar sesión</button>
-    <script>
-        function cerrarSesion() {
-            window.location.href = "/logout";
-        }
-    </script>
+
+    <div class="dashboard">
+
+        <div class="sidebar" id="sidebar">
+
+            <h2>RESTAURANTE CUSCATLECO</h2>
+
+            <div class="user-info" id="userInfo">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-circle-user"></i>
+                </div>
+                <div class="user-details">
+                    <span class="user-name" id="userName">Cargando...</span>
+                    <span class="user-role" id="userRole">Cargando...</span>
+                </div>
+            </div>
+
+            <ul>
+                <li onclick="mostrar('resumen')">📑 Resumen</li>
+                <!-- <li onclick="mostrar('ordenes')">Ver órdenes</li> -->
+                <li onclick="mostrar('empleados')">📋 Ver Empleados</li>
+                <li onclick="mostrar('registrarEmpleado')">➕ Añadir Empleados</li>
+                <li onclick="cerrarSesion()">🚪 Cerrar sesión</li>
+            </ul>
+
+        </div>
+
+        <div class="backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
+
+        <div class="contenido">
+
+            <div class="header-mobile">
+                <button class="hamburger" onclick="toggleMenu()">
+                    <i class="fa-solid fa-bars"></i>
+                </button>
+            </div>
+
+            <!-- RESUMEN -->
+
+            <div id="resumen">
+
+                <h1>Panel Administrador</h1>
+
+                <p id="bienvenidaUsuario"></p>
+
+                <h2>Estadísticas</h2>
+
+                <div class="cards">
+
+                    <div class="card">
+                        <h3>Total de órdenes</h3>
+                        <p id="totalOrdenes">0</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>Pendientes</h3>
+                        <p id="ordenesPendientes">0</p>
+                    </div>
+
+                    <div class="card">
+                        <h3>Completadas</h3>
+                        <p id="ordenesCompletadas">0</p>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- ORDENES -->
+
+
+            <!-- <div id="ordenes">
+
+                <h1>Órdenes del restaurante</h1>
+                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+                    <input type="text" id="buscarMesa" placeholder="Buscar por mesa..." onkeyup="filtrarOrdenes()" style="flex: 1;">
+                    <select onchange="filtrarEstado(this.value)">
+                        <option value="todas">Todas</option>
+                        <option value="pendiente">Pendientes</option>
+                        <option value="completado">Completadas</option>
+                    </select>
+                </div>
+                <table border="1">
+
+                    <thead>
+                        <tr>
+                            <th>Mesa</th>
+                            <th>Platillo</th>
+                            <th>Cantidad</th>
+                            <th>Mesero</th>
+                            <th>Estado</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="tablaOrdenesAdmin"></tbody>
+
+                </table>
+
+            </div> -->
+
+
+            <!-- EMPLEADOS -->
+
+            <div id="registrarEmpleado" style="display: none;">
+
+                <h2>Registrar empleado</h2>
+                
+                <div class="admin-empleados-form">
+                    <input type="text" id="usuario_nombre" placeholder="Nombre completo">
+                    <input type="text" id="usuario_email" placeholder="Email">
+                    <input type="text" id="usuario_telefono" placeholder="Teléfono">
+                    <input type="password" id="usuario_password" placeholder="Contraseña">
+
+                    <select id="rol_nombre">
+                        <option value="Administrador">Administrador</option>
+                        <option value="Mesero">Mesero</option>
+                        <option value="Cajero">Cajero</option>
+                        <option value="Cocina">Cocina</option>
+                    </select>
+
+                    <button id="btnRegistrar" onclick="registrarEmpleado()">Registrar empleado</button>
+                </div>
+
+            </div>
+
+            <div id="empleados" style="display: none;">
+
+                <h2 style="text-align: center;">Lista de empleados</h2>
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div class="contador-empleados">
+                        <span class="numero" id="contadorEmpleados">0</span>
+                        <span class="texto">Empleados</span>
+                    </div>
+                    <input type="text" id="buscarEmpleado" placeholder="Buscar empleado..." style="width:600px; padding:5px;">
+                </div>
+            
+                <table id="tablaEmpleados">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Rol</th>
+                            <th>Fecha de registro</th>
+                            <th>Editar</th>
+                            <th>Eliminar</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="listaEmpleados"></tbody>
+                </table>
+
+            </div>
+
+            
+            <script src="js/empleados.js"></script>
+            <script>
+                function toggleMenu() {
+                    document.getElementById('sidebar').classList.toggle('active');
+                    document.getElementById('menuBackdrop').classList.toggle('active');
+                }
+
+                document.getElementById("buscarEmpleado").addEventListener("input", function () {
+                    const filtro = this.value.toLowerCase();
+                    const tabla = document.getElementById("tablaEmpleados");
+                    const filas = tabla.getElementsByTagName("tr");
+
+                    for (let i = 1; i < filas.length; i++) { // comenzamos desde 1 para saltar el header
+                        const celdas = filas[i].getElementsByTagName("td");
+                        let textoFila = "";
+
+                        // Concatenamos ID, nombre, email, teléfono y rol
+                        for (let j = 0; j <= 4; j++) {
+                            textoFila += celdas[j].innerText.toLowerCase() + " ";
+                        }
+
+                        // Mostramos la fila si coincide
+                        if (textoFila.includes(filtro)) {
+                            filas[i].style.display = "";
+                        } else {
+                            filas[i].style.display = "none";
+                        }
+                    }
+
+                    contarEmpleados();;
+                });
+            </script>
+
 </body>
 
 </html>
