@@ -38,18 +38,15 @@ document.addEventListener('DOMContentLoaded', () => {
       const datos = await respuesta.json();
 
       if (respuesta.ok) {
-        const rol = (datos.rol || '').toLowerCase();
-
-        if (rol === 'administrador') {
+        
+        if (datos.rol === 'Administrador') {
           window.location.href = '/admin';
-        } else if (rol === 'mesero') {
+        } else if (datos.rol === 'Mesero') {
           window.location.href = '/mesero';
-        } else if (rol === 'cocina') {
+        }else if (datos.rol === 'Cocina') {
           window.location.href = '/cocina';
-        } else if (rol === 'cajero') {
+        }else if (datos.rol === 'Cajero') {
           window.location.href = '/cajero';
-        } else {
-          mostrarError('Rol no reconocido, contacte al administrador.');
         }
       } else {
         mostrarError(datos.error || 'Credenciales inválidas');

@@ -28,14 +28,6 @@ app.use(
   })
 );
 
-// Copia el usuario de sesión a req.user para los middlewares de autorización
-app.use((req, res, next) => {
-  if (req.session && req.session.usuario) {
-    req.user = req.session.usuario;
-  }
-  next();
-});
-
 // Rutas públicas
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/index.html"));

@@ -37,12 +37,8 @@ function requirePermission(permiso) {
 }
 
 function requireLogin(req, res, next) {
-  const isApi = req.originalUrl.startsWith('/api');
-
   if (!req.user) {
-    return isApi
-      ? res.status(401).json({ error: "No autorizado" })
-      : res.redirect("/");
+    return res.status(401).json({ error: "No autorizado" });
   }
   next();
 }
