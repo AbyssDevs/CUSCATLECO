@@ -116,7 +116,9 @@ CREATE TABLE platillos (
     platillo_disponible BOOLEAN DEFAULT TRUE,
     platillo_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
     platillo_actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria)
+    platillo_actualizado_por INT,
+    FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria),
+    FOREIGN KEY (platillo_actualizado_por) REFERENCES usuarios(id_usuario)
 );
 -- ============================================================
 -- 6. PEDIDOS
