@@ -4,6 +4,8 @@ async function registrarPlatillo() {
     const precio = parseFloat(document.getElementById('platillo_precio').value);
     const imagen_url = document.getElementById('platillo_imagen_url').value.trim();
     const id_categoria = parseInt(document.getElementById('id_categoria').value);
+    const disponible = document.getElementById('platillo_disponible').checked;
+
 
     // Validación básica
     if (!nombre) {
@@ -20,7 +22,8 @@ async function registrarPlatillo() {
         platillo_descripcion: descripcion,
         platillo_precio: precio,
         platillo_imagen_url: imagen_url,
-        id_categoria: id_categoria
+        id_categoria: id_categoria,
+        platillo_disponible: disponible
     };
 
     try {
@@ -43,6 +46,7 @@ async function registrarPlatillo() {
             document.getElementById('platillo_precio').value = '';
             document.getElementById('platillo_imagen_url').value = '';
             document.getElementById('id_categoria').value = '1';
+            document.getElementById('platillo_disponible').checked = true;
         } else {
             alert("❌ Error: " + (datos.error || "No se pudo crear el platillo"));
         }

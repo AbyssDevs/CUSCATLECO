@@ -53,7 +53,7 @@ const login = (req, res) => {
       req.session.usuario = {
         id: usuario.id_usuario,
         nombre: usuario.usuario_nombre,
-        rol: usuario.rol_nombre,
+        role: usuario.rol_nombre,
         permisos: permisos.map(p => p.permiso_nombre)
       };
 

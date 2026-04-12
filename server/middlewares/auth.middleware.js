@@ -1,5 +1,15 @@
 // middlewares/auth.middleware.js
 
+const path = require("path");
+
+// Middleware para recuperar el usuario de la sesión
+function recoverSession(req, res, next) {
+  if (req.session && req.session.usuario) {
+    req.user = req.session.usuario;
+  }
+  next();
+}
+
 function requirePermission(permiso) {
   return (req, res, next) => {
     const isApi = req.originalUrl.startsWith('/api');
@@ -38,7 +48,7 @@ function requirePermission(permiso) {
 
 function requireLogin(req, res, next) {
   if (!req.user) {
-    return res.status(401).json({ error: "No autorizado" });
+    return res.redirect("/");
   }
   next();
 }
@@ -46,35 +56,40 @@ function requireLogin(req, res, next) {
 function requireRole(rol) {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({ error: "No autorizado" });
+      return res.redirect("/403");
     }
 
     if ((req.user.role || "").toLowerCase() !== rol.toLowerCase()) {
-      return res.status(403).json({ error: "Acceso denegado" });
+      return res.redirect("/403");
     }
 
     next();
   };
 }
 
+//NO TOCAR ESTE CODIGO POR FAVOR, ES IMPORTANTE Y ME SIRVE PARA HACER PRUEBAS EN THUNDER CLIENT
 const auditoriaMiddleware = (req, res, next) => {
   const userId = req.headers['x-user-id'];
-    const userRole = req.headers['x-user-role'];
+  const userRole = req.headers['x-user-role'];
 
-    if (!userId) {
-        return res.status(400).json({ error: "Usuario no enviado en headers" });
-    }
+  // Si ya tenemos el usuario por la sesión (recoverSession) lo usamos para evitar el error "❌ Error: Usuario no enviado en headers"
+  if (req.user && req.user.id) {
+    return next();
+  }
 
+  // Si no hay sesión, intentamos con los headers (para Thunder Client, etc.)
+  if (userId) {
     req.user = {
         id: parseInt(userId),
         role: userRole
     };
-    
     console.log("HEADERS:", req.headers);
     console.log("USER:", req.user);
-    next();
+    return next();
+  }
 
+  return res.status(400).json({ error: "Usuario no enviado en sesión ni en headers" });
 };
 
 
-module.exports = { requirePermission, requireLogin, requireRole, auditoriaMiddleware };
+module.exports = { requirePermission, requireLogin, requireRole, auditoriaMiddleware, recoverSession };
