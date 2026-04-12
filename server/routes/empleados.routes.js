@@ -8,12 +8,13 @@ const {
 } = require("../controllers/empleados.controller");
 const { requirePermission } = require("../middlewares/auth.middleware");
 
-router.post("/", crearEmpleado);
+router.post("/", requirePermission("gestionar_usuarios"), crearEmpleado);
 
-router.get("/", obtenerEmpleados);
+router.get("/", requirePermission("gestionar_usuarios"), obtenerEmpleados);
 
-router.delete("/:id", eliminarEmpleado);
+router.delete("/:id", requirePermission("gestionar_usuarios"), eliminarEmpleado);
 
-router.put("/:id", editarEmpleado);
+router.put("/:id", requirePermission("gestionar_usuarios"), editarEmpleado);
+
 
 module.exports = router;

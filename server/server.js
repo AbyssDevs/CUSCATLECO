@@ -2,7 +2,9 @@ const express = require("express");
 const session = require("express-session");
 const path = require("path");
 const db = require("./db");
-const { requirePermission, requireLogin, requireRole, auditoriaMiddleware } = require("./middlewares/auth.middleware");
+
+const { requirePermission, requireLogin, requireRole, auditoriaMiddleware, recoverSession } = require("./middlewares/auth.middleware");
+
 
 // Importar rutas
 const authRoutes = require("./routes/auth.routes");
@@ -27,6 +29,10 @@ app.use(
     cookie: { maxAge: 1000 * 60 * 30 }, // La sesión dura 30 minutos
   })
 );
+
+
+// Middleware para recuperar usuario de la sesión
+app.use(recoverSession);
 
 // Rutas públicas
 app.get("/", (req, res) => {

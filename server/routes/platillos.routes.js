@@ -6,8 +6,8 @@ const {
 } = require("../controllers/platillos.controller");
 const { requirePermission, auditoriaMiddleware } = require("../middlewares/auth.middleware");
 
-router.post("/", auditoriaMiddleware, requirePermission("gestionar_menu"), crearPlatillo);
 
+router.post("/", auditoriaMiddleware, requirePermission("gestionar_menu"), crearPlatillo);
 
 
 module.exports = router;

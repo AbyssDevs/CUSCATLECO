@@ -1,7 +1,7 @@
 const db = require("../db");
 
 const crearPlatillo = (req, res) => {
-  const { id_categoria, platillo_nombre, platillo_descripcion, platillo_precio, platillo_imagen_url } = req.body;
+  const { id_categoria, platillo_nombre, platillo_descripcion, platillo_precio, platillo_imagen_url, platillo_disponible = true } = req.body;
 
   if (!id_categoria || !platillo_nombre || !platillo_precio) {
     return res.status(400).json({ error: "Faltan campos requeridos" });
@@ -20,13 +20,13 @@ const crearPlatillo = (req, res) => {
 
     const sql = `
       INSERT INTO platillos 
-      (id_categoria, platillo_nombre, platillo_descripcion, platillo_precio, platillo_imagen_url)
-      VALUES (?, ?, ?, ?, ?)
+      (id_categoria, platillo_nombre, platillo_descripcion, platillo_precio, platillo_imagen_url, platillo_disponible, platillo_actualizado_por)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `;
 
     db.query(
       sql,
-      [id_categoria, platillo_nombre, platillo_descripcion, platillo_precio, platillo_imagen_url],
+      [id_categoria, platillo_nombre, platillo_descripcion, platillo_precio, platillo_imagen_url, platillo_disponible, req.user.id],
       (error, resultado) => {
         if (error) {
           console.error(error);
