@@ -40,12 +40,15 @@ async function cargarUsuarioLogueado() {
     const usuario = await respuesta.json();
     const userName = document.getElementById("userName");
     const userRole = document.getElementById("userRole");
-    if (userName) userName.textContent = usuario.nombre || "Usuario";
-    if (userRole) userRole.textContent = usuario.rol || "Sin rol";
+    const nombreUsuario = usuario.nombre || usuario.usuario_nombre || usuario.name || "Usuario";
+    const rolUsuario = usuario.role || usuario.rol || "Sin rol";
+
+    if (userName) userName.textContent = nombreUsuario;
+    if (userRole) userRole.textContent = rolUsuario;
 
     const bienvenida = document.getElementById("bienvenidaUsuario");
     if (bienvenida) {
-      bienvenida.innerHTML = `Bienvenido, <strong>${usuario.nombre}</strong> (${usuario.rol})`;
+      bienvenida.innerHTML = `Bienvenido, <strong>${nombreUsuario}</strong> (${rolUsuario})`;
     }
 
     return usuario;
@@ -89,42 +92,12 @@ function setMenuEmpty(message) {
   empty.style.display = message ? "flex" : "none";
 }
 
-function applyMenuFilters() {
-  const searchInput = document.getElementById("menuSearch");
-  const categorySelect = document.getElementById("menuCategory");
-  let filtered = [...menuState.items];
-
-  if (searchInput && searchInput.value.trim()) {
-    const query = searchInput.value.trim().toLowerCase();
-    filtered = filtered.filter((item) => {
-      const nombre = String(item.platillo_nombre || "").toLowerCase();
-      const descripcion = String(item.platillo_descripcion || "").toLowerCase();
-      return nombre.includes(query) || descripcion.includes(query);
-    });
-  }
-
-  if (categorySelect && categorySelect.value && categorySelect.value !== "todos") {
-    filtered = filtered.filter((item) => item.categoria_nombre === categorySelect.value);
-  }
-
-  return filtered;
-}
-
 function renderMenu(items) {
   menuState.items = items;
   const tableBody = document.getElementById("menuTableBody");
   const cardList = document.getElementById("menuCardList");
-  const categorySelect = document.getElementById("menuCategory");
 
-  if (categorySelect) {
-    const categories = [...new Set(items.map((item) => item.categoria_nombre).filter(Boolean))];
-    categorySelect.innerHTML = `
-      <option value="todos">Todas las categorías</option>
-      ${categories.map((categoria) => `<option value="${categoria}">${categoria}</option>`).join("")}
-    `;
-  }
-
-  const filteredItems = applyMenuFilters();
+  const filteredItems = [...items];
 
   if (tableBody) {
     if (filteredItems.length === 0) {
@@ -209,21 +182,8 @@ async function loadMenu() {
   }
 }
 
-function initializeMenuEvents() {
-  const searchInput = document.getElementById("menuSearch");
-  const categorySelect = document.getElementById("menuCategory");
-
-  if (searchInput) {
-    searchInput.addEventListener("input", () => renderMenu(menuState.items));
-  }
-  if (categorySelect) {
-    categorySelect.addEventListener("change", () => renderMenu(menuState.items));
-  }
-}
-
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
-  initializeMenuEvents();
 
   const menuSection = document.getElementById("menu-restaurante");
   if (menuSection && menuSection.style.display !== "none") {
