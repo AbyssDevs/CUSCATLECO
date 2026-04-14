@@ -267,7 +267,7 @@ th {
     letter-spacing: 0.5px;
 }
 
-.menu-table thead th:nth-child(-n+3) {
+.menu-table thead th:nth-child(-n+4) {
     background: #7a1d1d;
     color: white;
 }
