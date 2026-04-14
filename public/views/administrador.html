@@ -17,6 +17,7 @@
         rel="stylesheet">
 
     <link rel="stylesheet" href="../css/administrador.css">
+    <link rel="stylesheet" href="../css/menu.css">
 
 </head>
 
@@ -42,6 +43,7 @@
                 <li onclick="mostrar('resumen')">📑 Resumen</li>
                 <!-- <li onclick="mostrar('ordenes')">Ver órdenes</li> -->
                 <li onclick="mostrar('empleados')">📋 Ver Empleados</li>
+                <li onclick="mostrar('menuPlatillos')">🍽️ Ver Menú</li>
                 <li onclick="mostrar('registrarEmpleado')">➕ Añadir Empleados</li>
                 <li onclick="mostrar('registrarPlatillo')">🍔 Añadir Platillo</li>
                 <li onclick="cerrarSesion()">🚪 Cerrar sesión</li>
@@ -88,6 +90,37 @@
 
                 </div>
 
+            </div>
+
+            <div id="menuPlatillos" style="display: none;">
+                <h2>Menú del Restaurante</h2>
+
+                <div class="menu-page-header">
+                    <input id="menuSearch" type="text" placeholder="Buscar platillo...">
+                    <select id="menuCategory">
+                        <option value="todos">Todas las categorías</option>
+                    </select>
+                </div>
+
+                <div id="menuLoading" class="menu-loading">
+                    <span class="spinner"></span>
+                    <span>Cargando menú...</span>
+                </div>
+                <div id="menuEmpty" class="menu-empty"></div>
+
+                <table class="menu-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menuTableBody"></tbody>
+                </table>
+
+                <div id="menuCardList" class="menu-card-list"></div>
             </div>
 
 
@@ -209,6 +242,7 @@
 
             <script src="js/empleados.js"></script>
             <script src="js/platillos_admin.js"></script>
+            <script src="js/menu.js"></script>
             <script>
                 function toggleMenu() {
                     document.getElementById('sidebar').classList.toggle('active');
