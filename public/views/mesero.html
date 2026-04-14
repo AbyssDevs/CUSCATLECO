@@ -18,6 +18,7 @@
 
     <!-- CSS Específico de Mesero -->
     <link rel="stylesheet" href="../css/mesero.css">
+    <link rel="stylesheet" href="../css/menu.css">
 
 </head>
 
@@ -100,51 +101,33 @@
             <!-- VER MENÚ -->
             <div id="menu-restaurante" style="display: none;">
                 <h1>Menú del Restaurante</h1>
-                
-                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                    <input type="text" placeholder="Buscar platillo..." style="flex: 1; max-width: 400px;">
-                    <select>
+
+                <div class="menu-page-header">
+                    <input id="menuSearch" type="text" placeholder="Buscar platillo...">
+                    <select id="menuCategory">
                         <option value="todos">Todas las categorías</option>
-                        <option value="pupusas">Pupusas</option>
-                        <option value="platos">Platos Fuertes</option>
-                        <option value="bebidas">Bebidas</option>
                     </select>
                 </div>
 
-                <div class="grid-pedidos">
-                    <!-- Ejemplo de menú -->
-                    <div class="menu-item">
-                        <div>
-                            <h4>Pupusas Revueltas</h4>
-                            <span style="color: #777; font-size: 0.9em;">Frijol, queso y chicharrón</span>
-                        </div>
-                        <div class="precio">$1.25</div>
-                    </div>
-                    
-                    <div class="menu-item">
-                        <div>
-                            <h4>Pupusas de Queso</h4>
-                            <span style="color: #777; font-size: 0.9em;">Queso y loroco opcionla</span>
-                        </div>
-                        <div class="precio">$1.25</div>
-                    </div>
-                    
-                    <div class="menu-item">
-                        <div>
-                            <h4>Sopa de Gallina India</h4>
-                            <span style="color: #777; font-size: 0.9em;">Media gallina asada y sopa</span>
-                        </div>
-                        <div class="precio">$6.50</div>
-                    </div>
-                    
-                    <div class="menu-item">
-                        <div>
-                            <h4>Horchata</h4>
-                            <span style="color: #777; font-size: 0.9em;">Bebida típica</span>
-                        </div>
-                        <div class="precio">$1.50</div>
-                    </div>
+                <div id="menuLoading" class="menu-loading">
+                    <span class="spinner"></span>
+                    <span>Cargando menú...</span>
                 </div>
+                <div id="menuEmpty" class="menu-empty"></div>
+
+                <table class="menu-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menuTableBody"></tbody>
+                </table>
+
+                <div id="menuCardList" class="menu-card-list"></div>
             </div>
 
 
@@ -197,6 +180,7 @@
         </div>
     </div>
 
+    <script src="../js/menu.js"></script>
 </body>
 
 </html>

@@ -18,6 +18,7 @@
 
     <!-- CSS Específico de Cajero -->
     <link rel="stylesheet" href="../css/cajero.css">
+    <link rel="stylesheet" href="../css/menu.css">
 
 </head>
 
@@ -43,6 +44,7 @@
 
             <ul>
                 <li onclick="mostrarViews('cobros')">Facturar y Cobrar</li>
+                <li onclick="mostrarViews('menu-restaurante')">Ver el Menú</li>
                 <li onclick="mostrarViews('tomar-pedido')">Nuevo Pedido</li>
                 <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li>
             </ul>
@@ -99,6 +101,38 @@
 
             </div>
 
+            <!-- VER MENÚ -->
+            <div id="menu-restaurante" style="display: none;">
+                <h1>Menú del Restaurante</h1>
+
+                <div class="menu-page-header">
+                    <input id="menuSearch" type="text" placeholder="Buscar platillo...">
+                    <select id="menuCategory">
+                        <option value="todos">Todas las categorías</option>
+                    </select>
+                </div>
+
+                <div id="menuLoading" class="menu-loading">
+                    <span class="spinner"></span>
+                    <span>Cargando menú...</span>
+                </div>
+                <div id="menuEmpty" class="menu-empty"></div>
+
+                <table class="menu-table">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Categoría</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody id="menuTableBody"></tbody>
+                </table>
+
+                <div id="menuCardList" class="menu-card-list"></div>
+            </div>
+
             <!-- TOMAR PEDIDO -->
             <div id="tomar-pedido" style="display: none;">
                 <h1>Tomar Pedido Nuevo</h1>
@@ -136,6 +170,7 @@
         </div>
     </div>
 
+    <script src="../js/menu.js"></script>
 </body>
 
 </html>
