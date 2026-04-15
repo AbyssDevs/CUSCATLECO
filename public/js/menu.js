@@ -1,5 +1,6 @@
 const menuState = {
   items: [],
+  categories: [],
   filter: {
     categoria_id: "",
     nombre: "",
@@ -169,11 +170,30 @@ function renderMenu(items) {
   renderCategoryFilter(menuState.items);
 }
 
+async function ensureMenuCategories() {
+  if (menuState.categories.length > 0) {
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/platillos?orderBy=nombre&orderDir=ASC`);
+    if (!response.ok) {
+      throw new Error("Error cargando categorías");
+    }
+    menuState.categories = await response.json();
+  } catch (error) {
+    console.warn("No se pudieron cargar categorías del menú:", error);
+    menuState.categories = [];
+  }
+}
+
 async function loadMenu() {
   setMenuLoading(true);
   setMenuEmpty("");
   updateSortHeaders();
   try {
+    await ensureMenuCategories();
+
     const query = [];
     if (menuState.filter.categoria_id) {
       query.push(`categoria_id=${encodeURIComponent(menuState.filter.categoria_id)}`);
@@ -214,10 +234,11 @@ function renderCategoryFilter(items) {
   const select = document.getElementById("menuCategoryFilter");
   if (!select) return;
 
+  const sourceItems = menuState.categories.length > 0 ? menuState.categories : items;
   const selectedCategory = menuState.filter.categoria_id;
   const categories = Array.from(
     new Map(
-      items
+      sourceItems
         .filter((item) => item.id_categoria)
         .map((item) => [item.id_categoria, item.categoria_nombre || "Sin categoría"])
     )
