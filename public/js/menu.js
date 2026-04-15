@@ -1,5 +1,11 @@
 const menuState = {
   items: [],
+  filter: {
+    categoria_id: "",
+    nombre: "",
+    orderBy: "nombre",
+    orderDir: "ASC",
+  },
 };
 
 function toggleMenu() {
@@ -158,13 +164,27 @@ function renderMenu(items) {
   } else {
     setMenuEmpty("");
   }
+
+  updateSortHeaders();
+  renderCategoryFilter(menuState.items);
 }
 
 async function loadMenu() {
   setMenuLoading(true);
   setMenuEmpty("");
+  updateSortHeaders();
   try {
-    const response = await fetch("/api/platillos?orderBy=nombre&orderDir=ASC");
+    const query = [];
+    if (menuState.filter.categoria_id) {
+      query.push(`categoria_id=${encodeURIComponent(menuState.filter.categoria_id)}`);
+    }
+    if (menuState.filter.nombre) {
+      query.push(`nombre=${encodeURIComponent(menuState.filter.nombre.trim())}`);
+    }
+    query.push(`orderBy=${encodeURIComponent(menuState.filter.orderBy)}`);
+    query.push(`orderDir=${encodeURIComponent(menuState.filter.orderDir)}`);
+
+    const response = await fetch(`/api/platillos?${query.join("&")}`);
     if (!response.ok) {
       throw new Error("Error cargando el menú");
     }
@@ -182,10 +202,106 @@ async function loadMenu() {
   }
 }
 
+function debounce(fn, delay = 250) {
+  let timeoutId;
+  return (...args) => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => fn(...args), delay);
+  };
+}
+
+function renderCategoryFilter(items) {
+  const select = document.getElementById("menuCategoryFilter");
+  if (!select) return;
+
+  const selectedCategory = menuState.filter.categoria_id;
+  const categories = Array.from(
+    new Map(
+      items
+        .filter((item) => item.id_categoria)
+        .map((item) => [item.id_categoria, item.categoria_nombre || "Sin categoría"])
+    )
+  )
+    .map(([id, nombre]) => ({ id, nombre }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
+
+  select.innerHTML = `
+    <option value="">Todas las categorías</option>
+    ${categories
+      .map(
+        (category) => `
+          <option value="${category.id}" ${selectedCategory === String(category.id) ? "selected" : ""}>
+            ${category.nombre}
+          </option>
+        `
+      )
+      .join("")}
+  `;
+
+  if (selectedCategory) {
+    select.value = selectedCategory;
+  }
+}
+
+function updateSortHeaders() {
+  const sortableHeaders = document.querySelectorAll("#menu-restaurante th.sortable, #menuPlatillos th.sortable");
+  sortableHeaders.forEach((header) => {
+    const indicator = header.querySelector(".sort-indicator");
+    if (!indicator) return;
+
+    if (header.dataset.sort === menuState.filter.orderBy) {
+      indicator.textContent = menuState.filter.orderDir === "ASC" ? "▲" : "▼";
+    } else {
+      indicator.textContent = "";
+    }
+  });
+}
+
+function attachMenuControls() {
+  const categorySelect = document.getElementById("menuCategoryFilter");
+  const searchInput = document.getElementById("menuSearchInput");
+  const sortableHeaders = document.querySelectorAll("#menu-restaurante th.sortable, #menuPlatillos th.sortable");
+
+  if (categorySelect) {
+    categorySelect.addEventListener("change", (event) => {
+      menuState.filter.categoria_id = event.target.value;
+      loadMenu();
+    });
+  }
+
+  if (searchInput) {
+    searchInput.addEventListener(
+      "input",
+      debounce((event) => {
+        menuState.filter.nombre = event.target.value;
+        loadMenu();
+      }, 250)
+    );
+  }
+
+  sortableHeaders.forEach((header) => {
+    header.addEventListener("click", () => {
+      const field = header.dataset.sort;
+      if (!field) return;
+
+      if (menuState.filter.orderBy === field) {
+        menuState.filter.orderDir = menuState.filter.orderDir === "ASC" ? "DESC" : "ASC";
+      } else {
+        menuState.filter.orderBy = field;
+        menuState.filter.orderDir = "ASC";
+      }
+
+      loadMenu();
+    });
+  });
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
 
-  const menuSection = document.getElementById("menu-restaurante");
+  attachMenuControls();
+
+  const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
   if (menuSection && menuSection.style.display !== "none") {
     loadMenu();
   }
