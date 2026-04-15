@@ -246,111 +246,6 @@ async function loadMenu() {
   }
 }
 
-<<<<<<< HU-XXc-–-Editar-platillo-existente
-async function editarPlatillo(id) {
-  try {
-    const response = await fetch(`/api/platillos/${id}`);
-    const platillo = await response.json();
-
-    if (!response.ok) {
-      throw new Error(platillo.error || "Error cargando el platillo");
-    }
-
-    if (!platillo.platillo_disponible) {
-      alert("Error: solo se pueden editar platillos activos");
-      return;
-    }
-
-    document.getElementById("platillo_nombre").value = platillo.platillo_nombre || "";
-    document.getElementById("platillo_descripcion").value = platillo.platillo_descripcion || "";
-    document.getElementById("platillo_precio").value = platillo.platillo_precio || "";
-    document.getElementById("platillo_imagen_url").value = platillo.platillo_imagen_url || "";
-    document.getElementById("id_categoria").value = platillo.id_categoria || "1";
-    document.getElementById("platillo_disponible").checked = !!platillo.platillo_disponible;
-
-    window.platilloEditando = id;
-    const btn = document.getElementById("btnRegistrarPlatillo");
-    if (btn) btn.innerText = "Actualizar platillo";
-
-    mostrar("registrarPlatillo");
-
-    const titulo = document.querySelector("#registrarPlatillo h2");
-    if (titulo) {
-      titulo.innerHTML = `✏️ Editando platillo: <span style="color: #ffffff; font-size: 1.2rem;">${platillo.platillo_nombre}</span>`;
-
-      let cancelBtn = document.getElementById("cancelarEdicionPlatillo");
-      if (!cancelBtn) {
-        cancelBtn = document.createElement("button");
-        cancelBtn.id = "cancelarEdicionPlatillo";
-        cancelBtn.innerText = "Cancelar edición";
-        cancelBtn.style.marginLeft = "1rem";
-        cancelBtn.style.padding = "0.3rem 1rem";
-        cancelBtn.style.background = "#dc3545";
-        cancelBtn.style.color = "white";
-        cancelBtn.style.border = "none";
-        cancelBtn.style.borderRadius = "5px";
-        cancelBtn.style.cursor = "pointer";
-        cancelBtn.onclick = cancelarEdicionPlatillo;
-      }
-      if (!titulo.contains(cancelBtn)) {
-        titulo.appendChild(cancelBtn);
-      }
-    }
-
-    document.getElementById("registrarPlatillo").scrollIntoView({ behavior: "smooth" });
-  } catch (error) {
-    console.error("Error editando platillo:", error);
-    alert(error.message || "Error al intentar editar el platillo.");
-  }
-}
-
-function cancelarEdicionPlatillo() {
-  limpiarFormularioPlatillo();
-  window.platilloEditando = null;
-  const btn = document.getElementById("btnRegistrarPlatillo");
-  if (btn) btn.innerText = "Crear Platillo";
-
-  const titulo = document.querySelector("#registrarPlatillo h2");
-  if (titulo) {
-    titulo.innerHTML = "Registrar Platillo";
-  }
-
-  const cancelBtn = document.getElementById("cancelarEdicionPlatillo");
-  if (cancelBtn) cancelBtn.remove();
-
-  mostrar("menuPlatillos");
-}
-
-function limpiarFormularioPlatillo() {
-  document.getElementById("platillo_nombre").value = "";
-  document.getElementById("platillo_descripcion").value = "";
-  document.getElementById("platillo_precio").value = "";
-  document.getElementById("platillo_imagen_url").value = "";
-  document.getElementById("id_categoria").value = "1";
-  document.getElementById("platillo_disponible").checked = true;
-}
-
-async function activarPlatillo(id) {
-  try {
-    const response = await fetch(`/api/platillos/${id}/estado`, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ platillo_disponible: true }),
-    });
-
-    const data = await response.json();
-    if (!response.ok) {
-      throw new Error(data.error || "No se pudo activar el platillo");
-    }
-
-    loadMenu();
-  } catch (error) {
-    console.error("Error activando platillo:", error);
-    alert(error.message || "Error al activar el platillo.");
-  }
-=======
 function debounce(fn, delay = 250) {
   let timeoutId;
   return (...args) => {
@@ -444,7 +339,6 @@ function attachMenuControls() {
       loadMenu();
     });
   });
->>>>>>> main
 }
 
 window.addEventListener("DOMContentLoaded", () => {
