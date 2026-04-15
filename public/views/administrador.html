@@ -95,6 +95,13 @@
             <div id="menuPlatillos" data-admin="true" style="display: none;">
                 <h2>Menú del Restaurante</h2>
 
+                <div class="menu-page-header">
+                    <select id="menuCategoryFilter">
+                        <option value="">Todas las categorías</option>
+                    </select>
+                    <input id="menuSearchInput" type="text" placeholder="Buscar platillo..." autocomplete="off">
+                </div>
+
                 <div id="menuLoading" class="menu-loading">
                     <span class="spinner"></span>
                     <span>Cargando menú...</span>
@@ -104,7 +111,7 @@
                 <table class="menu-table">
                     <thead>
                         <tr>
-                            <th>Nombre</th>
+                            <th data-sort="nombre" class="sortable">Nombre <span class="sort-indicator"></span></th>
                             <th>Categoría</th>
                             <th>Descripción</th>
                             <th>Precio</th>
