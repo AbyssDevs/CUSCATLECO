@@ -23,8 +23,14 @@
   width: 100%;
   border-collapse: collapse;
   margin-top: 10px;
+<<<<<<< HU-XXc-–-Editar-platillo-existente
+  background: #ffffff;
+  color: #111827;
+  border-radius: 14px;
+=======
   background: #fff;
   border-radius: 8px;
+>>>>>>> main
   overflow: hidden;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
 }
@@ -32,11 +38,21 @@
 .menu-table th,
 .menu-table td {
   padding: 16px 18px;
+<<<<<<< HU-XXc-–-Editar-platillo-existente
+  border-bottom: 1px solid #e5e7eb;
   text-align: left;
+  color: #111827;
+=======
+  text-align: left;
+>>>>>>> main
 }
 
 .menu-table th {
   background: #7a1d1d;
+<<<<<<< HU-XXc-–-Editar-platillo-existente
+  color: #ffffff;
+  font-weight: 700;
+=======
   color: white;
   font-weight: 500;
   letter-spacing: 0.5px;
@@ -64,32 +80,48 @@
   margin-left: 8px;
   font-size: 0.85rem;
   opacity: 0.72;
+>>>>>>> main
 }
 
-.menu-table thead th:nth-child(-n+4) {
+.menu-table thead th:nth-child(-n+6) {
   background: #7a1d1d;
-  color: white;
+  color: #ffffff;
+}
+
+.menu-table tbody tr:nth-child(even) {
+  background: #f8fafc;
 }
 
 .menu-table tbody tr:hover {
+<<<<<<< HU-XXc-–-Editar-platillo-existente
+  background: #f1f5f9;
+=======
   background: #f5f5f5;
+>>>>>>> main
 }
 
 .menu-table .precio-col {
-  color: #248a4c;
+  color: #047857;
   font-weight: 700;
   white-space: nowrap;
 }
 
 .menu-table .categoria-col {
-  color: #5e6a7c;
+  color: #4b5563;
   font-size: 0.95rem;
 }
 
 .menu-table .descripcion-col {
-  color: #5e6a7c;
+  color: #4b5563;
   max-width: 480px;
   line-height: 1.5;
+}
+
+.menu-item-meta {
+  display: block;
+  margin-top: 8px;
+  color: black;
+  font-size: 0.85rem;
 }
 
 .menu-card-list {
@@ -99,9 +131,9 @@
 }
 
 .menu-card {
-  background: #ffffff;
+  background: #f8fafc;
   border-radius: 18px;
-  border: 1px solid #edf1f7;
+  border: 1px solid #e5e7eb;
   box-shadow: 0 24px 48px rgba(24, 38, 63, 0.06);
   padding: 20px;
   display: grid;
@@ -119,17 +151,17 @@
 .menu-card-title {
   margin: 0;
   font-size: 1.08rem;
-  color: #1f2937;
+  color: #111827;
 }
 
 .menu-card-category {
   margin: 0;
-  color: #6b7280;
+  color: #4b5563;
   font-size: 0.95rem;
 }
 
 .menu-card-price {
-  color: #248a4c;
+  color: #047857;
   font-weight: 700;
   font-size: 1.05rem;
   white-space: nowrap;
@@ -137,7 +169,7 @@
 
 .menu-card-desc {
   margin: 0;
-  color: #515b69;
+  color: #374151;
   line-height: 1.65;
 }
 
@@ -147,11 +179,47 @@
   justify-content: center;
   padding: 6px 12px;
   border-radius: 999px;
-  background: #fff4e8;
-  color: #a95310;
+  background: #fef3c7;
+  color: #92400e;
   font-weight: 600;
   font-size: 0.85rem;
   max-width: fit-content;
+}
+
+.menu-card-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-editar,
+.btn-activar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.btn-editar {
+  background-color: #f39c12;
+  color: #ffffff;
+}
+
+.btn-editar:hover {
+  background-color: #ffb84d;
+}
+
+.btn-activar {
+  background-color: #248a4c;
+  color: #ffffff;
+}
+
+.btn-activar:hover {
+  background-color: #2eb169;
 }
 
 .menu-empty,
