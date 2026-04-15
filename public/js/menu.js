@@ -116,11 +116,15 @@ function renderMenu(items) {
       tableBody.innerHTML = filteredItems
         .map((item) => {
           const disponible = item.platillo_disponible === true || item.platillo_disponible === 1 || item.platillo_disponible === "1";
+          const actualizadoInfo = item.actualizado_por && item.fecha_actualizacion
+            ? `<span class="menu-item-meta">Actualizado por ${item.actualizado_por} el ${item.fecha_actualizacion}</span>`
+            : "";
           return `
             <tr>
               <td>
                 <div style="display:flex; flex-direction:column; gap:6px;">
                   <strong>${item.platillo_nombre || "Sin nombre"}</strong>
+                  ${actualizadoInfo}
                   ${!disponible ? `<span class="menu-card-status">No disponible</span>` : ""}
                 </div>
               </td>
@@ -145,6 +149,9 @@ function renderMenu(items) {
       cardList.innerHTML = filteredItems
         .map((item) => {
           const disponible = item.platillo_disponible === true || item.platillo_disponible === 1 || item.platillo_disponible === "1";
+          const actualizadoInfo = item.actualizado_por && item.fecha_actualizacion
+            ? `<span class="menu-item-meta">Actualizado por ${item.actualizado_por} el ${item.fecha_actualizacion}</span>`
+            : "";
           return `
             <div class="menu-card">
               <div class="menu-card-header">
@@ -155,6 +162,7 @@ function renderMenu(items) {
                 <span class="menu-card-price">${formatPrice(item.platillo_precio)}</span>
               </div>
               <p class="menu-card-desc">${truncateText(item.platillo_descripcion || "", 100)}</p>
+              ${actualizadoInfo}
               ${!disponible ? `<span class="menu-card-status">No disponible</span>` : ""}
               ${adminMode ? `
                 <div class="menu-card-actions">
