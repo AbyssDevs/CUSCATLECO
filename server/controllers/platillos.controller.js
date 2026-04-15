@@ -167,7 +167,7 @@ const editarPlatillo = (req, res) => {
     }
 
     if (!estadoResult[0].platillo_disponible) {
-      return res.status(403).json({ error: "No se puede editar un platillo inactivo" });
+      return res.status(403).json({ error: "Error: solo se pueden editar platillos activos" });
     }
 
     // Validar duplicados
