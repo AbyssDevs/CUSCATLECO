@@ -97,8 +97,95 @@ function cancelarEdicionPlatillo() {
         titulo.innerHTML = 'Registrar Platillo';
     }
 
+    const disponibleWrapper = document.getElementById('wrapper_platillo_disponible');
+    if (disponibleWrapper) disponibleWrapper.style.display = 'flex';
+
     const cancelBtn = document.getElementById('cancelarEdicionPlatillo');
     if (cancelBtn) cancelBtn.remove();
 
     mostrar('menuPlatillos');
+}
+
+function editarPlatillo(id) {
+    const platillo = menuState.items.find(item => item.id_platillo === id);
+    if (!platillo) return;
+
+    // Los platillos inactivos no pueden ser editados
+    const disponible = platillo.platillo_disponible === true || platillo.platillo_disponible === 1 || platillo.platillo_disponible === "1";
+    if (!disponible) {
+        alert("Los platillos inactivos no pueden ser editados");
+        return;
+    }
+
+    // Llenar formulario
+    document.getElementById('platillo_nombre').value = platillo.platillo_nombre || '';
+    document.getElementById('platillo_descripcion').value = platillo.platillo_descripcion || '';
+    document.getElementById('platillo_precio').value = platillo.platillo_precio || '';
+    document.getElementById('platillo_imagen_url').value = platillo.platillo_imagen_url || '';
+    document.getElementById('id_categoria').value = platillo.id_categoria || '1';
+    
+    // Ocultamos el checkbox "Disponible" cuando estamos en modo edición
+    const disponibleWrapper = document.getElementById('wrapper_platillo_disponible');
+    if (disponibleWrapper) disponibleWrapper.style.display = 'none';
+
+    window.platilloEditando = id;
+    const btn = document.getElementById('btnRegistrarPlatillo');
+    if (btn) btn.innerText = 'Actualizar Platillo';
+
+    const titulo = document.querySelector('#registrarPlatillo h2');
+    if (titulo) {
+        titulo.innerHTML = `✏️ Editando Platillo: <span style="color: #000; font-size: 1.2rem;">${platillo.platillo_nombre}</span>`;
+        
+        // Botón cancelar si no existe
+        if (!document.getElementById('cancelarEdicionPlatillo')) {
+            const cancelBtn = document.createElement('button');
+            cancelBtn.id = 'cancelarEdicionPlatillo';
+            cancelBtn.innerText = 'Cancelar edición';
+            cancelBtn.style.marginLeft = '1rem';
+            cancelBtn.style.padding = '0.3rem 1rem';
+            cancelBtn.style.fontSize = '1rem';
+            cancelBtn.style.background = '#dc3545';
+            cancelBtn.style.color = 'white';
+            cancelBtn.style.border = 'none';
+            cancelBtn.style.borderRadius = '5px';
+            cancelBtn.style.cursor = 'pointer';
+            cancelBtn.onclick = cancelarEdicionPlatillo;
+            titulo.appendChild(cancelBtn);
+        }
+    }
+
+    mostrar('registrarPlatillo');
+    document.getElementById('registrarPlatillo').scrollIntoView({ behavior: 'smooth' });
+}
+
+async function activarPlatillo(id) {
+    const platillo = menuState.items.find(item => item.id_platillo === id);
+    if (!platillo) return;
+
+    const disponible = platillo.platillo_disponible === true || platillo.platillo_disponible === 1 || platillo.platillo_disponible === "1";
+    
+    if (disponible) {
+        alert("El platillo ya esta activo");
+        return;
+    }
+
+    try {
+        const respuesta = await fetch(`/api/platillos/${id}/estado`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platillo_disponible: true })
+        });
+
+        const datos = await respuesta.json();
+
+        if (respuesta.ok) {
+            alert("✅ Platillo activado correctamente");
+            loadMenu();
+        } else {
+            alert("❌ Error: " + (datos.error || "No se pudo activar el platillo"));
+        }
+    } catch (error) {
+        console.error("Error activando platillo:", error);
+        alert("❌ Error de conexión");
+    }
 }
