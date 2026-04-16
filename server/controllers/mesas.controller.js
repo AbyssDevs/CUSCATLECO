@@ -90,7 +90,15 @@ const crearMesas = (req, res) => {
   });
 };
 
-module.exports = {
-  crearMesa,
-  crearMesas,
-};
+const listarMesas = (req, res) => {
+  const sql = `SELECT * FROM mesas`;
+  db.query(sql, (err, results) => {
+    if (err) {
+      console.error("Error al listar las mesas:", err);
+      return res.status(500).json({ error: "Error del servidor" });
+    }
+    res.json(results);
+  });
+}
+
+module.exports = {crearMesa, crearMesas, listarMesas };
