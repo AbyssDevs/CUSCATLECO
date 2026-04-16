@@ -7,6 +7,7 @@ const {
 const { requirePermission, auditoriaMiddleware } = require('../middlewares/auth.middleware')
 
 router.post('/', auditoriaMiddleware, requirePermission('gestionar_mesas'), crearMesa);
+
 router.post('/bulk', auditoriaMiddleware, requirePermission('gestionar_mesas'), crearMesas);
 
 module.exports = router;

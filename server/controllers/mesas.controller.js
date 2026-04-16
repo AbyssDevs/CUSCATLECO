@@ -90,4 +90,4 @@ const crearMesas = (req, res) => {
   });
 };
 
-module.exports = { crearMesa, crearMesas };
+module.exports = { crearMesa, crearMesas, obtenerMesas };
