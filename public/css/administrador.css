@@ -624,6 +624,19 @@ tr:hover {
     .admin-empleados-form button {
         grid-column: span 2;
     }
+    .ubicacion-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+    }
+    .ubicacion-group input {
+        flex: 1;
+    }
+    .ubicacion-group button {
+        grid-column: auto;
+        min-width: 160px;
+    }
 }
 
 /* ===== TABLA RESPONSIVE ===== */

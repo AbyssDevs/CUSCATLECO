@@ -122,10 +122,12 @@
 
                 <div class="admin-empleados-form" id="mesasForm">
                     <input type="number" id="mesa_numero" placeholder="Número de mesa" min="1">
-                    <input type="number" id="mesa_capacidad" placeholder="Capacidad (personas)" min="1">
-                    <input type="text" id="mesa_ubicacion" placeholder="Ubicación (opcional)">
                     <input type="number" id="bulk_count" placeholder="Cantidad (máx 50)" min="1" max="50" style="display: none;">
-                    <button id="toggleBulkModeBtn" onclick="toggleBulkMode()">Crear en serie</button>
+                    <input type="number" id="mesa_capacidad" placeholder="Capacidad (personas)" min="1">
+                    <div class="ubicacion-group">
+                        <input type="text" id="mesa_ubicacion" placeholder="Ubicación (opcional)">
+                        <button id="toggleBulkModeBtn" onclick="toggleBulkMode()">Crear en serie</button>
+                    </div>
                     <button id="btnCrearMesa" onclick="crearMesa()">Crear mesa</button>
                 </div>
 
