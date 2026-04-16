@@ -189,3 +189,36 @@ async function activarPlatillo(id) {
         alert("❌ Error de conexión");
     }
 }
+
+async function desactivarPlatillo(id) {
+    const platillo = menuState.items.find(item => item.id_platillo === id);
+    if (!platillo) return;
+
+    const disponible = platillo.platillo_disponible === true || platillo.platillo_disponible === 1 || platillo.platillo_disponible === "1";
+
+    if (!disponible) {
+        alert("El platillo ya esta desactivado");
+        return;
+    }
+
+    try {
+        const respuesta = await fetch(`/api/platillos/${id}/estado`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ platillo_disponible: false })
+        });
+
+        const datos = await respuesta.json();
+
+        if (respuesta.ok) {
+            alert("✅ Platillo desactivado correctamente");
+            loadMenu();
+        } else {
+            alert("❌ Error: " + (datos.error || "No se pudo desactivar el platillo"));
+        }
+    } catch (error) {
+        console.error("Error desactivando platillo:", error);
+        alert("❌ Error de conexión");
+    }
+
+}

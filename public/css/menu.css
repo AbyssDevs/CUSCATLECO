@@ -150,7 +150,7 @@
 }
 
 .btn-editar,
-.btn-activar {
+.btn-activar, .btn-desactivar {
   display: inline-flex;
   align-items: center;
   gap: 8px;
@@ -177,6 +177,15 @@
 
 .btn-activar:hover {
   background-color: #2eb169;
+}
+
+.btn-desactivar {
+  background-color: #c53030;
+  color: #ffffff;
+}
+
+.btn-desactivar:hover {
+  background-color: #e53935;
 }
 
 .menu-empty,
