@@ -7,8 +7,8 @@ const crearMesa = (req, res) => {
     return res.status(400).json({ error: "Todos los datos son requeridos" });
   }
 
-  const existingMesaSql = `SELECT * FROM mesas WHERE mesa_numero = ? AND mesa_capacidad = ?`;
-  db.query(existingMesaSql, [mesa_numero, mesa_capacidad], (err, existingMesa) => {
+  const existingMesaSql = `SELECT * FROM mesas WHERE mesa_numero = ?`;
+  db.query(existingMesaSql, [mesa_numero], (err, existingMesa) => {
     if (err) {
       console.error("Error al verificar la mesa existente:", err);
       return res.status(500).json({ error: "Error del servidor" });
@@ -39,6 +39,17 @@ const crearMesa = (req, res) => {
         .status(201)
         .json({ message: "Mesa creada exitosamente", id: result.insertId });
     });
+  });
+};
+
+const obtenerMesas = (req, res) => {
+  const sql = `SELECT mesa_numero, mesa_capacidad, mesa_ubicacion, mesa_estado FROM mesas ORDER BY mesa_numero ASC`;
+  db.query(sql, (err, mesas) => {
+    if (err) {
+      console.error("Error al obtener las mesas:", err);
+      return res.status(500).json({ error: "Error del servidor" });
+    }
+    res.json(mesas);
   });
 };
 

@@ -44,6 +44,7 @@
                 <!-- <li onclick="mostrar('ordenes')">Ver órdenes</li> -->
                 <li onclick="mostrar('empleados')">📋 Ver Empleados</li>
                 <li onclick="mostrar('menuPlatillos')">🍽️ Ver Menú</li>
+                <li onclick="mostrar('mesas')">🪑 Crear Mesas</li>
                 <li onclick="mostrar('registrarEmpleado')">➕ Añadir Empleados</li>
                 <li onclick="mostrar('registrarPlatillo')">🍔 Añadir Platillo</li>
                 <li onclick="cerrarSesion()">🚪 Cerrar sesión</li>
@@ -116,32 +117,39 @@
                 <div id="menuCardList" class="menu-card-list"></div>
             </div>
 
+            <div id="mesas" style="display: none;">
+                <h2>Crear Mesas</h2>
 
-            <!-- ORDENES -->
-
-
-            <!-- <div id="ordenes">
-
-                <h1>Órdenes del restaurante</h1>
-                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                    <input type="text" id="buscarMesa" placeholder="Buscar por mesa..." onkeyup="filtrarOrdenes()" style="flex: 1;">
-                    <select onchange="filtrarEstado(this.value)">
-                        <option value="todas">Todas</option>
-                        <option value="pendiente">Pendientes</option>
-                        <option value="completado">Completadas</option>
-                    </select>
+                <div class="admin-empleados-form">
+                    <input type="number" id="mesa_numero" placeholder="Número de mesa" min="1">
+                    <input type="number" id="mesa_capacidad" placeholder="Capacidad (personas)" min="1">
+                    <input type="text" id="mesa_ubicacion" placeholder="Ubicación (opcional)">
+                    <button id="btnCrearMesa" onclick="crearMesa()">Crear mesa</button>
                 </div>
-                <table border="1">
 
+                <h3>Creación masiva</h3>
+                <div class="admin-empleados-form">
+                    <input type="number" id="bulk_start_numero" placeholder="Número inicial" min="1">
+                    <input type="number" id="bulk_count" placeholder="Cantidad de mesas" min="1">
+                    <input type="number" id="bulk_capacidad" placeholder="Capacidad por mesa" min="1">
+                    <input type="text" id="bulk_ubicacion" placeholder="Ubicación común (opcional)">
+                    <button id="btnCrearMesasMasivas" onclick="crearMesasEnSerie()">Crear mesas en serie</button>
+                </div>
+
+                <div id="mesasMensaje" style="margin-top: 1rem; color: #1f7a1f;"></div>
+
+                <table class="menu-table" style="margin-top: 1rem;">
                     <thead>
                         <tr>
-                            <th>Mesa</th>
-                            <th>Platillo</th>
-                            <th>Cantidad</th>
-                            <th>Mesero</th>
+                            <th>Número</th>
+                            <th>Capacidad</th>
+                            <th>Ubicación</th>
                             <th>Estado</th>
-                            <th>Acción</th>
                         </tr>
+                    </thead>
+                    <tbody id="tablaMesasBody"></tbody>
+                </table>
+            </div>
                     </thead>
 
                     <tbody id="tablaOrdenesAdmin"></tbody>
@@ -234,6 +242,7 @@
             </div>
 
             <script src="../js/empleados.js"></script>
+            <script src="../js/mesas_admin.js"></script>
             <script src="../js/platillos_admin.js"></script>
             <script src="../js/menu.js"></script>
             <script>
