@@ -1,4 +1,5 @@
-let mesasCache = [];
+const MAX_BULK_MESAS = 50;
+let bulkMode = false;
 
 function mostrarMensajeMesas(mensaje, esError = false) {
   const contenedor = document.getElementById("mesasMensaje");
@@ -11,57 +12,42 @@ function limpiarFormularioMesas() {
   document.getElementById("mesa_numero").value = "";
   document.getElementById("mesa_capacidad").value = "";
   document.getElementById("mesa_ubicacion").value = "";
-}
-
-function limpiarFormularioMesasMasivas() {
-  document.getElementById("bulk_start_numero").value = "";
   document.getElementById("bulk_count").value = "";
-  document.getElementById("bulk_capacidad").value = "";
-  document.getElementById("bulk_ubicacion").value = "";
 }
 
-async function cargarMesas() {
-  try {
-    const respuesta = await fetch("/api/mesas");
-    if (!respuesta.ok) {
-      throw new Error("No se pudo cargar la lista de mesas");
-    }
+function actualizarFormularioModo() {
+  const bulkField = document.getElementById("bulk_count");
+  const numeroInput = document.getElementById("mesa_numero");
+  const titulo = document.getElementById("mesasTitulo");
+  const botonCrear = document.getElementById("btnCrearMesa");
+  const toggleBtn = document.getElementById("toggleBulkModeBtn");
+  const bulkHint = document.getElementById("bulkHint");
 
-    mesasCache = await respuesta.json();
-    const cuerpo = document.getElementById("tablaMesasBody");
-    if (!cuerpo) return;
-
-    if (mesasCache.length === 0) {
-      cuerpo.innerHTML = `
-        <tr>
-          <td colspan="4" style="text-align:center; padding: 1rem;">
-            No hay mesas registradas.
-          </td>
-        </tr>
-      `;
-      return;
-    }
-
-    cuerpo.innerHTML = mesasCache
-      .map(
-        (mesa) => `
-        <tr>
-          <td>${mesa.mesa_numero}</td>
-          <td>${mesa.mesa_capacidad}</td>
-          <td>${mesa.mesa_ubicacion || "-"}</td>
-          <td>${mesa.mesa_estado || "Libre"}</td>
-        </tr>
-      `,
-      )
-      .join("");
-  } catch (error) {
-    console.error(error);
-    mostrarMensajeMesas("Error cargando mesas. Intente nuevamente.", true);
+  if (bulkMode) {
+    bulkField.style.display = "inline-block";
+    numeroInput.placeholder = "Número inicial";
+    titulo.textContent = "Crear mesas en serie";
+    botonCrear.textContent = "Crear mesas en serie";
+    toggleBtn.textContent = "Volver a crear individual";
+    bulkHint.textContent = `Máximo ${MAX_BULK_MESAS} mesas en serie. El número ingresado será el número inicial.`;
+  } else {
+    bulkField.style.display = "none";
+    numeroInput.placeholder = "Número de mesa";
+    titulo.textContent = "Crear mesas";
+    botonCrear.textContent = "Crear mesa";
+    toggleBtn.textContent = "Crear en serie";
+    bulkHint.textContent = "";
   }
 }
 
-function validarNumeroNoDuplicado(numero) {
-  return !mesasCache.some((mesa) => Number(mesa.mesa_numero) === numero);
+function toggleBulkMode() {
+  bulkMode = !bulkMode;
+  actualizarFormularioModo();
+  mostrarMensajeMesas("");
+}
+
+function cargarMesas() {
+  actualizarFormularioModo();
 }
 
 async function crearMesa() {
@@ -79,8 +65,45 @@ async function crearMesa() {
     return;
   }
 
-  if (!validarNumeroNoDuplicado(numero)) {
-    mostrarMensajeMesas("Ya existe una mesa registrada con ese número.", true);
+  if (bulkMode) {
+    const cantidad = Number(document.getElementById("bulk_count").value);
+    if (!cantidad || cantidad <= 0) {
+      mostrarMensajeMesas("La cantidad de mesas debe ser mayor que 0.", true);
+      return;
+    }
+
+    if (cantidad > MAX_BULK_MESAS) {
+      mostrarMensajeMesas(`No se pueden crear más de ${MAX_BULK_MESAS} mesas en serie.`, true);
+      return;
+    }
+
+    const mesas = Array.from({ length: cantidad }, (_, index) => ({
+      mesa_numero: numero + index,
+      mesa_capacidad: capacidad,
+      mesa_ubicacion: ubicacion,
+      mesa_estado: "Libre",
+    }));
+
+    try {
+      const respuesta = await fetch("/api/mesas/bulk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mesas }),
+      });
+
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        mostrarMensajeMesas(datos.error || "Error al crear las mesas.", true);
+        return;
+      }
+
+      mostrarMensajeMesas(`${cantidad} mesas creadas exitosamente.`);
+      limpiarFormularioMesas();
+    } catch (error) {
+      console.error(error);
+      mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
+    }
+
     return;
   }
 
@@ -104,76 +127,12 @@ async function crearMesa() {
 
     mostrarMensajeMesas("Mesa creada exitosamente.");
     limpiarFormularioMesas();
-    cargarMesas();
   } catch (error) {
     console.error(error);
     mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
   }
 }
 
-async function crearMesasEnSerie() {
-  const inicio = Number(document.getElementById("bulk_start_numero").value);
-  const cantidad = Number(document.getElementById("bulk_count").value);
-  const capacidad = Number(document.getElementById("bulk_capacidad").value);
-  const ubicacion = document.getElementById("bulk_ubicacion").value.trim();
-
-  if (!inicio || inicio <= 0) {
-    mostrarMensajeMesas("El número inicial debe ser mayor que 0.", true);
-    return;
-  }
-
-  if (!cantidad || cantidad <= 0) {
-    mostrarMensajeMesas("La cantidad de mesas debe ser mayor que 0.", true);
-    return;
-  }
-
-  if (!capacidad || capacidad <= 0) {
-    mostrarMensajeMesas("La capacidad debe ser mayor que 0.", true);
-    return;
-  }
-
-  const mesas = Array.from({ length: cantidad }, (_, index) => ({
-    mesa_numero: inicio + index,
-    mesa_capacidad: capacidad,
-    mesa_ubicacion: ubicacion,
-    mesa_estado: "Libre",
-  }));
-
-  const numerosSolicitados = mesas.map((mesa) => mesa.mesa_numero);
-  const numeroDuplicadoEnSolicitud = new Set(numerosSolicitados).size !== numerosSolicitados.length;
-
-  if (numeroDuplicadoEnSolicitud) {
-    mostrarMensajeMesas("Los números de mesa en la solicitud no pueden repetirse.", true);
-    return;
-  }
-
-  const numeroExistente = mesas.find((mesa) => !validarNumeroNoDuplicado(mesa.mesa_numero));
-  if (numeroExistente) {
-    mostrarMensajeMesas(
-      `La mesa ${numeroExistente.mesa_numero} ya existe. Ajuste el número inicial o reduzca la cantidad.`,
-      true,
-    );
-    return;
-  }
-
-  try {
-    const respuesta = await fetch("/api/mesas/bulk", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mesas }),
-    });
-
-    const datos = await respuesta.json();
-    if (!respuesta.ok) {
-      mostrarMensajeMesas(datos.error || "Error al crear las mesas.", true);
-      return;
-    }
-
-    mostrarMensajeMesas(`${cantidad} mesas creadas exitosamente.`);
-    limpiarFormularioMesasMasivas();
-    cargarMesas();
-  } catch (error) {
-    console.error(error);
-    mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
-  }
-}
+window.addEventListener("DOMContentLoaded", () => {
+  actualizarFormularioModo();
+});

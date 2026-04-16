@@ -118,45 +118,20 @@
             </div>
 
             <div id="mesas" style="display: none;">
-                <h2>Crear Mesas</h2>
+                <h2 id="mesasTitulo">Crear Mesas</h2>
 
-                <div class="admin-empleados-form">
+                <div class="admin-empleados-form" id="mesasForm">
                     <input type="number" id="mesa_numero" placeholder="Número de mesa" min="1">
                     <input type="number" id="mesa_capacidad" placeholder="Capacidad (personas)" min="1">
                     <input type="text" id="mesa_ubicacion" placeholder="Ubicación (opcional)">
+                    <input type="number" id="bulk_count" placeholder="Cantidad (máx 50)" min="1" max="50" style="display: none;">
+                    <button id="toggleBulkModeBtn" onclick="toggleBulkMode()">Crear en serie</button>
                     <button id="btnCrearMesa" onclick="crearMesa()">Crear mesa</button>
                 </div>
 
-                <h3>Creación masiva</h3>
-                <div class="admin-empleados-form">
-                    <input type="number" id="bulk_start_numero" placeholder="Número inicial" min="1">
-                    <input type="number" id="bulk_count" placeholder="Cantidad de mesas" min="1">
-                    <input type="number" id="bulk_capacidad" placeholder="Capacidad por mesa" min="1">
-                    <input type="text" id="bulk_ubicacion" placeholder="Ubicación común (opcional)">
-                    <button id="btnCrearMesasMasivas" onclick="crearMesasEnSerie()">Crear mesas en serie</button>
-                </div>
-
+                <p id="bulkHint" style="margin-top: 0.5rem; color: #555;"></p>
                 <div id="mesasMensaje" style="margin-top: 1rem; color: #1f7a1f;"></div>
-
-                <table class="menu-table" style="margin-top: 1rem;">
-                    <thead>
-                        <tr>
-                            <th>Número</th>
-                            <th>Capacidad</th>
-                            <th>Ubicación</th>
-                            <th>Estado</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaMesasBody"></tbody>
-                </table>
             </div>
-                    </thead>
-
-                    <tbody id="tablaOrdenesAdmin"></tbody>
-
-                </table>
-
-            </div> -->
 
 
             <!-- EMPLEADOS -->
