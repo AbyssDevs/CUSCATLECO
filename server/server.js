@@ -10,6 +10,7 @@ const { requirePermission, requireLogin, requireRole, auditoriaMiddleware, recov
 const authRoutes = require("./routes/auth.routes");
 const empleadosRoutes = require("./routes/empleados.routes");
 const platillosRoutes = require("./routes/platillos.routes");
+const mesasRoutes = require("./routes/mesas.routes");
 
 const app = express();
 const PORT = 3000;
@@ -75,6 +76,7 @@ app.use("/views", (req, res) => {
 app.use("/api", authRoutes);
 app.use("/api/empleados", requirePermission("gestionar_usuarios"), empleadosRoutes);
 app.use("/api/platillos", auditoriaMiddleware, platillosRoutes);
+app.use("/api/mesas", auditoriaMiddleware, requirePermission("gestionar_mesas"), mesasRoutes);
 
 
 // Iniciar el servidor

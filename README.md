@@ -3,13 +3,16 @@ Credenciales
 admin@saborcuscatleco.com
 Contraseña: 123
 
-## Tecnologías utilizadas
+## API Endpoints
 
-- HTML
-- CSS
-- JavaScript
-- Node.js
-- MySQL
+### Mesas
+
+- **POST /api/mesas** - Crear una mesa individual
+  - Body: `{ "mesa_numero": 1, "mesa_capacidad": 4, "mesa_estado": "Disponible" }`
+
+- **POST /api/mesas/bulk** - Crear múltiples mesas (máximo 50)
+  - Body: `{ "mesas": [{ "mesa_numero": 1, "mesa_capacidad": 4 }, { "mesa_numero": 2, "mesa_capacidad": 2 }] }`
+  - El estado por defecto es "Disponible" si no se especifica.
 
 ---
 

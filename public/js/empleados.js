@@ -7,6 +7,7 @@ function mostrar(seccion) {
   document.getElementById("registrarEmpleado").style.display = "none";
   document.getElementById("registrarPlatillo").style.display = "none";
   document.getElementById("menuPlatillos").style.display = "none";
+  document.getElementById("mesas").style.display = "none";
   // document.getElementById("ordenes").style.display = "none"; // Para un Sprint futuro
 
   document.getElementById(seccion).style.display = "block";
@@ -17,6 +18,10 @@ function mostrar(seccion) {
 
   if (seccion === "menuPlatillos") {
     loadMenu();
+  }
+
+  if (seccion === "mesas") {
+    cargarMesas();
   }
 }
 
