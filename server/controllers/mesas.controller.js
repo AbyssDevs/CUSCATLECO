@@ -56,7 +56,7 @@ const crearMesas = (req, res) => {
     if (mesa_capacidad <= 0) {
       return res.status(400).json({ error: `Mesa ${i + 1}: la capacidad debe ser mayor que 0` });
     }
-    mesas[i].mesa_estado = "Libre";
+    mesas[i].mesa_estado = "Disponible";
   }
 
   const numeros = mesas.map(m => m.mesa_numero);
@@ -90,4 +90,7 @@ const crearMesas = (req, res) => {
   });
 };
 
-module.exports = { crearMesa, crearMesas, obtenerMesas };
+module.exports = {
+  crearMesa,
+  crearMesas,
+};

@@ -81,7 +81,7 @@ async function crearMesa() {
       mesa_numero: numero + index,
       mesa_capacidad: capacidad,
       mesa_ubicacion: ubicacion,
-      mesa_estado: "Libre",
+      mesa_estado: "Disponible",
     }));
 
     try {
