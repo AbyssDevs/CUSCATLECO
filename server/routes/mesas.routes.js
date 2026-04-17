@@ -14,6 +14,6 @@ router.post('/bulk', auditoriaMiddleware, requirePermission('gestionar_mesas'), 
 
 router.get('/', requirePermission('ver_mesas'), listarMesas);
 
-router.patch('/:id/estado', auditoriaMiddleware, requirePermission('gestionar_mesas'), cambiarEstadoMesa);
+router.patch('/:id/estado', auditoriaMiddleware, requirePermission('actualizar_estado_mesa'), cambiarEstadoMesa);
 
 module.exports = router;
