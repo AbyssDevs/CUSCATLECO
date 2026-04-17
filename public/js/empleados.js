@@ -8,6 +8,7 @@ function mostrar(seccion) {
   document.getElementById("registrarPlatillo").style.display = "none";
   document.getElementById("menuPlatillos").style.display = "none";
   document.getElementById("mesas").style.display = "none";
+  document.getElementById("verMesas").style.display = "none";
   // document.getElementById("ordenes").style.display = "none"; // Para un Sprint futuro
 
   document.getElementById(seccion).style.display = "block";
@@ -20,7 +21,7 @@ function mostrar(seccion) {
     loadMenu();
   }
 
-  if (seccion === "mesas" || seccion === "verMesas") {
+  if (seccion === "verMesas") {
     cargarMesas();
   }
 }
