@@ -20,7 +20,7 @@ function mostrar(seccion) {
     loadMenu();
   }
 
-  if (seccion === "mesas") {
+  if (seccion === "mesas" || seccion === "verMesas") {
     cargarMesas();
   }
 }

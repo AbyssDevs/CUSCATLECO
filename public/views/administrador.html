@@ -45,6 +45,7 @@
                 <li onclick="mostrar('empleados')">📋 Ver Empleados</li>
                 <li onclick="mostrar('menuPlatillos')">🍽️ Ver Menú</li>
                 <li onclick="mostrar('mesas')">🪑 Crear Mesas</li>
+                <li onclick="mostrar('verMesas')">🪑 Ver Mesas</li>
                 <li onclick="mostrar('registrarEmpleado')">➕ Añadir Empleados</li>
                 <li onclick="mostrar('registrarPlatillo')">🍔 Añadir Platillo</li>
                 <li onclick="cerrarSesion()">🚪 Cerrar sesión</li>
@@ -159,6 +160,25 @@
                         <tbody id="mesasTableBody"></tbody>
                     </table>
                 </div>
+            </div>
+
+            <div id="verMesas" style="display: none;">
+                <h2>Ver Mesas</h2>
+                <div id="verMesasLoading" style="display: none; color: #555; margin-bottom: 0.75rem;">Cargando mesas...</div>
+                <div id="verMesasEmpty" style="color: #555; margin-bottom: 0.75rem;"></div>
+                <table class="menu-table">
+                    <thead>
+                        <tr>
+                            <th>Número de mesa</th>
+                            <th>Capacidad</th>
+                            <th>Estado</th>
+                            <th>Ubicación</th>
+                            <th>Fecha de creación</th>
+                            <th>Usuario</th>
+                        </tr>
+                    </thead>
+                    <tbody id="verMesasTableBody"></tbody>
+                </table>
             </div>
 
 

@@ -49,9 +49,12 @@ function toggleBulkMode() {
 async function cargarMesas() {
   actualizarFormularioModo();
 
-  const loading = document.getElementById("mesasLoading");
-  const empty = document.getElementById("mesasEmpty");
-  const tablaBody = document.getElementById("mesasTableBody");
+  const verMesasSection = document.getElementById("verMesas");
+  const isVerMesas = verMesasSection && verMesasSection.style.display !== "none";
+
+  const loading = document.getElementById(isVerMesas ? "verMesasLoading" : "mesasLoading");
+  const empty = document.getElementById(isVerMesas ? "verMesasEmpty" : "mesasEmpty");
+  const tablaBody = document.getElementById(isVerMesas ? "verMesasTableBody" : "mesasTableBody");
 
   if (loading) loading.style.display = "block";
   if (empty) empty.textContent = "";
@@ -74,16 +77,31 @@ async function cargarMesas() {
 
     mesas.forEach((mesa) => {
       const fila = document.createElement("tr");
-      fila.innerHTML = `
-        <td>${mesa.mesa_numero ?? mesa.numero ?? "--"}</td>
-        <td>${mesa.mesa_capacidad ?? mesa.capacidad ?? "--"}</td>
-        <td>${mesa.mesa_estado ?? mesa.estado ?? "--"}</td>
-      `;
+      if (isVerMesas) {
+        fila.innerHTML = `
+          <td>${mesa.mesa_numero ?? mesa.numero ?? "--"}</td>
+          <td>${mesa.mesa_capacidad ?? mesa.capacidad ?? "--"}</td>
+          <td>${mesa.mesa_estado ?? mesa.estado ?? "--"}</td>
+          <td>${mesa.mesa_ubicacion ?? mesa.ubicacion ?? "--"}</td>
+          <td>${mesa.fecha_creacion ?? mesa.fechaCreacion ?? mesa.created_at ?? "--"}</td>
+          <td>${mesa.usuario ?? mesa.usuario_nombre ?? mesa.usuario_actualizo ?? "--"}</td>
+        `;
+      } else {
+        fila.innerHTML = `
+          <td>${mesa.mesa_numero ?? mesa.numero ?? "--"}</td>
+          <td>${mesa.mesa_capacidad ?? mesa.capacidad ?? "--"}</td>
+          <td>${mesa.mesa_estado ?? mesa.estado ?? "--"}</td>
+        `;
+      }
       tablaBody.appendChild(fila);
     });
   } catch (error) {
     console.error(error);
-    mostrarMensajeMesas("No se pudo cargar la lista de mesas. Intente nuevamente.", true);
+    if (empty) {
+      empty.textContent = "No se pudo cargar la lista de mesas. Intente nuevamente.";
+    } else {
+      mostrarMensajeMesas("No se pudo cargar la lista de mesas. Intente nuevamente.", true);
+    }
   } finally {
     if (loading) loading.style.display = "none";
   }
