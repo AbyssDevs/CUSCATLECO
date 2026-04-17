@@ -91,7 +91,7 @@ const crearMesas = (req, res) => {
 };
 
 const listarMesas = (req, res) => {
-  const sql = `SELECT * FROM mesas`;
+  const sql = `SELECT * FROM mesas ORDER BY mesa_numero DESC`;
   db.query(sql, (err, results) => {
     if (err) {
       console.error("Error al listar las mesas:", err);
