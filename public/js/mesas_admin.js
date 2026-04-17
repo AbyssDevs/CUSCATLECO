@@ -52,9 +52,13 @@ async function cargarMesas() {
   const verMesasSection = document.getElementById("verMesas");
   const isVerMesas = verMesasSection && verMesasSection.style.display !== "none";
 
-  const loading = document.getElementById(isVerMesas ? "verMesasLoading" : "mesasLoading");
-  const empty = document.getElementById(isVerMesas ? "verMesasEmpty" : "mesasEmpty");
-  const tablaBody = document.getElementById(isVerMesas ? "verMesasTableBody" : "mesasTableBody");
+  if (!isVerMesas) {
+    return;
+  }
+
+  const loading = document.getElementById("verMesasLoading");
+  const empty = document.getElementById("verMesasEmpty");
+  const tablaBody = document.getElementById("verMesasTableBody");
 
   if (loading) loading.style.display = "block";
   if (empty) empty.textContent = "";
@@ -77,22 +81,13 @@ async function cargarMesas() {
 
     mesas.forEach((mesa) => {
       const fila = document.createElement("tr");
-      if (isVerMesas) {
-        fila.innerHTML = `
-          <td>${mesa.mesa_numero ?? mesa.numero ?? "--"}</td>
-          <td>${mesa.mesa_capacidad ?? mesa.capacidad ?? "--"}</td>
-          <td>${mesa.mesa_estado ?? mesa.estado ?? "--"}</td>
-          <td>${mesa.mesa_ubicacion ?? mesa.ubicacion ?? "--"}</td>
-          <td>${mesa.fecha_creacion ?? mesa.fechaCreacion ?? mesa.created_at ?? "--"}</td>
-          <td>${mesa.usuario ?? mesa.usuario_nombre ?? mesa.usuario_actualizo ?? "--"}</td>
-        `;
-      } else {
-        fila.innerHTML = `
-          <td>${mesa.mesa_numero ?? mesa.numero ?? "--"}</td>
-          <td>${mesa.mesa_capacidad ?? mesa.capacidad ?? "--"}</td>
-          <td>${mesa.mesa_estado ?? mesa.estado ?? "--"}</td>
-        `;
-      }
+      fila.innerHTML = `
+        <td>${mesa.mesa_numero ?? mesa.numero ?? "--"}</td>
+        <td>${mesa.mesa_capacidad ?? mesa.capacidad ?? "--"}</td>
+        <td>${mesa.mesa_estado ?? mesa.estado ?? "--"}</td>
+        <td>${mesa.mesa_ubicacion ?? mesa.ubicacion ?? "--"}</td>
+        <td>${mesa.mesa_actualizada_por ?? mesa.actualizada_por ?? "--"}</td>
+      `;
       tablaBody.appendChild(fila);
     });
   } catch (error) {
