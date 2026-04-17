@@ -4,6 +4,7 @@ const {
     crearMesa, 
     crearMesas,
     listarMesas,
+    cambiarEstadoMesa
 } = require('../controllers/mesas.controller');
 const { requirePermission, auditoriaMiddleware } = require('../middlewares/auth.middleware')
 
@@ -12,5 +13,7 @@ router.post('/', auditoriaMiddleware, requirePermission('gestionar_mesas'), crea
 router.post('/bulk', auditoriaMiddleware, requirePermission('gestionar_mesas'), crearMesas);
 
 router.get('/', requirePermission('ver_mesas'), listarMesas);
+
+router.patch('/:id/estado', auditoriaMiddleware, requirePermission('gestionar_mesas'), cambiarEstadoMesa);
 
 module.exports = router;

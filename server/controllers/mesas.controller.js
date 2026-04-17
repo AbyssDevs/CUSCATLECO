@@ -110,4 +110,39 @@ const listarMesas = (req, res) => {
   });
 }
 
-module.exports = {crearMesa, crearMesas, listarMesas };
+const cambiarEstadoMesa = (req, res) => {
+  const { id } = req.params;
+  const { mesa_estado } = req.body;
+
+  const estadosValidos = ["Disponible", "Ocupada", "Reservada", "Limpieza"];
+  
+  const id_usuario = (req.user && req.user.id)
+    ? req.user.id
+    : (req.body.id_usuario || 1);
+  if (mesa_estado === undefined) {
+    return res.status(400).json({ error: "Debe enviar el estado de la mesa" });
+  }
+  if (!estadosValidos.includes(mesa_estado)) {
+    return res.status(400).json({ error: `Estado de mesa inválido. Estados permitidos: ${estadosValidos.join(', ')}` });
+  }
+
+  const sql = `
+    UPDATE mesas
+    SET mesa_estado = ?, mesa_actualizada_por = ?, mesa_actualizada_en = NOW()
+    WHERE id_mesa = ?
+  `;
+
+  db.query(sql, [mesa_estado, id_usuario, id], (err, result) => {
+    if (err) {
+      console.error("Error al cambiar el estado de la mesa:", err);
+      return res.status(500).json({ error: "Error del servidor" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Mesa no encontrada" });
+    }
+    
+    res.json({ message: "Estado de la mesa actualizado exitosamente" });
+  });
+};
+
+module.exports = {crearMesa, crearMesas, listarMesas, cambiarEstadoMesa};
