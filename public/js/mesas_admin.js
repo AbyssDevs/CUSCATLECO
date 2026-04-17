@@ -85,6 +85,10 @@ function actualizarFormularioModo() {
   const toggleBtn = document.getElementById("toggleBulkModeBtn");
   const bulkHint = document.getElementById("bulkHint");
 
+  if (!bulkField || !numeroInput || !titulo || !botonCrear || !toggleBtn || !bulkHint) {
+    return;
+  }
+
   if (bulkMode) {
     bulkField.style.display = "inline-block";
     numeroInput.placeholder = "Número inicial";
@@ -109,7 +113,9 @@ function toggleBulkMode() {
 }
 
 async function cargarMesas() {
-  actualizarFormularioModo();
+  if (document.getElementById("mesas")) {
+    actualizarFormularioModo();
+  }
 
   const verMesasSection = document.getElementById("verMesas");
   const isVerMesas = verMesasSection && verMesasSection.style.display !== "none";
@@ -292,5 +298,7 @@ async function crearMesa() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  actualizarFormularioModo();
+  if (document.getElementById("mesas")) {
+    actualizarFormularioModo();
+  }
 });
