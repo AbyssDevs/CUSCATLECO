@@ -134,14 +134,34 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 12px;
+  padding: 6px 14px;
   border-radius: 999px;
-  background: #fef3c7;
-  color: #92400e;
+  background: #f1f5f9;
+  color: #475569;
   font-weight: 600;
   font-size: 0.85rem;
   max-width: fit-content;
+  border: 1px solid rgba(0,0,0,0.05);
 }
+
+.status-disponible {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.status-ocupada {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.status-reservada {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
 
 .menu-card-actions {
   display: flex;

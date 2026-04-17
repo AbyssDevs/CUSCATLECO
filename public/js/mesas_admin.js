@@ -59,10 +59,12 @@ async function cargarMesas() {
   const loading = document.getElementById("verMesasLoading");
   const empty = document.getElementById("verMesasEmpty");
   const tablaBody = document.getElementById("verMesasTableBody");
+  const cardList = document.getElementById("verMesasCardList");
 
   if (loading) loading.style.display = "block";
   if (empty) empty.textContent = "";
   if (tablaBody) tablaBody.innerHTML = "";
+  if (cardList) cardList.innerHTML = "";
 
   try {
     const respuesta = await fetch("/api/mesas");
@@ -77,18 +79,47 @@ async function cargarMesas() {
       return;
     }
 
-    if (!tablaBody) return;
-
     mesas.forEach((mesa) => {
-      const fila = document.createElement("tr");
-      fila.innerHTML = `
-        <td>${mesa.mesa_numero ?? mesa.numero ?? "--"}</td>
-        <td>${mesa.mesa_capacidad ?? mesa.capacidad ?? "--"}</td>
-        <td>${mesa.mesa_estado ?? mesa.estado ?? "--"}</td>
-        <td>${mesa.mesa_ubicacion ?? mesa.ubicacion ?? "--"}</td>
-        <td>${mesa.mesa_actualizada_por ?? mesa.actualizada_por ?? "--"}</td>
-      `;
-      tablaBody.appendChild(fila);
+      const mesaNum = mesa.mesa_numero ?? mesa.numero ?? "--";
+      const mesaCap = mesa.mesa_capacidad ?? mesa.capacidad ?? "--";
+      const mesaEstado = mesa.mesa_estado ?? mesa.estado ?? "Disponible";
+      const mesaUbi = mesa.mesa_ubicacion ?? mesa.ubicacion ?? "Área General";
+      const mesaAct = mesa.mesa_actualizada_por ?? mesa.actualizada_por ?? "--";
+
+      // Render Table Row (Desktop)
+      if (tablaBody) {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td><strong>${mesaNum}</strong></td>
+          <td>${mesaCap} personas</td>
+          <td><span class="menu-card-status status-${mesaEstado.toLowerCase()}">${mesaEstado}</span></td>
+          <td>${mesaUbi}</td>
+          <td>${mesaAct}</td>
+        `;
+        tablaBody.appendChild(fila);
+      }
+
+      // Render Card (Mobile)
+      if (cardList) {
+        const card = document.createElement("div");
+        card.className = "menu-card";
+        card.innerHTML = `
+          <div class="menu-card-header">
+            <div>
+              <h3 class="menu-card-title">Mesa #${mesaNum}</h3>
+              <p class="menu-card-category">Capacidad: ${mesaCap} personas</p>
+            </div>
+            <span class="menu-card-status status-${mesaEstado.toLowerCase()}">${mesaEstado}</span>
+          </div>
+          <div class="menu-card-desc">
+            <p><strong>📍 Ubicación:</strong> ${mesaUbi}</p>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">
+              <i class="fa-solid fa-user-pen"></i> Actualizada por: ${mesaAct}
+            </p>
+          </div>
+        `;
+        cardList.appendChild(card);
+      }
     });
   } catch (error) {
     console.error(error);
