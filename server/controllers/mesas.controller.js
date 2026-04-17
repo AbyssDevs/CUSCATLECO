@@ -110,4 +110,19 @@ const listarMesas = (req, res) => {
   });
 }
 
-module.exports = {crearMesa, crearMesas, listarMesas };
+const eliminarMesa = (req, res) => {
+  const { id } = req.params;
+  const sql = `DELETE FROM mesas WHERE id_mesa = ?`;
+  db.query(sql, [id], (err, result) => {
+    if (err) {
+      console.error("Error al eliminar la mesa:", err);
+      return res.status(500).json({ error: "Error del servidor" });
+    }
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: "Mesa no encontrada" });
+    }
+    res.json({ message: "Mesa eliminada exitosamente" });
+  });
+};
+
+module.exports = {crearMesa, crearMesas, listarMesas, eliminarMesa };
