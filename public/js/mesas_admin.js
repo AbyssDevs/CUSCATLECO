@@ -46,8 +46,91 @@ function toggleBulkMode() {
   mostrarMensajeMesas("");
 }
 
-function cargarMesas() {
+async function cargarMesas() {
   actualizarFormularioModo();
+
+  const verMesasSection = document.getElementById("verMesas");
+  const isVerMesas = verMesasSection && verMesasSection.style.display !== "none";
+
+  if (!isVerMesas) {
+    return;
+  }
+
+  const loading = document.getElementById("verMesasLoading");
+  const empty = document.getElementById("verMesasEmpty");
+  const tablaBody = document.getElementById("verMesasTableBody");
+  const cardList = document.getElementById("verMesasCardList");
+
+  if (loading) loading.style.display = "block";
+  if (empty) empty.textContent = "";
+  if (tablaBody) tablaBody.innerHTML = "";
+  if (cardList) cardList.innerHTML = "";
+
+  try {
+    const respuesta = await fetch("/api/mesas");
+    if (!respuesta.ok) {
+      throw new Error("No se pudo cargar la lista de mesas.");
+    }
+
+    const mesas = await respuesta.json();
+
+    if (!Array.isArray(mesas) || mesas.length === 0) {
+      if (empty) empty.textContent = "No hay mesas registradas.";
+      return;
+    }
+
+    mesas.forEach((mesa) => {
+      const mesaNum = mesa.mesa_numero ?? mesa.numero ?? "--";
+      const mesaCap = mesa.mesa_capacidad ?? mesa.capacidad ?? "--";
+      const mesaEstado = mesa.mesa_estado ?? mesa.estado ?? "Disponible";
+      const mesaUbi = mesa.mesa_ubicacion ?? mesa.ubicacion ?? "Área General";
+      const mesaAct = mesa.mesa_actualizada_por ?? mesa.actualizada_por ?? "--";
+
+      // Render Table Row (Desktop)
+      if (tablaBody) {
+        const fila = document.createElement("tr");
+        fila.innerHTML = `
+          <td><strong>${mesaNum}</strong></td>
+          <td>${mesaCap} personas</td>
+          <td><span class="menu-card-status status-${mesaEstado.toLowerCase()}">${mesaEstado}</span></td>
+          <td>${mesaUbi}</td>
+          <td>${mesaAct}</td>
+        `;
+        tablaBody.appendChild(fila);
+      }
+
+      // Render Card (Mobile)
+      if (cardList) {
+        const card = document.createElement("div");
+        card.className = "menu-card";
+        card.innerHTML = `
+          <div class="menu-card-header">
+            <div>
+              <h3 class="menu-card-title">Mesa #${mesaNum}</h3>
+              <p class="menu-card-category">Capacidad: ${mesaCap} personas</p>
+            </div>
+            <span class="menu-card-status status-${mesaEstado.toLowerCase()}">${mesaEstado}</span>
+          </div>
+          <div class="menu-card-desc">
+            <p><strong>📍 Ubicación:</strong> ${mesaUbi}</p>
+            <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">
+              <i class="fa-solid fa-user-pen"></i> Actualizada por: ${mesaAct}
+            </p>
+          </div>
+        `;
+        cardList.appendChild(card);
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    if (empty) {
+      empty.textContent = "No se pudo cargar la lista de mesas. Intente nuevamente.";
+    } else {
+      mostrarMensajeMesas("No se pudo cargar la lista de mesas. Intente nuevamente.", true);
+    }
+  } finally {
+    if (loading) loading.style.display = "none";
+  }
 }
 
 async function crearMesa() {
@@ -99,6 +182,7 @@ async function crearMesa() {
 
       mostrarMensajeMesas(`${cantidad} mesas creadas exitosamente.`);
       limpiarFormularioMesas();
+      cargarMesas();
     } catch (error) {
       console.error(error);
       mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
@@ -127,6 +211,7 @@ async function crearMesa() {
 
     mostrarMensajeMesas("Mesa creada exitosamente.");
     limpiarFormularioMesas();
+    cargarMesas();
   } catch (error) {
     console.error(error);
     mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
