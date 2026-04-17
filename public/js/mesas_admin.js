@@ -46,8 +46,47 @@ function toggleBulkMode() {
   mostrarMensajeMesas("");
 }
 
-function cargarMesas() {
+async function cargarMesas() {
   actualizarFormularioModo();
+
+  const loading = document.getElementById("mesasLoading");
+  const empty = document.getElementById("mesasEmpty");
+  const tablaBody = document.getElementById("mesasTableBody");
+
+  if (loading) loading.style.display = "block";
+  if (empty) empty.textContent = "";
+  if (tablaBody) tablaBody.innerHTML = "";
+
+  try {
+    const respuesta = await fetch("/api/mesas");
+    if (!respuesta.ok) {
+      throw new Error("No se pudo cargar la lista de mesas.");
+    }
+
+    const mesas = await respuesta.json();
+
+    if (!Array.isArray(mesas) || mesas.length === 0) {
+      if (empty) empty.textContent = "No hay mesas registradas.";
+      return;
+    }
+
+    if (!tablaBody) return;
+
+    mesas.forEach((mesa) => {
+      const fila = document.createElement("tr");
+      fila.innerHTML = `
+        <td>${mesa.mesa_numero ?? mesa.numero ?? "--"}</td>
+        <td>${mesa.mesa_capacidad ?? mesa.capacidad ?? "--"}</td>
+        <td>${mesa.mesa_estado ?? mesa.estado ?? "--"}</td>
+      `;
+      tablaBody.appendChild(fila);
+    });
+  } catch (error) {
+    console.error(error);
+    mostrarMensajeMesas("No se pudo cargar la lista de mesas. Intente nuevamente.", true);
+  } finally {
+    if (loading) loading.style.display = "none";
+  }
 }
 
 async function crearMesa() {
@@ -99,6 +138,7 @@ async function crearMesa() {
 
       mostrarMensajeMesas(`${cantidad} mesas creadas exitosamente.`);
       limpiarFormularioMesas();
+      cargarMesas();
     } catch (error) {
       console.error(error);
       mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
@@ -127,6 +167,7 @@ async function crearMesa() {
 
     mostrarMensajeMesas("Mesa creada exitosamente.");
     limpiarFormularioMesas();
+    cargarMesas();
   } catch (error) {
     console.error(error);
     mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
