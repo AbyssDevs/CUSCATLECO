@@ -76,7 +76,7 @@ app.use("/views", (req, res) => {
 app.use("/api", authRoutes);
 app.use("/api/empleados", requirePermission("gestionar_usuarios"), empleadosRoutes);
 app.use("/api/platillos", auditoriaMiddleware, platillosRoutes);
-app.use("/api/mesas", auditoriaMiddleware, requirePermission("gestionar_mesas"), mesasRoutes);
+app.use("/api/mesas", auditoriaMiddleware, mesasRoutes);
 
 
 // Iniciar el servidor

@@ -1,4 +1,5 @@
 const MAX_BULK_MESAS = 50;
+const ESTADOS_MESA = ["Libre", "Ocupada", "Reservada", "Limpieza"];
 let bulkMode = false;
 
 function mostrarMensajeMesas(mensaje, esError = false) {
@@ -6,6 +7,67 @@ function mostrarMensajeMesas(mensaje, esError = false) {
   if (!contenedor) return;
   contenedor.textContent = mensaje;
   contenedor.style.color = esError ? "#b22222" : "#1f7a1f";
+}
+
+function normalizarEstadoMesa(estado) {
+  if (!estado) return "Libre";
+  if (estado.toString().trim().toLowerCase() === "disponible") return "Libre";
+  return estado.toString().trim();
+}
+
+function estadoClass(estado) {
+  const estadoNormalizado = normalizarEstadoMesa(estado).toLowerCase();
+  if (estadoNormalizado === "libre") return "status-disponible";
+  return `status-${estadoNormalizado.replace(/\s+/g, "-")}`;
+}
+
+function crearSelectEstado(mesaId, estadoActual) {
+  const select = document.createElement("select");
+  select.className = "mesa-estado-select";
+  const estadoNormalizado = normalizarEstadoMesa(estadoActual);
+
+  ESTADOS_MESA.forEach((estado) => {
+    const option = document.createElement("option");
+    option.value = estado;
+    option.textContent = estado;
+    if (estado === estadoNormalizado) {
+      option.selected = true;
+    }
+    select.appendChild(option);
+  });
+
+  if (!mesaId) {
+    select.disabled = true;
+    return select;
+  }
+
+  select.addEventListener("change", async () => {
+    select.disabled = true;
+    const nuevoEstado = select.value;
+    try {
+      const respuesta = await fetch(`/api/mesas/${mesaId}/estado`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ mesa_estado: nuevoEstado }),
+      });
+      const datos = await respuesta.json();
+      if (!respuesta.ok) {
+        mostrarMensajeMesas(datos.error || "No se pudo actualizar el estado de la mesa.", true);
+        select.value = estadoNormalizado;
+        return;
+      }
+      mostrarMensajeMesas(`Estado de la mesa actualizado a ${nuevoEstado}.`);
+      cargarMesas();
+    } catch (error) {
+      console.error("Error actualizando estado de mesa:", error);
+      mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
+      select.value = estadoNormalizado;
+    } finally {
+      select.disabled = false;
+    }
+  });
+
+  return select;
 }
 
 function limpiarFormularioMesas() {
@@ -22,6 +84,10 @@ function actualizarFormularioModo() {
   const botonCrear = document.getElementById("btnCrearMesa");
   const toggleBtn = document.getElementById("toggleBulkModeBtn");
   const bulkHint = document.getElementById("bulkHint");
+
+  if (!bulkField || !numeroInput || !titulo || !botonCrear || !toggleBtn || !bulkHint) {
+    return;
+  }
 
   if (bulkMode) {
     bulkField.style.display = "inline-block";
@@ -47,7 +113,9 @@ function toggleBulkMode() {
 }
 
 async function cargarMesas() {
-  actualizarFormularioModo();
+  if (document.getElementById("mesas")) {
+    actualizarFormularioModo();
+  }
 
   const verMesasSection = document.getElementById("verMesas");
   const isVerMesas = verMesasSection && verMesasSection.style.display !== "none";
@@ -80,22 +148,29 @@ async function cargarMesas() {
     }
 
     mesas.forEach((mesa) => {
+      const mesaId = mesa.id_mesa ?? mesa.id ?? null;
       const mesaNum = mesa.mesa_numero ?? mesa.numero ?? "--";
       const mesaCap = mesa.mesa_capacidad ?? mesa.capacidad ?? "--";
-      const mesaEstado = mesa.mesa_estado ?? mesa.estado ?? "Disponible";
+      const mesaEstadoRaw = mesa.mesa_estado ?? mesa.estado ?? "Disponible";
+      const mesaEstado = normalizarEstadoMesa(mesaEstadoRaw);
       const mesaUbi = mesa.mesa_ubicacion ?? mesa.ubicacion ?? "Área General";
-      const mesaAct = mesa.mesa_actualizada_por ?? mesa.actualizada_por ?? "--";
+      const mesaAct = mesa.mesa_actualizada_por ?? mesa.actualizada_por ?? null;
+      const mesaFecha = mesa.mesa_actualizado_en ?? mesa.actualizado_en ?? mesa.mesa_actualizado_at ?? mesa.actualizado_at ?? null;
+      const mesaActTexto = mesaAct ? `Actualizada por: ${mesaAct}` : "Actualizada por: --";
+      const estadoClase = estadoClass(mesaEstado);
 
       // Render Table Row (Desktop)
       if (tablaBody) {
         const fila = document.createElement("tr");
+        const selectEstado = crearSelectEstado(mesaId, mesaEstado);
         fila.innerHTML = `
           <td><strong>${mesaNum}</strong></td>
           <td>${mesaCap} personas</td>
-          <td><span class="menu-card-status status-${mesaEstado.toLowerCase()}">${mesaEstado}</span></td>
+          <td></td>
           <td>${mesaUbi}</td>
-          <td>${mesaAct}</td>
+          <td>${mesaActTexto}${mesaFecha ? ` · ${new Date(mesaFecha).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}</td>
         `;
+        fila.children[2].appendChild(selectEstado);
         tablaBody.appendChild(fila);
       }
 
@@ -109,15 +184,19 @@ async function cargarMesas() {
               <h3 class="menu-card-title">Mesa #${mesaNum}</h3>
               <p class="menu-card-category">Capacidad: ${mesaCap} personas</p>
             </div>
-            <span class="menu-card-status status-${mesaEstado.toLowerCase()}">${mesaEstado}</span>
+            <span class="menu-card-status ${estadoClase}">${mesaEstado}</span>
           </div>
           <div class="menu-card-desc">
             <p><strong>📍 Ubicación:</strong> ${mesaUbi}</p>
             <p style="font-size: 0.85rem; color: #666; margin-top: 8px;">
-              <i class="fa-solid fa-user-pen"></i> Actualizada por: ${mesaAct}
+              <i class="fa-solid fa-user-pen"></i> ${mesaActTexto}${mesaFecha ? ` · ${new Date(mesaFecha).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}
             </p>
           </div>
         `;
+        const selectContainer = document.createElement("div");
+        selectContainer.style.marginTop = "0.75rem";
+        selectContainer.appendChild(crearSelectEstado(mesaId, mesaEstado));
+        card.querySelector(".menu-card-desc").appendChild(selectContainer);
         cardList.appendChild(card);
       }
     });
@@ -219,5 +298,7 @@ async function crearMesa() {
 }
 
 window.addEventListener("DOMContentLoaded", () => {
-  actualizarFormularioModo();
+  if (document.getElementById("mesas")) {
+    actualizarFormularioModo();
+  }
 });
