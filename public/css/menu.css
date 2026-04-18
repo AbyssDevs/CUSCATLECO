@@ -162,6 +162,12 @@
   border-color: #fde68a;
 }
 
+.status-limpieza {
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
 
 .menu-card-actions {
   display: flex;
