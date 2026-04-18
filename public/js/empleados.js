@@ -6,12 +6,23 @@ function mostrar(seccion) {
   document.getElementById("empleados").style.display = "none";
   document.getElementById("registrarEmpleado").style.display = "none";
   document.getElementById("registrarPlatillo").style.display = "none";
+  document.getElementById("menuPlatillos").style.display = "none";
+  document.getElementById("mesas").style.display = "none";
+  document.getElementById("verMesas").style.display = "none";
   // document.getElementById("ordenes").style.display = "none"; // Para un Sprint futuro
 
   document.getElementById(seccion).style.display = "block";
 
   if (seccion === "empleados") {
     cargarEmpleados();
+  }
+
+  if (seccion === "menuPlatillos") {
+    loadMenu();
+  }
+
+  if (seccion === "verMesas") {
+    cargarMesas();
   }
 }
 
@@ -26,16 +37,17 @@ async function cargarUsuarioLogueado() {
     }
 
     const usuario = await respuesta.json();
+    const nombreUsuario = usuario.nombre || usuario.usuario_nombre || usuario.name || "Usuario";
+    const rolUsuario = usuario.rol || usuario.role || "Sin rol";
 
     // Actualizar el sidebar con la información del usuario
-    document.getElementById("userName").textContent =
-      usuario.nombre || "Usuario";
-    document.getElementById("userRole").textContent = usuario.rol || "Sin rol";
+    document.getElementById("userName").textContent = nombreUsuario;
+    document.getElementById("userRole").textContent = rolUsuario;
 
     // También podemos mostrar el nombre en el mensaje de bienvenida
     const bienvenida = document.getElementById("bienvenidaUsuario");
     if (bienvenida) {
-      bienvenida.innerHTML = `Bienvenido, <strong>${usuario.nombre}</strong> (${usuario.rol})`;
+      bienvenida.innerHTML = `Bienvenido, <strong>${nombreUsuario}</strong> (${rolUsuario})`;
     }
 
     return usuario;

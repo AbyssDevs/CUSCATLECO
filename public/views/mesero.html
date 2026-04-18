@@ -18,6 +18,7 @@
 
     <!-- CSS Específico de Mesero -->
     <link rel="stylesheet" href="../css/mesero.css">
+    <link rel="stylesheet" href="../css/menu.css">
 
 </head>
 
@@ -44,6 +45,7 @@
             <ul>
                 <li onclick="mostrarViews('tomar-pedido')">Nuevo Pedido</li>
                 <li onclick="mostrarViews('menu-restaurante')">Ver el Menú</li>
+                <li onclick="mostrarViews('verMesas')">🪑 Ver Mesas</li>
                 <li onclick="mostrarViews('pedidos-pendientes')">Entregar Pedidos</li>
                 <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li>
             </ul>
@@ -96,55 +98,57 @@
                 </div>
             </div>
 
+            <div id="verMesas" style="display: none;">
+                <h1>Ver Mesas</h1>
+                <div id="verMesasLoading" style="display: none; color: #555; margin-bottom: 0.75rem;">Cargando mesas...</div>
+                <div id="verMesasEmpty" style="color: #555; margin-bottom: 0.75rem;"></div>
+                <table class="menu-table">
+                    <thead>
+                        <tr>
+                            <th>Número de mesa</th>
+                            <th>Capacidad</th>
+                            <th>Estado</th>
+                            <th>Ubicación</th>
+                            <th>Actualizada por</th>
+                        </tr>
+                    </thead>
+                    <tbody id="verMesasTableBody"></tbody>
+                </table>
+                <div id="verMesasCardList" class="menu-card-list"></div>
+                <div id="mesasMensaje" style="margin-top: 1rem; color: #1f7a1f;"></div>
+            </div>
+
 
             <!-- VER MENÚ -->
             <div id="menu-restaurante" style="display: none;">
                 <h1>Menú del Restaurante</h1>
-                
-                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                    <input type="text" placeholder="Buscar platillo..." style="flex: 1; max-width: 400px;">
-                    <select>
-                        <option value="todos">Todas las categorías</option>
-                        <option value="pupusas">Pupusas</option>
-                        <option value="platos">Platos Fuertes</option>
-                        <option value="bebidas">Bebidas</option>
+
+                <div class="menu-page-header">
+                    <select id="menuCategoryFilter">
+                        <option value="">Todas las categorías</option>
                     </select>
+                    <input id="menuSearchInput" type="text" placeholder="Buscar platillo..." autocomplete="off">
                 </div>
 
-                <div class="grid-pedidos">
-                    <!-- Ejemplo de menú -->
-                    <div class="menu-item">
-                        <div>
-                            <h4>Pupusas Revueltas</h4>
-                            <span style="color: #777; font-size: 0.9em;">Frijol, queso y chicharrón</span>
-                        </div>
-                        <div class="precio">$1.25</div>
-                    </div>
-                    
-                    <div class="menu-item">
-                        <div>
-                            <h4>Pupusas de Queso</h4>
-                            <span style="color: #777; font-size: 0.9em;">Queso y loroco opcionla</span>
-                        </div>
-                        <div class="precio">$1.25</div>
-                    </div>
-                    
-                    <div class="menu-item">
-                        <div>
-                            <h4>Sopa de Gallina India</h4>
-                            <span style="color: #777; font-size: 0.9em;">Media gallina asada y sopa</span>
-                        </div>
-                        <div class="precio">$6.50</div>
-                    </div>
-                    
-                    <div class="menu-item">
-                        <div>
-                            <h4>Horchata</h4>
-                            <span style="color: #777; font-size: 0.9em;">Bebida típica</span>
-                        </div>
-                        <div class="precio">$1.50</div>
-                    </div>
+                <div id="menuLoading" class="menu-loading">
+                    <span class="spinner"></span>
+                    <span>Cargando menú...</span>
                 </div>
+                <div id="menuEmpty" class="menu-empty"></div>
+
+                <table class="menu-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="nombre" class="sortable">Nombre <span class="sort-indicator"></span></th>
+                            <th>Categoría</th>
+                            <th>Descripción</th>
+                            <th data-sort="precio" class="sortable">Precio <span class="sort-indicator"></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="menuTableBody"></tbody>
+                </table>
+
+                <div id="menuCardList" class="menu-card-list"></div>
             </div>
 
 
@@ -197,6 +201,8 @@
         </div>
     </div>
 
+    <script src="../js/menu.js"></script>
+    <script src="../js/mesas_admin.js"></script>
 </body>
 
 </html>

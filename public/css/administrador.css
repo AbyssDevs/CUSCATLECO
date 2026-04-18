@@ -261,10 +261,15 @@ td {
 }
 
 th {
-    background: #7a1d1d;
-    color: white;
+    background: #f5f5f5;
+    color: #333;
     font-weight: 500;
     letter-spacing: 0.5px;
+}
+
+.menu-table thead th:nth-child(-n+4) {
+    background: #7a1d1d;
+    color: white;
 }
 
 tr {
@@ -525,7 +530,7 @@ tr:hover {
 
 #tablaEmpleados th,
 #tablaEmpleados td {
-  border: 1px solid #ccc;
+  border: 1px solid #7A1D1D;
   padding: 8px;
   text-align: left;
 }
@@ -618,6 +623,19 @@ tr:hover {
     }
     .admin-empleados-form button {
         grid-column: span 2;
+    }
+    .ubicacion-group {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+    }
+    .ubicacion-group input {
+        flex: 1;
+    }
+    .ubicacion-group button {
+        grid-column: auto;
+        min-width: 160px;
     }
 }
 

@@ -1,6 +1,8 @@
 // middlewares/auth.middleware.js
 
 const path = require("path");
+const { cambiarEstadoMesa } = require("../controllers/mesas.controller");
+const { act } = require("react");
 
 // Middleware para recuperar el usuario de la sesión
 function recoverSession(req, res, next) {
@@ -34,6 +36,18 @@ function requirePermission(permiso) {
       if (role === "administrador") {
         return next();
       }
+    } else if (permiso === "ver_mesas") {
+      if (role === "administrador" || role === "mesero" || role === "cajero") {
+        return next();
+      }
+    } else if (permiso === "gestionar_mesas") {
+      if (role === "administrador") {
+        return next();
+      }
+    } else if (permiso === "actualizar_estado_mesa") {
+        if (role === "administrador" || role === "mesero") {
+          return next();
+        }
     } else {
       if (role === "administrador") {
         return next();

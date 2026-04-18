@@ -17,6 +17,7 @@
         rel="stylesheet">
 
     <link rel="stylesheet" href="../css/administrador.css">
+    <link rel="stylesheet" href="../css/menu.css">
 
 </head>
 
@@ -93,39 +94,77 @@
 
             </div>
 
+            <div id="menuPlatillos" data-admin="true" style="display: none;">
+                <h2>Menú del Restaurante</h2>
 
-            <!-- ORDENES -->
-
-
-            <!-- <div id="ordenes">
-
-                <h1>Órdenes del restaurante</h1>
-                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                    <input type="text" id="buscarMesa" placeholder="Buscar por mesa..." onkeyup="filtrarOrdenes()" style="flex: 1;">
-                    <select onchange="filtrarEstado(this.value)">
-                        <option value="todas">Todas</option>
-                        <option value="pendiente">Pendientes</option>
-                        <option value="completado">Completadas</option>
+                <div class="menu-page-header">
+                    <select id="menuCategoryFilter">
+                        <option value="">Todas las categorías</option>
                     </select>
+                    <input id="menuSearchInput" type="text" placeholder="Buscar platillo..." autocomplete="off">
                 </div>
-                <table border="1">
 
+                <div id="menuLoading" class="menu-loading">
+                    <span class="spinner"></span>
+                    <span>Cargando menú...</span>
+                </div>
+                <div id="menuEmpty" class="menu-empty"></div>
+
+                <table class="menu-table">
                     <thead>
                         <tr>
-                            <th>Mesa</th>
-                            <th>Platillo</th>
-                            <th>Cantidad</th>
-                            <th>Mesero</th>
-                            <th>Estado</th>
-                            <th>Acción</th>
+                            <th data-sort="nombre" class="sortable">Nombre <span class="sort-indicator"></span></th>
+                            <th>Categoría</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                            <th>Editar</th>
+                            <th>Activar</th>
+                            <th>Desactivar</th>
                         </tr>
                     </thead>
-
-                    <tbody id="tablaOrdenesAdmin"></tbody>
-
+                    <tbody id="menuTableBody"></tbody>
                 </table>
 
-            </div> -->
+                <div id="menuCardList" class="menu-card-list"></div>
+            </div>
+
+            <div id="mesas" style="display: none;">
+                <h2 id="mesasTitulo">Crear Mesas</h2>
+
+                <div class="admin-empleados-form" id="mesasForm">
+                    <input type="number" id="mesa_numero" placeholder="Número de mesa" min="1">
+                    <input type="number" id="bulk_count" placeholder="Cantidad (máx 50)" min="1" max="50" style="display: none;">
+                    <input type="number" id="mesa_capacidad" placeholder="Capacidad (personas)" min="1">
+                    <div class="ubicacion-group">
+                        <input type="text" id="mesa_ubicacion" placeholder="Ubicación (opcional)">
+                        <button id="toggleBulkModeBtn" onclick="toggleBulkMode()">Crear en serie</button>
+                    </div>
+                    <button id="btnCrearMesa" onclick="crearMesa()">Crear mesa</button>
+                </div>
+
+                <p id="bulkHint" style="margin-top: 0.5rem; color: #555;"></p>
+                <div id="mesasMensaje" style="margin-top: 1rem; color: #1f7a1f;"></div>
+            </div>
+
+            <div id="verMesas" style="display: none;">
+                <h2>Ver Mesas</h2>
+                <div id="verMesasLoading" style="display: none; color: #555; margin-bottom: 0.75rem;">Cargando mesas...</div>
+                <div id="verMesasEmpty" style="color: #555; margin-bottom: 0.75rem;"></div>
+                <table class="menu-table">
+                    <thead>
+                        <tr>
+                            <th>Número de mesa</th>
+                            <th>Capacidad</th>
+                            <th>Estado</th>
+                            <th>Ubicación</th>
+                            <th>Actualizada por</th>
+                            <th>Eliminar</th>
+                        </tr>
+                    </thead>
+                    <tbody id="verMesasTableBody"></tbody>
+                </table>
+                <div id="verMesasCardList" class="menu-card-list"></div>
+            </div>
 
 
             <!-- EMPLEADOS -->
@@ -199,7 +238,7 @@
                         <option value="3">Bebidas</option>
                         <option value="4">Postres</option>
                     </select>
-                    <div style="display: flex; align-items: center; gap: 10px;">
+                    <div id="wrapper_platillo_disponible" style="display: flex; align-items: center; gap: 10px;">
                         <label for="platillo_disponible">Disponible:</label>
                         <input type="checkbox" id="platillo_disponible" checked>
                     </div>
@@ -210,8 +249,10 @@
 
             </div>
 
-            <script src="js/empleados.js"></script>
-            <script src="js/platillos_admin.js"></script>
+            <script src="../js/empleados.js"></script>
+            <script src="../js/mesas_admin.js"></script>
+            <script src="../js/platillos_admin.js"></script>
+            <script src="../js/menu.js"></script>
             <script>
                 function toggleMenu() {
                     document.getElementById('sidebar').classList.toggle('active');

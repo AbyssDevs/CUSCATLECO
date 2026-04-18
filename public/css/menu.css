@@ -1,0 +1,258 @@
+.menu-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+.menu-page-header input,
+.menu-page-header select {
+  flex: 1;
+  min-width: 220px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #dcdce0;
+  background: #fff;
+  color: #333;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.menu-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  background: #ffffff;
+  color: #111827;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+}
+
+.menu-table th,
+.menu-table td {
+  padding: 16px 18px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  color: #111827;
+}
+
+.menu-table th {
+  background: #7a1d1d;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.menu-table thead th:nth-child(-n+6) {
+  background: #7a1d1d;
+  color: #ffffff;
+}
+
+.menu-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.menu-table tbody tr:hover {
+  background: #f1f5f9;
+}
+
+.menu-table .precio-col {
+  color: #047857;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.menu-table .categoria-col {
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.menu-table .descripcion-col {
+  color: #4b5563;
+  max-width: 480px;
+  line-height: 1.5;
+}
+
+.menu-item-meta {
+  display: block;
+  margin-top: 8px;
+  color: black;
+  font-size: 0.85rem;
+}
+
+.menu-card-list {
+  display: grid;
+  gap: 18px;
+  margin-top: 20px;
+}
+
+.menu-card {
+  background: #f8fafc;
+  border-radius: 18px;
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 24px 48px rgba(24, 38, 63, 0.06);
+  padding: 20px;
+  display: grid;
+  gap: 14px;
+}
+
+.menu-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+
+.menu-card-title {
+  margin: 0;
+  font-size: 1.08rem;
+  color: #111827;
+}
+
+.menu-card-category {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.menu-card-price {
+  color: #047857;
+  font-weight: 700;
+  font-size: 1.05rem;
+  white-space: nowrap;
+}
+
+.menu-card-desc {
+  margin: 0;
+  color: #374151;
+  line-height: 1.65;
+}
+
+.menu-card-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.85rem;
+  max-width: fit-content;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.status-disponible {
+  background: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+
+.status-ocupada {
+  background: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.status-reservada {
+  background: #fffbeb;
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.status-limpieza {
+  background: #eef2ff;
+  color: #3730a3;
+  border-color: #c7d2fe;
+}
+
+
+.menu-card-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.btn-editar,
+.btn-activar, .btn-desactivar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.btn-editar {
+  background-color: #f39c12;
+  color: #ffffff;
+}
+
+.btn-editar:hover {
+  background-color: #ffb84d;
+}
+
+.btn-activar {
+  background-color: #248a4c;
+  color: #ffffff;
+}
+
+.btn-activar:hover {
+  background-color: #2eb169;
+}
+
+.btn-desactivar {
+  background-color: #c53030;
+  color: #ffffff;
+}
+
+.btn-desactivar:hover {
+  background-color: #e53935;
+}
+
+.menu-empty,
+.menu-loading {
+  margin-top: 20px;
+  background: #fff9ee;
+  color: #856116;
+  padding: 18px 20px;
+  border-radius: 16px;
+  border: 1px solid #f3dec0;
+  display: none;
+  align-items: center;
+  gap: 12px;
+}
+
+.menu-loading .spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top-color: #248a4c;
+  border-radius: 50%;
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (min-width: 900px) {
+  .menu-card-list {
+    display: none;
+  }
+}
+
+@media (max-width: 899px) {
+  .menu-table {
+    display: none;
+  }
+}
