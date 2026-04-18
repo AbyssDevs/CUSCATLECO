@@ -15,6 +15,56 @@ function normalizarEstadoMesa(estado) {
   return estado.toString().trim();
 }
 
+function obtenerRolUsuario() {
+  const rolElemento = document.getElementById("userRole");
+  return rolElemento ? rolElemento.textContent.trim().toLowerCase() : "";
+}
+
+function esAdministrador() {
+  return obtenerRolUsuario().includes("administrador");
+}
+
+async function eliminarMesa(mesaId) {
+  if (!esAdministrador()) {
+    mostrarMensajeMesas("No tienes permiso para eliminar mesas.", true);
+    return;
+  }
+
+  const confirmar = window.confirm("¿Deseas eliminar esta mesa?");
+  if (!confirmar) return;
+
+  try {
+    const respuesta = await fetch(`/api/mesas/${mesaId}`, {
+      method: "DELETE",
+    });
+
+    const datos = await respuesta.json();
+    if (!respuesta.ok) {
+      mostrarMensajeMesas(datos.error || "No se pudo eliminar la mesa.", true);
+      return;
+    }
+
+    mostrarMensajeMesas("Mesa eliminada correctamente.");
+    cargarMesas();
+  } catch (error) {
+    console.error("Error eliminando mesa:", error);
+    mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
+  }
+}
+
+function crearBotonEliminar(mesaId) {
+  const boton = document.createElement("button");
+  boton.type = "button";
+  boton.className = "btn-eliminar";
+  boton.textContent = "Eliminar";
+  boton.style.marginLeft = "0.5rem";
+  boton.addEventListener("click", async (event) => {
+    event.preventDefault();
+    await eliminarMesa(mesaId);
+  });
+  return boton;
+}
+
 function estadoClass(estado) {
   const estadoNormalizado = normalizarEstadoMesa(estado).toLowerCase();
   if (estadoNormalizado === "libre") return "status-disponible";
@@ -171,6 +221,10 @@ async function cargarMesas() {
           <td>${mesaActTexto}${mesaFecha ? ` · ${new Date(mesaFecha).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}</td>
         `;
         fila.children[2].appendChild(selectEstado);
+        if (esAdministrador()) {
+          const botonEliminar = crearBotonEliminar(mesaId);
+          fila.children[4].appendChild(botonEliminar);
+        }
         tablaBody.appendChild(fila);
       }
 
@@ -196,6 +250,12 @@ async function cargarMesas() {
         const selectContainer = document.createElement("div");
         selectContainer.style.marginTop = "0.75rem";
         selectContainer.appendChild(crearSelectEstado(mesaId, mesaEstado));
+        if (esAdministrador()) {
+          const botonEliminar = crearBotonEliminar(mesaId);
+          botonEliminar.style.marginTop = "0.75rem";
+          botonEliminar.style.display = "inline-block";
+          selectContainer.appendChild(botonEliminar);
+        }
         card.querySelector(".menu-card-desc").appendChild(selectContainer);
         cardList.appendChild(card);
       }
