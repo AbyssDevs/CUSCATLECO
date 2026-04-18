@@ -2,7 +2,10 @@ const db = require("../db");
 
 const crearMesa = (req, res) => {
   const { mesa_numero, mesa_capacidad, mesa_ubicacion, mesa_estado } = req.body;
-  const estadoFinal = mesa_estado || "Libre";
+  let estadoFinal = mesa_estado || "Libre";
+  if (estadoFinal === "Libre") {
+    estadoFinal = "Disponible";
+  }
 
   if (!mesa_numero || !mesa_capacidad) {
     return res.status(400).json({ error: "Mesa número y capacidad son requeridos" });
@@ -112,7 +115,12 @@ const listarMesas = (req, res) => {
 
 const cambiarEstadoMesa = (req, res) => {
   const { id } = req.params;
-  const { mesa_estado } = req.body;
+  let { mesa_estado } = req.body;
+
+  // Mapear "Libre" a "Disponible" para compatibilidad
+  if (mesa_estado === "Libre") {
+    mesa_estado = "Disponible";
+  }
 
   const estadosValidos = ["Disponible", "Ocupada", "Reservada", "Limpieza"];
   
