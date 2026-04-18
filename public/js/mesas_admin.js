@@ -56,7 +56,7 @@ function crearBotonEliminar(mesaId) {
   const boton = document.createElement("button");
   boton.type = "button";
   boton.className = "btn-eliminar";
-  boton.textContent = "Eliminar";
+  boton.innerHTML = '<i class="fa-solid fa-power-off"></i> Eliminar';
   boton.style.marginLeft = "0.5rem";
   boton.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -219,11 +219,13 @@ async function cargarMesas() {
           <td></td>
           <td>${mesaUbi}</td>
           <td>${mesaActTexto}${mesaFecha ? ` · ${new Date(mesaFecha).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}</td>
+          <td></td>
         `;
         fila.children[2].appendChild(selectEstado);
         if (esAdministrador()) {
           const botonEliminar = crearBotonEliminar(mesaId);
-          fila.children[4].appendChild(botonEliminar);
+          botonEliminar.style.marginLeft = "0"; // Quitar el margin en la tabla para centrar mejor
+          fila.children[5].appendChild(botonEliminar);
         }
         tablaBody.appendChild(fila);
       }
