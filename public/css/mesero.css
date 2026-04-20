@@ -399,6 +399,27 @@ tr:hover {
     border-left: 3px solid #c1a257;
 }
 
+/* ESTADOS DE MESA */
+.status-disponible {
+  color: #28a745;
+}
+
+.status-ocupada {
+  color: #dc3545;
+}
+
+.status-reservada {
+  color: #ffc107;
+}
+
+.status-limpieza {
+  color: #17a2b8;
+}
+
+.status-mantenimiento {
+  color: #6c757d;
+}
+
 .user-avatar {
     font-size: 2.2rem;
     color: #c1a257;

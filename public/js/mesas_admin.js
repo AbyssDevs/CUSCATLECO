@@ -1,5 +1,12 @@
 const MAX_BULK_MESAS = 50;
-const ESTADOS_MESA = ["Libre", "Ocupada", "Reservada", "Limpieza"];
+const ESTADOS_MESA = ["Libre", "Ocupada", "Reservada", "Limpieza", "Mantenimiento"];
+const ICONOS_ESTADO = {
+  "Libre": "fa-check-circle",
+  "Ocupada": "fa-times-circle",
+  "Reservada": "fa-clock",
+  "Limpieza": "fa-broom",
+  "Mantenimiento": "fa-tools"
+};
 let bulkMode = false;
 
 function mostrarMensajeMesas(mensaje, esError = false) {
@@ -72,14 +79,23 @@ function estadoClass(estado) {
 }
 
 function crearSelectEstado(mesaId, estadoActual) {
+  const estadoNormalizado = normalizarEstadoMesa(estadoActual);
+  const icono = ICONOS_ESTADO[estadoNormalizado] || "fa-question-circle";
+
+  if (esAdministrador()) {
+    const span = document.createElement("span");
+    span.className = `mesa-estado-text ${estadoClass(estadoNormalizado)}`;
+    span.innerHTML = `<i class="fa-solid ${icono}"></i> ${estadoNormalizado}`;
+    return span;
+  }
+
   const select = document.createElement("select");
   select.className = "mesa-estado-select";
-  const estadoNormalizado = normalizarEstadoMesa(estadoActual);
-
   ESTADOS_MESA.forEach((estado) => {
     const option = document.createElement("option");
     option.value = estado;
-    option.textContent = estado;
+    const iconoEstado = ICONOS_ESTADO[estado] || "fa-question-circle";
+    option.innerHTML = `<i class="fa-solid ${iconoEstado}"></i> ${estado}`;
     if (estado === estadoNormalizado) {
       option.selected = true;
     }
@@ -124,7 +140,7 @@ function limpiarFormularioMesas() {
   document.getElementById("mesa_numero").value = "";
   document.getElementById("mesa_capacidad").value = "";
   document.getElementById("mesa_ubicacion").value = "";
-  document.getElementById("bulk_count").value = "";
+  document.getElementById("bulk_count_input").value = "";
 }
 
 function actualizarFormularioModo() {
@@ -290,7 +306,7 @@ async function crearMesa() {
   }
 
   if (bulkMode) {
-    const cantidad = Number(document.getElementById("bulk_count").value);
+    const cantidad = Number(document.getElementById("bulk_count_input").value);
     if (!cantidad || cantidad <= 0) {
       mostrarMensajeMesas("La cantidad de mesas debe ser mayor que 0.", true);
       return;

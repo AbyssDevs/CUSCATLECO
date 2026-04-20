@@ -137,7 +137,7 @@ const cambiarEstadoMesa = (req, res) => {
     mesa_estado = "Disponible";
   }
 
-  const estadosValidos = ["Disponible", "Ocupada", "Reservada", "Limpieza"];
+  const estadosValidos = ["Disponible", "Ocupada", "Reservada", "Limpieza", "Mantenimiento"];
   
   const id_usuario = (req.user && req.user.id)
     ? req.user.id
