@@ -92,22 +92,27 @@ async function registrarEmpleado() {
   let rol = document.getElementById("rol_nombre").value;
 
   if (!nombre || !email || !telefono) {
-    alert("Nombre, email y teléfono son obligatorios");
+    toast("error", "Nombre, email y teléfono son obligatorios");
     return;
   }
 
   if (!/\S+@\S+\.\S+/.test(email)) {
-    alert("Email no es válido");
+    toast("error", "Email no es válido");
     return;
   }
 
   if (!empleadoEditando && !password) {
-    alert("La contraseña es obligatoria para nuevos empleados");
+    toast("error", "La contraseña es obligatoria para nuevos empleados");
     return;
   }
 
   if (!/^\d{8}$/.test(telefono)) {
-    alert("El teléfono debe tener 8 números");
+    toast("error", "El teléfono debe tener 8 números");
+    return;
+  }
+
+  if (!rol) {
+    toast("error", "El rol es obligatorio");
     return;
   }
 
@@ -131,28 +136,27 @@ async function registrarEmpleado() {
     });
 
     if (respuesta.ok) {
-      alert(
+      toast(
+        "success",
         empleadoEditando
           ? "Empleado actualizado correctamente"
-          : "Empleado registrado correctamente",
+          : "Empleado registrado correctamente"
       );
       limpiarFormulario();
       cargarEmpleados();
       empleadoEditando = null;
       document.getElementById("btnRegistrarEmpleado").innerText = "Registrar empleado";
-
-      mostrar("empleados");
     } else {
       try {
         let datos = await respuesta.json();
-        alert(datos.error || "Error al registrar empleado");
+        toast("error", datos.error || "Error al registrar empleado");
       } catch (e) {
-        alert("Error del servidor");
+        toast("error", "Error del servidor");
       }
     }
   } catch (error) {
     console.error("Error:", error);
-    alert("Error de conexión con el servidor");
+    toast("error", "Error de conexión con el servidor");
   }
 
   contarEmpleados();
@@ -188,7 +192,7 @@ async function cargarEmpleados() {
     });
   } catch (error) {
     console.error("Error cargando empleados:", error);
-    alert("Error cargando la lista de empleados. Intente recargar la página.");
+    toast("error", "Error cargando la lista de empleados. Intente recargar la página.");
   }
 
   contarEmpleados();
@@ -196,7 +200,9 @@ async function cargarEmpleados() {
 
 // ELIMINAR EMPLEADO
 async function eliminarEmpleado(id) {
-  if (!confirm("¿Eliminar empleado?")) return;
+  // 1. Confirmación (SÍ usa await)
+  const confirmado = await confirmar("¿Eliminar empleado?", "Esta acción no se puede deshacer.");
+  if (!confirmado) return;
 
   try {
     let respuesta = await fetch(`/api/empleados/${id}`, {
@@ -204,15 +210,22 @@ async function eliminarEmpleado(id) {
     });
 
     if (respuesta.ok) {
+      // 2. Éxito → NO await
+      toast("success", "Empleado eliminado correctamente");
+
       cargarEmpleados();
     } else {
-      alert("No se pudo eliminar");
+      // 3. Error controlado
+      modal("error", "Error", "No se pudo eliminar el empleado");
     }
   } catch (error) {
     console.error("Error eliminando:", error);
+
+    // 4. Error de conexión
+    modal("error", "Error de conexión", "Intente nuevamente");
   }
 
- contarEmpleados();
+  contarEmpleados();
 }
 
 //Editar empleado
@@ -238,7 +251,7 @@ function editarEmpleado(id, btn) {
   let titulo = document.querySelector("#registrarEmpleado h2");
   let originalText = titulo.innerText;
   titulo.innerHTML =
-    '✏️ Editando empleado: <span style="color: #000000; font-size: 1.2rem;">' +
+    '<i class="fas fa-edit"></i> Editando empleado: <span style="color: #000000; font-size: 1.2rem;">' +
     celdas[1].innerText +
     "</span>";
 
