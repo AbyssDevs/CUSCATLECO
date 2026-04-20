@@ -96,6 +96,11 @@ async function registrarEmpleado() {
     return;
   }
 
+  if (!/\S+@\S+\.\S+/.test(email)) {
+    alert("Email no es válido");
+    return;
+  }
+
   if (!empleadoEditando && !password) {
     alert("La contraseña es obligatoria para nuevos empleados");
     return;
@@ -125,8 +130,6 @@ async function registrarEmpleado() {
       body: JSON.stringify(bodyData),
     });
 
-    let datos = await respuesta.json();
-
     if (respuesta.ok) {
       alert(
         empleadoEditando
@@ -136,11 +139,16 @@ async function registrarEmpleado() {
       limpiarFormulario();
       cargarEmpleados();
       empleadoEditando = null;
-      document.getElementById("btnRegistrar").innerText = "Registrar empleado";
+      document.getElementById("btnRegistrarEmpleado").innerText = "Registrar empleado";
 
       mostrar("empleados");
     } else {
-      alert(datos.error || "Error al registrar empleado");
+      try {
+        let datos = await respuesta.json();
+        alert(datos.error || "Error al registrar empleado");
+      } catch (e) {
+        alert("Error del servidor");
+      }
     }
   } catch (error) {
     console.error("Error:", error);
@@ -172,14 +180,15 @@ async function cargarEmpleados() {
         <td>${emp.usuario_telefono}</td>
         <td>${emp.rol_nombre}</td>
         <td>${emp.fecha_creacion}</td>
-        <td><button class="btn-editar" onclick="editarEmpleado(${emp.id_usuario})">Editar</button></td>
-        <td><button class="btn-eliminar" onclick="eliminarEmpleado(${emp.id_usuario})">Eliminar</button></td>
+        <td><button class="btn-editar" onclick="editarEmpleado(${emp.id_usuario}, this)"><i class="fas fa-edit"></i> Editar</button></td>
+        <td><button class="btn-eliminar" onclick="eliminarEmpleado(${emp.id_usuario})"><i class="fas fa-trash"></i> Eliminar</button></td>
       `;
 
       lista.appendChild(fila);
     });
   } catch (error) {
     console.error("Error cargando empleados:", error);
+    alert("Error cargando la lista de empleados. Intente recargar la página.");
   }
 
   contarEmpleados();
@@ -208,8 +217,8 @@ async function eliminarEmpleado(id) {
 
 //Editar empleado
 //posdata: No borrar los emojis por favor, es para ayudar visualmente al usuario a identificar que está editando un empleado y no registrando uno nuevo, además de darle un toque más amigable al formulario
-function editarEmpleado(id) {
-  let fila = event.target.closest("tr");
+function editarEmpleado(id, btn) {
+  let fila = btn.closest("tr");
   let celdas = fila.querySelectorAll("td");
 
   // Llenar el formulario
@@ -220,7 +229,7 @@ function editarEmpleado(id) {
   document.getElementById("usuario_password").value = "";
 
   empleadoEditando = id;
-  document.getElementById("btnRegistrar").innerText = "Actualizar empleado";
+  document.getElementById("btnRegistrarEmpleado").innerText = "Actualizar empleado";
 
   // Cambiar a la pestaña de registro
   mostrar("registrarEmpleado");
@@ -259,7 +268,7 @@ function editarEmpleado(id) {
 function cancelarEdicion() {
   limpiarFormulario();
   empleadoEditando = null;
-  document.getElementById("btnRegistrar").innerText = "Registrar empleado";
+  document.getElementById("btnRegistrarEmpleado").innerText = "Registrar empleado";
 
   // Restaurar título
   let titulo = document.querySelector("#registrarEmpleado h2");
@@ -278,6 +287,7 @@ function limpiarFormulario() {
   document.getElementById("usuario_email").value = "";
   document.getElementById("usuario_password").value = "";
   document.getElementById("usuario_telefono").value = "";
+  document.getElementById("rol_nombre").value = "";
 }
 
 function cerrarSesion() {
