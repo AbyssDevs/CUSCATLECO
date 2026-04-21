@@ -33,12 +33,12 @@ function esAdministrador() {
 
 async function eliminarMesa(mesaId) {
   if (!esAdministrador()) {
-    mostrarMensajeMesas("No tienes permiso para eliminar mesas.", true);
+    toast("error", "No tienes permiso para eliminar mesas.");
     return;
   }
 
-  const confirmar = window.confirm("¿Deseas eliminar esta mesa?");
-  if (!confirmar) return;
+  const confirmado = await confirmar("¿Deseas eliminar esta mesa?", "Esta acción no se puede deshacer.");
+  if (!confirmado) return;
 
   try {
     const respuesta = await fetch(`/api/mesas/${mesaId}`, {
@@ -47,15 +47,15 @@ async function eliminarMesa(mesaId) {
 
     const datos = await respuesta.json();
     if (!respuesta.ok) {
-      mostrarMensajeMesas(datos.error || "No se pudo eliminar la mesa.", true);
+      toast("error", datos.error || "No se pudo eliminar la mesa.");
       return;
     }
 
-    mostrarMensajeMesas("Mesa eliminada correctamente.");
+    toast("success", "Mesa eliminada correctamente.");
     cargarMesas();
   } catch (error) {
     console.error("Error eliminando mesa:", error);
-    mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
+    toast("error", "Error de conexión. Intente nuevamente.");
   }
 }
 
@@ -283,7 +283,7 @@ async function cargarMesas() {
     if (empty) {
       empty.textContent = "No se pudo cargar la lista de mesas. Intente nuevamente.";
     } else {
-      mostrarMensajeMesas("No se pudo cargar la lista de mesas. Intente nuevamente.", true);
+      toast("error", "No se pudo cargar la lista de mesas. Intente nuevamente.");
     }
   } finally {
     if (loading) loading.style.display = "none";
@@ -296,24 +296,24 @@ async function crearMesa() {
   const ubicacion = document.getElementById("mesa_ubicacion").value.trim();
 
   if (!numero || numero <= 0) {
-    mostrarMensajeMesas("El número de mesa debe ser un entero mayor que 0.", true);
+    toast("error", "El número de mesa debe ser un entero mayor que 0.");
     return;
   }
 
   if (!capacidad || capacidad <= 0) {
-    mostrarMensajeMesas("La capacidad debe ser mayor que 0.", true);
+    toast("error", "La capacidad debe ser mayor que 0.");
     return;
   }
 
   if (bulkMode) {
     const cantidad = Number(document.getElementById("bulk_count_input").value);
     if (!cantidad || cantidad <= 0) {
-      mostrarMensajeMesas("La cantidad de mesas debe ser mayor que 0.", true);
+      toast("error", "La cantidad de mesas debe ser mayor que 0.");
       return;
     }
 
     if (cantidad > MAX_BULK_MESAS) {
-      mostrarMensajeMesas(`No se pueden crear más de ${MAX_BULK_MESAS} mesas en serie.`, true);
+      toast("error", `No se pueden crear más de ${MAX_BULK_MESAS} mesas en serie.`);
       return;
     }
 
@@ -333,16 +333,16 @@ async function crearMesa() {
 
       const datos = await respuesta.json();
       if (!respuesta.ok) {
-        mostrarMensajeMesas(datos.error || "Error al crear las mesas.", true);
+        toast("error", datos.error || "Error al crear las mesas.");
         return;
       }
 
-      mostrarMensajeMesas(`${cantidad} mesas creadas exitosamente.`);
+      toast("success", `${cantidad} mesas creadas exitosamente.`);
       limpiarFormularioMesas();
       cargarMesas();
     } catch (error) {
       console.error(error);
-      mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
+      toast("error", "Error de conexión. Intente nuevamente.");
     }
 
     return;
@@ -362,16 +362,16 @@ async function crearMesa() {
 
     const datos = await respuesta.json();
     if (!respuesta.ok) {
-      mostrarMensajeMesas(datos.error || "Error al crear la mesa.", true);
+      toast("error", datos.error || "Error al crear la mesa.");
       return;
     }
 
-    mostrarMensajeMesas("Mesa creada exitosamente.");
+    toast("success", "Mesa creada exitosamente.");
     limpiarFormularioMesas();
     cargarMesas();
   } catch (error) {
     console.error(error);
-    mostrarMensajeMesas("Error de conexión. Intente nuevamente.", true);
+    toast("error", "Error de conexión. Intente nuevamente.");
   }
 }
 

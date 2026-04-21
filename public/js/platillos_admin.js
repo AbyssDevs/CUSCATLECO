@@ -10,11 +10,15 @@ async function registrarPlatillo() {
 
     // Validación básica
     if (!nombre) {
-        alert("El nombre del platillo es obligatorio.");
+        toast("error", "El nombre del platillo es obligatorio.");
         return;
     }
     if (isNaN(precio) || precio <= 0) {
-        alert("Ingresa un precio válido y mayor a 0.");
+        toast("error", "Ingresa un precio válido y mayor a 0.");
+        return;
+    }
+    if (isNaN(id_categoria) || id_categoria <= 0) {
+        toast("error", "Selecciona una categoría válida.");
         return;
     }
 
@@ -42,15 +46,15 @@ async function registrarPlatillo() {
             datos = await respuesta.json();
 
             if (respuesta.ok) {
-                alert("✅ Platillo actualizado correctamente");
+                toast("success", "✅ Platillo actualizado correctamente");
                 cancelarEdicionPlatillo();
                 loadMenu();
                 return;
             } else if (respuesta.status === 403) {
-                alert("Error: solo se pueden editar platillos activos");
+                toast("error", "Error: solo se pueden editar platillos activos");
                 return;
             } else {
-                alert("❌ Error: " + (datos.error || "No se pudo actualizar el platillo"));
+                toast("error", "❌ Error: " + (datos.error || "No se pudo actualizar el platillo"));
                 return;
             }
         }
@@ -66,14 +70,14 @@ async function registrarPlatillo() {
         datos = await respuesta.json();
 
         if (respuesta.ok) {
-            alert("✅ Platillo creado correctamente");
+            toast("success", "Platillo creado correctamente");
             limpiarFormularioPlatillo();
         } else {
-            alert("❌ Error: " + (datos.error || "No se pudo crear el platillo"));
+            toast("error", "❌ Error: " + (datos.error || "No se pudo crear el platillo"));
         }
     } catch (error) {
         console.error("Error en la petición:", error);
-        alert("❌ Ocurrió un error al intentar crear el platillo. Revisa tu conexión al servidor.");
+        toast("error", "❌ Ocurrió un error al intentar crear el platillo. Revisa tu conexión al servidor.");
     }
 }
 
@@ -113,7 +117,7 @@ function editarPlatillo(id) {
     // Los platillos inactivos no pueden ser editados
     const disponible = platillo.platillo_disponible === true || platillo.platillo_disponible === 1 || platillo.platillo_disponible === "1";
     if (!disponible) {
-        alert("Los platillos inactivos no pueden ser editados");
+        toast("error", "Los platillos inactivos no pueden ser editados");
         return;
     }
 
@@ -134,7 +138,7 @@ function editarPlatillo(id) {
 
     const titulo = document.querySelector('#registrarPlatillo h2');
     if (titulo) {
-        titulo.innerHTML = `✏️ Editando Platillo: <span style="color: #000; font-size: 1.2rem;">${platillo.platillo_nombre}</span>`;
+        titulo.innerHTML = `<i class="fas fa-edit"></i> Editando Platillo: <span style="color: #000; font-size: 1.2rem;">${platillo.platillo_nombre}</span>`;
         
         // Botón cancelar si no existe
         if (!document.getElementById('cancelarEdicionPlatillo')) {
@@ -165,7 +169,7 @@ async function activarPlatillo(id) {
     const disponible = platillo.platillo_disponible === true || platillo.platillo_disponible === 1 || platillo.platillo_disponible === "1";
     
     if (disponible) {
-        alert("El platillo ya esta activo");
+        toast("error", "El platillo ya esta activo");
         return;
     }
 
@@ -179,14 +183,14 @@ async function activarPlatillo(id) {
         const datos = await respuesta.json();
 
         if (respuesta.ok) {
-            alert("✅ Platillo activado correctamente");
+            toast("success", "Platillo activado correctamente");
             loadMenu();
         } else {
-            alert("❌ Error: " + (datos.error || "No se pudo activar el platillo"));
+            toast("error", "Error: " + (datos.error || "No se pudo activar el platillo"));
         }
     } catch (error) {
         console.error("Error activando platillo:", error);
-        alert("❌ Error de conexión");
+        toast("error", "Error de conexión");
     }
 }
 
@@ -197,7 +201,7 @@ async function desactivarPlatillo(id) {
     const disponible = platillo.platillo_disponible === true || platillo.platillo_disponible === 1 || platillo.platillo_disponible === "1";
 
     if (!disponible) {
-        alert("El platillo ya esta desactivado");
+        toast("error", "El platillo ya esta desactivado");
         return;
     }
 
@@ -211,14 +215,14 @@ async function desactivarPlatillo(id) {
         const datos = await respuesta.json();
 
         if (respuesta.ok) {
-            alert("✅ Platillo desactivado correctamente");
+            toast("success", "Platillo desactivado correctamente");
             loadMenu();
         } else {
-            alert("❌ Error: " + (datos.error || "No se pudo desactivar el platillo"));
+            toast("error", "Error: " + (datos.error || "No se pudo desactivar el platillo"));
         }
     } catch (error) {
         console.error("Error desactivando platillo:", error);
-        alert("❌ Error de conexión");
+        toast("error", "Error de conexión");
     }
 
 }
