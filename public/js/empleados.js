@@ -2,6 +2,23 @@
 let empleadoEditando = null;
 
 function mostrar(seccion) {
+  if (seccion !== "registrarEmpleado" && typeof empleadoEditando !== "undefined" && empleadoEditando !== null) {
+    limpiarFormulario();
+    empleadoEditando = null;
+    let btn = document.getElementById("btnRegistrarEmpleado");
+    if (btn) btn.innerText = "Registrar empleado";
+    let titulo = document.querySelector("#registrarEmpleado h2");
+    if (titulo) titulo.innerHTML = "Registrar empleado";
+  }
+  if (seccion !== "registrarPlatillo" && typeof platilloEditando !== "undefined" && platilloEditando !== null) {
+    limpiarFormularioPlatillo();
+    platilloEditando = null;
+    let btn = document.getElementById("btnRegistrarPlatillo");
+    if (btn) btn.innerText = "Registrar platillo";
+    let titulo = document.querySelector("#registrarPlatillo h2");
+    if (titulo) titulo.innerHTML = "Registrar platillo";
+  }
+
   document.getElementById("resumen").style.display = "none";
   document.getElementById("empleados").style.display = "none";
   document.getElementById("registrarEmpleado").style.display = "none";
@@ -142,10 +159,19 @@ async function registrarEmpleado() {
           ? "Empleado actualizado correctamente"
           : "Empleado registrado correctamente"
       );
+      
+      let fueEdicion = empleadoEditando !== null;
+      
       limpiarFormulario();
       cargarEmpleados();
       empleadoEditando = null;
       document.getElementById("btnRegistrarEmpleado").innerText = "Registrar empleado";
+      let titulo = document.querySelector("#registrarEmpleado h2");
+      if (titulo) titulo.innerHTML = "Registrar empleado";
+
+      if (fueEdicion) {
+        mostrar("empleados");
+      }
     } else {
       try {
         let datos = await respuesta.json();
