@@ -1,16 +1,21 @@
-const express = require("express");
-const session = require("express-session");
-const path = require("path");
-const db = require("./db");
+import express from "express";
+import session from "express-session";
+import path from "path";
+import { fileURLToPath } from "url";
+import bcrypt from "bcrypt";
 
-const { requirePermission, requireLogin, requireRole, auditoriaMiddleware, recoverSession } = require("./middlewares/auth.middleware");
+// recrear __dirname
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+import { requirePermission, auditoriaMiddleware, recoverSession } from "./middlewares/auth.middleware.js";
 
 
 // Importar rutas
-const authRoutes = require("./routes/auth.routes");
-const empleadosRoutes = require("./routes/empleados.routes");
-const platillosRoutes = require("./routes/platillos.routes");
-const mesasRoutes = require("./routes/mesas.routes");
+import authRoutes from "./routes/auth.routes.js";
+import empleadosRoutes from "./routes/empleados.routes.js";
+import platillosRoutes from "./routes/platillos.routes.js";
+import mesasRoutes from "./routes/mesas.routes.js";
 
 const app = express();
 const PORT = 3000;
@@ -33,6 +38,7 @@ app.use(
 
 
 // Middleware para recuperar usuario de la sesión
+
 app.use(recoverSession);
 
 // Rutas públicas
@@ -51,19 +57,19 @@ app.get("/logout", (req, res) => {
 });
 
 // Rutas protegidas por rol
-app.get("/admin", requireLogin, requireRole("administrador"), (req, res) => {
+app.get("/admin", requirePermission("ver_admin"), (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/administrador.html"));
 });
 
-app.get("/mesero", requireLogin, requireRole("mesero"), (req, res) => {
+app.get("/mesero", requirePermission("ver_mesero"), (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/mesero.html"));
 });
 
-app.get("/cocina", requireLogin, requireRole("cocina"), (req, res) => {
+app.get("/cocina", requirePermission("ver_cocina"), (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/cocina.html"));
 });
 
-app.get("/cajero", requireLogin, requireRole("cajero"), (req, res) => {
+app.get("/cajero", requirePermission("ver_cajero"), (req, res) => {
   res.sendFile(path.join(__dirname, "../public/views/cajero.html"));
 });
 

@@ -1,13 +1,17 @@
-const express = require('express');
+import express from "express";
 const router = express.Router();
-const { 
-    crearMesa, 
+import {
+    crearMesa,
     crearMesas,
     listarMesas,
     eliminarMesa,
     cambiarEstadoMesa
-} = require('../controllers/mesas.controller');
-const { requirePermission, auditoriaMiddleware } = require('../middlewares/auth.middleware')
+} from "../controllers/mesas.controller.js";
+
+import {
+    requirePermission,
+    auditoriaMiddleware
+} from "../middlewares/auth.middleware.js";
 
 router.post('/', auditoriaMiddleware, requirePermission('gestionar_mesas'), crearMesa);
 
@@ -19,4 +23,4 @@ router.delete('/:id', requirePermission('gestionar_mesas'), eliminarMesa);
 
 router.patch('/:id/estado', auditoriaMiddleware, requirePermission('actualizar_estado_mesa'), cambiarEstadoMesa);
 
-module.exports = router;
+export default router;

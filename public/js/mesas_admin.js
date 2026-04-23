@@ -235,7 +235,7 @@ async function cargarMesas() {
           <td></td>
           <td>${mesaUbi}</td>
           <td>${mesaActTexto}${mesaFecha ? ` · ${new Date(mesaFecha).toLocaleString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}` : ''}</td>
-          <td></td>
+          ${esAdministrador() ? '<td></td>' : ''}
         `;
         fila.children[2].appendChild(selectEstado);
         if (esAdministrador()) {

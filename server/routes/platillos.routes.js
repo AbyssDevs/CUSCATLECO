@@ -1,14 +1,20 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {
+import {
   crearPlatillo,
   obtenerPlatillos,
   obtenerPlatillo,
   editarPlatillo,
   cambiarEstadoPlatillo
   
-} = require("../controllers/platillos.controller");
-const { requirePermission, auditoriaMiddleware } = require("../middlewares/auth.middleware");
+} from "../controllers/platillos.controller.js";
+
+import {
+  requirePermission,
+  auditoriaMiddleware 
+} from "../middlewares/auth.middleware.js";
+
+
 
 
 router.post("/", auditoriaMiddleware, requirePermission("gestionar_menu"), crearPlatillo);
@@ -21,4 +27,4 @@ router.put("/:id", auditoriaMiddleware, requirePermission("gestionar_menu"), edi
 
 router.patch("/:id/estado", auditoriaMiddleware, requirePermission("gestionar_menu"), cambiarEstadoPlatillo);
 
-module.exports = router;
+export default router;

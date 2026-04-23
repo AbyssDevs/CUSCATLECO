@@ -1,12 +1,16 @@
-const express = require("express");
+
+import express from "express";
 const router = express.Router();
-const { 
+import { 
   crearEmpleado, 
   obtenerEmpleados, 
   eliminarEmpleado, 
   editarEmpleado 
-} = require("../controllers/empleados.controller");
-const { requirePermission } = require("../middlewares/auth.middleware");
+} from "../controllers/empleados.controller.js";
+
+import { 
+  requirePermission 
+} from "../middlewares/auth.middleware.js";
 
 router.post("/", requirePermission("gestionar_usuarios"), crearEmpleado);
 
@@ -17,4 +21,4 @@ router.delete("/:id", requirePermission("gestionar_usuarios"), eliminarEmpleado)
 router.put("/:id", requirePermission("gestionar_usuarios"), editarEmpleado);
 
 
-module.exports = router;
+export default router;
