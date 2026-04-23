@@ -5,11 +5,7 @@ import {
     getUsuario,
 } from "../controllers/auth.controller.js";
 
-import{
-    isAuthenticated
-} from "../middlewares/auth.middleware.js";
-
 router.post("/login", login);
-router.get("/usuario", isAuthenticated, getUsuario);
+router.get("/usuario", getUsuario);
 
 export default router;
