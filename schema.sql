@@ -1,10 +1,12 @@
 -- ============================================================
 -- SCHEMA COMPLETO - RESTAURANTE SABOR CUSCATLECO
--- Equipo: Abyss | Sprint 1
+-- Equipo: Abyss | Sprint 3
 -- Fecha: 2026
 -- ============================================================
 CREATE DATABASE IF NOT EXISTS cuscatleco;
+
 USE cuscatleco;
+
 -- ============================================================
 -- 1. ROLES Y PERMISOS
 -- ============================================================
@@ -15,6 +17,7 @@ CREATE TABLE roles (
     rol_activo BOOLEAN DEFAULT TRUE,
     rol_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
 CREATE TABLE permisos (
     id_permiso INT PRIMARY KEY AUTO_INCREMENT,
     permiso_nombre VARCHAR(100) NOT NULL UNIQUE,
@@ -22,14 +25,15 @@ CREATE TABLE permisos (
     permiso_descripcion VARCHAR(200),
     permiso_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
 );
--- Relacion N:M entre roles y permisos
+
 CREATE TABLE rol_permiso (
     id_rol INT NOT NULL,
     id_permiso INT NOT NULL,
     PRIMARY KEY (id_rol, id_permiso),
-    FOREIGN KEY (id_rol) REFERENCES roles(id_rol) ON DELETE CASCADE,
-    FOREIGN KEY (id_permiso) REFERENCES permisos(id_permiso) ON DELETE CASCADE
+    FOREIGN KEY (id_rol) REFERENCES roles (id_rol) ON DELETE CASCADE,
+    FOREIGN KEY (id_permiso) REFERENCES permisos (id_permiso) ON DELETE CASCADE
 );
+
 -- ============================================================
 -- 2. USUARIOS Y CLIENTES
 -- ============================================================
@@ -43,15 +47,16 @@ CREATE TABLE usuarios (
     usuario_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
     usuario_actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
 CREATE TABLE usuario_rol (
     id_usuario INT NOT NULL,
     id_rol INT NOT NULL,
     usuario_rol_fecha_asignacion DATETIME DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id_usuario, id_rol),
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_rol) REFERENCES roles(id_rol) ON DELETE CASCADE
+    FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_rol) REFERENCES roles (id_rol) ON DELETE CASCADE
 );
--- Rangos de fidelidad para clientes (Bronce/Plata/Oro)
+
 CREATE TABLE rangos_cliente (
     id_rango INT PRIMARY KEY AUTO_INCREMENT,
     rango_cliente_nombre ENUM('Bronce', 'Plata', 'Oro') NOT NULL UNIQUE,
@@ -60,7 +65,7 @@ CREATE TABLE rangos_cliente (
     rango_cliente_min_consumo DECIMAL(10, 2) DEFAULT 0.00,
     rango_cliente_descripcion VARCHAR(200)
 );
--- Clientes del restaurante (pueden hacer reservaciones y pedidos en linea)
+
 CREATE TABLE clientes (
     id_cliente INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT NOT NULL,
@@ -68,9 +73,10 @@ CREATE TABLE clientes (
     cliente_consumo_acumulado DECIMAL(10, 2) DEFAULT 0.00,
     cliente_total_pedidos INT DEFAULT 0,
     cliente_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario) ON DELETE CASCADE,
-    FOREIGN KEY (id_rango) REFERENCES rangos_cliente(id_rango)
+    FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario) ON DELETE CASCADE,
+    FOREIGN KEY (id_rango) REFERENCES rangos_cliente (id_rango)
 );
+
 -- ============================================================
 -- 3. MESAS
 -- ============================================================
@@ -78,9 +84,19 @@ CREATE TABLE mesas (
     id_mesa INT PRIMARY KEY AUTO_INCREMENT,
     mesa_numero INT NOT NULL UNIQUE,
     mesa_capacidad INT NOT NULL,
-    mesa_estado ENUM('Disponible', 'Ocupada', 'Reservada') DEFAULT 'Disponible',
-    mesa_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+    mesa_ubicacion VARCHAR(45) DEFAULT NULL,
+    mesa_estado ENUM(
+        'Disponible',
+        'Ocupada',
+        'Reservada',
+        'Limpieza'
+    ) DEFAULT 'Disponible',
+    mesa_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+    mesa_actualizada_por INT DEFAULT NULL,
+    mesa_actualizada_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (mesa_actualizada_por) REFERENCES usuarios (id_usuario)
 );
+
 -- ============================================================
 -- 4. RESERVACIONES
 -- ============================================================
@@ -91,12 +107,17 @@ CREATE TABLE reservaciones (
     reservacion_fecha DATETIME NOT NULL,
     reservacion_num_personas INT NOT NULL,
     reservacion_preferencias TEXT,
-    reservacion_estado ENUM('Pendiente', 'Confirmada', 'Cancelada') DEFAULT 'Pendiente',
+    reservacion_estado ENUM(
+        'Pendiente',
+        'Confirmada',
+        'Cancelada'
+    ) DEFAULT 'Pendiente',
     reservacion_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
     reservacion_actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente),
-    FOREIGN KEY (id_mesa) REFERENCES mesas(id_mesa)
+    FOREIGN KEY (id_cliente) REFERENCES clientes (id_cliente),
+    FOREIGN KEY (id_mesa) REFERENCES mesas (id_mesa)
 );
+
 -- ============================================================
 -- 5. MENU Y PLATILLOS
 -- ============================================================
@@ -106,6 +127,7 @@ CREATE TABLE categorias (
     categoria_descripcion VARCHAR(200),
     categoria_activo BOOLEAN DEFAULT TRUE
 );
+
 CREATE TABLE platillos (
     id_platillo INT PRIMARY KEY AUTO_INCREMENT,
     id_categoria INT NOT NULL,
@@ -117,15 +139,16 @@ CREATE TABLE platillos (
     platillo_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
     platillo_actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     platillo_actualizado_por INT,
-    FOREIGN KEY (id_categoria) REFERENCES categorias(id_categoria),
-    FOREIGN KEY (platillo_actualizado_por) REFERENCES usuarios(id_usuario)
+    FOREIGN KEY (id_categoria) REFERENCES categorias (id_categoria),
+    FOREIGN KEY (platillo_actualizado_por) REFERENCES usuarios (id_usuario)
 );
+
 -- ============================================================
--- 6. PEDIDOS
+-- 6. PEDIDOS (VERSIÓN MEJORADA)
 -- ============================================================
 CREATE TABLE pedidos (
     id_pedido INT PRIMARY KEY AUTO_INCREMENT,
-    id_mesa INT NOT NULL,
+    id_mesa INT NULL, -- NULL para pedidos "Para llevar"
     id_mesero INT NOT NULL,
     id_cliente INT NOT NULL,
     pedido_estado ENUM(
@@ -136,19 +159,23 @@ CREATE TABLE pedidos (
         'Cerrado',
         'Cancelado'
     ) DEFAULT 'Pendiente',
-    pedido_tipo ENUM(
-        'Salon',
-        'Llevar',
-    ) DEFAULT 'Salon',
+    pedido_tipo ENUM('Salon', 'Llevar') DEFAULT 'Salon',
     pedido_observaciones TEXT,
     pedido_total DECIMAL(10, 2) DEFAULT 0.00,
     pedido_fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
     pedido_actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_mesa) REFERENCES mesas(id_mesa),
-    FOREIGN KEY (id_mesero) REFERENCES usuarios(id_usuario),
-    FOREIGN KEY (id_cliente) REFERENCES clientes(id_cliente)
-
+    pedido_enviado_cocina_en DATETIME NULL,
+    pedido_listo_en DATETIME NULL,
+    pedido_entregado_en DATETIME NULL,
+    pedido_cancelado_en DATETIME NULL,
+    pedido_cancelado_por INT NULL,
+    pedido_cancelado_motivo VARCHAR(200) NULL,
+    FOREIGN KEY (id_mesa) REFERENCES mesas (id_mesa),
+    FOREIGN KEY (id_mesero) REFERENCES usuarios (id_usuario),
+    FOREIGN KEY (id_cliente) REFERENCES clientes (id_cliente),
+    FOREIGN KEY (pedido_cancelado_por) REFERENCES usuarios (id_usuario)
 );
+
 CREATE TABLE detalle_pedido (
     id_detalle INT PRIMARY KEY AUTO_INCREMENT,
     id_pedido INT NOT NULL,
@@ -157,19 +184,22 @@ CREATE TABLE detalle_pedido (
     detalle_pedido_precio_unitario DECIMAL(10, 2) NOT NULL,
     detalle_pedido_subtotal DECIMAL(10, 2) NOT NULL,
     detalle_pedido_notas VARCHAR(200),
-    FOREIGN KEY (id_pedido) REFERENCES pedidos(id_pedido) ON DELETE CASCADE,
-    FOREIGN KEY (id_platillo) REFERENCES platillos(id_platillo)
+    FOREIGN KEY (id_pedido) REFERENCES pedidos (id_pedido) ON DELETE CASCADE,
+    FOREIGN KEY (id_platillo) REFERENCES platillos (id_platillo)
 );
+
 -- ============================================================
 -- 7. FACTURACION ELECTRONICA
--- (Estructura preparada para sprints futuros)
 -- ============================================================
 CREATE TABLE facturas (
     id_factura INT PRIMARY KEY AUTO_INCREMENT,
     id_pedido INT NOT NULL,
     id_cajero INT NOT NULL,
     factura_correlativo VARCHAR(20) UNIQUE NOT NULL,
-    factura_tipo ENUM('ConsumidorFinal', 'CreditoFiscal') NOT NULL,
+    factura_tipo ENUM(
+        'ConsumidorFinal',
+        'CreditoFiscal'
+    ) NOT NULL,
     factura_nombre_cliente VARCHAR(100),
     factura_dui_nit VARCHAR(20),
     factura_nrc VARCHAR(20),
@@ -180,43 +210,57 @@ CREATE TABLE facturas (
     factura_fecha_emision DATETIME DEFAULT CURRENT_TIMESTAMP,
     factura_enviada_correo BOOLEAN DEFAULT FALSE,
     factura_anulada BOOLEAN DEFAULT FALSE,
-    FOREIGN KEY (id_pedido) REFERENCES pedidos(id_pedido),
-    FOREIGN KEY (id_cajero) REFERENCES usuarios(id_usuario)
+    FOREIGN KEY (id_pedido) REFERENCES pedidos (id_pedido),
+    FOREIGN KEY (id_cajero) REFERENCES usuarios (id_usuario)
 );
+
 CREATE TABLE detalle_factura (
     id_detalle INT PRIMARY KEY AUTO_INCREMENT,
     id_factura INT NOT NULL,
+    id_platillo INT,
     detalle_factura_descripcion VARCHAR(200) NOT NULL,
     detalle_factura_cantidad INT NOT NULL,
     detalle_factura_precio_unitario DECIMAL(10, 2) NOT NULL,
     detalle_factura_subtotal DECIMAL(10, 2) NOT NULL,
-    FOREIGN KEY (id_factura) REFERENCES facturas(id_factura) ON DELETE CASCADE
+    FOREIGN KEY (id_factura) REFERENCES facturas (id_factura) ON DELETE CASCADE,
+    FOREIGN KEY (id_platillo) REFERENCES platillos (id_platillo)
 );
+
 -- ============================================================
--- 8. NOTIFICACIONES
--- (Preparada para confirmaciones de reservaciones y pedidos)
+-- 8. NOTIFICACIONES (VERSIÓN MEJORADA)
 -- ============================================================
 CREATE TABLE notificaciones (
     id_notificacion INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT NOT NULL,
-    notificacion_tipo ENUM('Reservacion', 'Pedido', 'Factura') NOT NULL,
+    id_pedido INT NULL,
+    notificacion_tipo ENUM(
+        'Reservacion',
+        'Pedido',
+        'Factura'
+    ) NOT NULL,
     notificacion_asunto VARCHAR(200),
     notificacion_mensaje TEXT,
     notificacion_enviada BOOLEAN DEFAULT FALSE,
+    notificacion_leida BOOLEAN DEFAULT FALSE,
+    notificacion_leida_en DATETIME NULL,
     notificacion_fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios(id_usuario)
+    FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario),
+    FOREIGN KEY (id_pedido) REFERENCES pedidos (id_pedido)
 );
+
 -- ============================================================
 -- 9. DATOS INICIALES (SEED)
 -- ============================================================
+
 -- Roles del sistema
-INSERT INTO roles (rol_nombre, rol_descripcion)
+INSERT INTO
+    roles (rol_nombre, rol_descripcion)
 VALUES (
-        'Administrador', 
+        'Administrador',
         'Acceso total al sistema'
     ),
     (
-        'Mesero', 
+        'Mesero',
         'Gestión de pedidos por mesa'
     ),
     (
@@ -231,8 +275,10 @@ VALUES (
         'Cliente',
         'Acceso al portal de clientes'
     );
+
 -- Permisos del sistema
-INSERT INTO permisos (
+INSERT INTO
+    permisos (
         permiso_nombre,
         permiso_modulo,
         permiso_descripcion
@@ -296,10 +342,47 @@ VALUES (
         'gestionar_clientes',
         'Clientes',
         'Ver y gestionar clientes y rangos'
+    ),
+    (
+        'gestionar_mesas',
+        'Mesas',
+        'CRUD Mesas'
+    ),
+    (
+        'actualizar_estado_mesa',
+        'Mesas',
+        'Editar estado de la mesa'
+    ),
+    (
+        'ver_mesas',
+        'Mesas',
+        'Ver mesas'
+    ),
+    (
+        'ver_admin',
+        'Administrador',
+        'Ver el panel de administrador'
+    ),
+    (
+        'ver_mesero',
+        'Mesero',
+        'Ver el panel de mesero'
+    ),
+    (
+        'ver_cajero',
+        'Cajero',
+        'Ver el panel de cajero'
+    ),
+    (
+        'ver_cocina',
+        'Cocina',
+        'Ver el panel de cocina'
     );
+
 -- Permisos por rol
--- Administrador (todos los permisos)
-INSERT INTO rol_permiso (id_rol, id_permiso)
+-- Administrador (id_rol=1)
+INSERT INTO
+    rol_permiso (id_rol, id_permiso)
 VALUES (1, 1),
     (1, 2),
     (1, 3),
@@ -311,27 +394,44 @@ VALUES (1, 1),
     (1, 9),
     (1, 10),
     (1, 11),
-    (1, 12);
--- Mesero
-INSERT INTO rol_permiso (id_rol, id_permiso)
+    (1, 12),
+    (1, 13),
+    (1, 14),
+    (1, 15),
+    (1, 16);
+
+-- Mesero (id_rol=2)
+INSERT INTO
+    rol_permiso (id_rol, id_permiso)
 VALUES (2, 1),
     (2, 4),
     (2, 6),
     (2, 7),
-    (2, 11);
--- Cajero
-INSERT INTO rol_permiso (id_rol, id_permiso)
+    (2, 11),
+    (2, 14),
+    (2, 15),
+    (2, 17);
+
+-- Cajero (id_rol=3)
+INSERT INTO
+    rol_permiso (id_rol, id_permiso)
 VALUES (3, 1),
     (3, 7),
     (3, 9),
-    (3, 12);
--- Cocina
-INSERT INTO rol_permiso (id_rol, id_permiso)
+    (3, 12),
+    (3, 18);
+
+-- Cocina (id_rol=4)
+INSERT INTO
+    rol_permiso (id_rol, id_permiso)
 VALUES (4, 1),
     (4, 7),
-    (4, 8);
+    (4, 8),
+    (4, 19);
+
 -- Rangos de cliente
-INSERT INTO rangos_cliente (
+INSERT INTO
+    rangos_cliente (
         rango_cliente_nombre,
         rango_cliente_descuento,
         rango_cliente_min_pedidos,
@@ -359,9 +459,10 @@ VALUES (
         300.00,
         'Descuento del 15% con 15 pedidos o $300 acumulados'
     );
--- IMPORTANTE: En producción reemplazar con hash bcrypt real
--- Password por defecto: 123
-INSERT INTO usuarios (
+
+-- Usuario administrador (password: 123)
+INSERT INTO
+    usuarios (
         usuario_nombre,
         usuario_email,
         usuario_password,
@@ -373,22 +474,59 @@ VALUES (
         '123',
         '77777777'
     );
+
 -- Asignar rol administrador
-INSERT INTO usuario_rol (id_usuario, id_rol)
-VALUES (1, 1);
+INSERT INTO usuario_rol (id_usuario, id_rol) VALUES (1, 1);
+
+-- Usuario y cliente "Consumidor Final / Anónimo" (para pedidos sin cliente registrado)
+INSERT INTO
+    usuarios (
+        usuario_nombre,
+        usuario_email,
+        usuario_password,
+        usuario_telefono
+    )
+VALUES (
+        'Consumidor Final',
+        'anonimo@saborcuscatleco.com',
+        '',
+        '00000000'
+    );
+
+INSERT INTO clientes (id_usuario, id_rango) VALUES (2, 1);
+
 -- Categorías del menú
-INSERT INTO categorias (categoria_nombre, categoria_descripcion)
-VALUES ('Entradas', 'Platillos para comenzar'),
-    ('Platos Fuertes', 'Platos principales'),
-    ('Bebidas', 'Bebidas frías y calientes'),
+INSERT INTO
+    categorias (
+        categoria_nombre,
+        categoria_descripcion
+    )
+VALUES (
+        'Entradas',
+        'Platillos para comenzar'
+    ),
+    (
+        'Platos Fuertes',
+        'Platos principales'
+    ),
+    (
+        'Bebidas',
+        'Bebidas frías y calientes'
+    ),
     ('Postres', 'Dulces y postres');
+
 -- Mesas del restaurante
-INSERT INTO mesas (mesa_numero, mesa_capacidad)
-VALUES (1, 4),
-    (2, 4),
-    (3, 6),
-    (4, 6),
-    (5, 2),
-    (6, 2),
-    (7, 8),
-    (8, 8);
+INSERT INTO
+    mesas (
+        mesa_numero,
+        mesa_capacidad,
+        mesa_ubicacion
+    )
+VALUES (1, 4, 'Zona Interior'),
+    (2, 4, 'Zona Interior'),
+    (3, 6, 'Terraza'),
+    (4, 6, 'Terraza'),
+    (5, 2, 'Barra'),
+    (6, 2, 'Barra'),
+    (7, 8, 'Salón VIP'),
+    (8, 8, 'Salón VIP');
