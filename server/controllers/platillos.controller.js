@@ -1,9 +1,25 @@
 import * as platillosService from "../services/platillos.service.js";
+import upload from "../config/uploadConfig.js";
 
 // CREAR
 export const crearPlatillo = async (req, res) => {
   try {
-    const result = await platillosService.crearPlatillo(req.body, req.user.id);
+    // construir la URL de la imagen si existe
+    const imagenUrl = req.file
+      ? `/uploads/${req.file.filename}`
+      : null;
+
+    // mezclar body + imagen
+    const data = {
+      ...req.body,
+      platillo_imagen_url: imagenUrl
+    };
+
+    const result = await platillosService.crearPlatillo(
+      data,
+      req.user.id
+    );
+
     res.json(result);
   } catch (error) {
     res.status(error.status || 500).json({ error: error.message });
@@ -39,9 +55,16 @@ export const obtenerPlatillo = async (req, res) => {
 // EDITAR
 export const editarPlatillo = async (req, res) => {
   try {
+    const imagenUrl = req.file ? `/uploads/${req.file.filename}` : null;
+
+    const data ={
+      ...req.body,
+      platillo_imagen_url: imagenUrl
+    }
+
     const result = await platillosService.editarPlatillo(
       req.params.id,
-      req.body,
+      data,
       req.user.id
     );
     res.json(result);

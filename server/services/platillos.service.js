@@ -150,7 +150,7 @@ export const editarPlatillo = async (id, data, userId) => {
 
   // validar estado
   const [estado] = await db.query(
-    "SELECT platillo_disponible FROM platillos WHERE id_platillo = ?",
+    "SELECT platillo_disponible, platillo_nombre FROM platillos WHERE id_platillo = ?",
     [id]
   );
 
@@ -162,14 +162,28 @@ export const editarPlatillo = async (id, data, userId) => {
     throw Object.assign(new Error("Solo se pueden editar platillos activos"), { status: 403 });
   }
 
-  // validar duplicado
-  const [dup] = await db.query(
-    "SELECT id_platillo FROM platillos WHERE platillo_nombre = ? AND id_platillo != ?",
-    [platillo_nombre, id]
-  );
+  // validar duplicado SOLO SI el nombre cambió
+  if (platillo_nombre !== estado[0].platillo_nombre) {
+    const [dup] = await db.query(
+      "SELECT id_platillo FROM platillos WHERE platillo_nombre = ? AND id_platillo != ?",
+      [platillo_nombre, id]
+    );
 
-  if (dup.length > 0) {
-    throw Object.assign(new Error("El platillo ya existe"), { status: 400 });
+    if (dup.length > 0) {
+      throw Object.assign(new Error("El platillo ya existe"), { status: 400 });
+    }
+  }
+
+  // Obtener la imagen actual si no se proporciona una nueva
+  let imagenFinal = platillo_imagen_url;
+  if (!imagenFinal) {
+    const [current] = await db.query(
+      "SELECT platillo_imagen_url FROM platillos WHERE id_platillo = ?",
+      [id]
+    );
+    if (current.length > 0) {
+      imagenFinal = current[0].platillo_imagen_url;
+    }
   }
 
   await db.query(
@@ -190,7 +204,7 @@ export const editarPlatillo = async (id, data, userId) => {
       platillo_nombre,
       platillo_descripcion,
       platillo_precio,
-      platillo_imagen_url,
+      imagenFinal,
       userId,
       id
     ]

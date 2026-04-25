@@ -113,6 +113,7 @@
                 <table class="menu-table">
                     <thead>
                         <tr>
+                            <th>Imagen</th>
                             <th data-sort="nombre" class="sortable">Nombre <span class="sort-indicator"></span></th>
                             <th>Categoría</th>
                             <th>Descripción</th>
@@ -275,10 +276,21 @@
                         <input type="number" step="0.01" id="platillo_precio" placeholder="Precio ($)" required>
                     </div>
                     <div class="form-group">
-                        <label for="platillo_imagen_url">URL de la imagen del platillo:</label>
-                        <input type="url" id="platillo_imagen_url" placeholder="URL de la imagen del platillo" required>
+                        <label>Imagen:</label>
+                    
+                        <div id="dropZone" class="drop-zone">
+                            <p>Arrastra una imagen aquí o haz clic para seleccionar</p>
+                            <input type="file" id="platillo_imagen" name="imagen" hidden>
+                        </div>
+                    
+                        <span id="fileName" class="file-name">Ningún archivo seleccionado</span>
+                    
+                        <div id="previewImagenContainer" style="display:none; margin-top: 10px;">
+                            <p style="font-size: 0.9rem; color: #666;">Vista previa:</p>
+                            <img id="previewImagen" class="preview-img">
+                        </div>
                     </div>
-
+                    
                     <div class="form-group">
                         <label for="id_categoria">Categoría:</label>
                         <select id="id_categoria" name="id_categoria" required>
