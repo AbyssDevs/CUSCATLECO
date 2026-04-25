@@ -132,6 +132,7 @@ function renderMenu(items) {
             : "";
           return `
             <tr>
+              <td><img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
               <td>
                 <div style="display:flex; flex-direction:column; gap:6px;">
                   <strong>${item.platillo_nombre || "Sin nombre"}</strong>
@@ -166,6 +167,7 @@ function renderMenu(items) {
             : "";
           return `
             <div class="menu-card">
+              ${item.platillo_imagen_url ? `<img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-card-img">` : `<div class="menu-card-img" style="background: #eee; display:flex; align-items:center; justify-content:center; color:#888;">Sin imagen</div>`}
               <div class="menu-card-header">
                 <div>
                   <h3 class="menu-card-title">${item.platillo_nombre || "Sin nombre"}</h3>

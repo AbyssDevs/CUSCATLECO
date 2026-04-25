@@ -14,16 +14,15 @@ import {
   auditoriaMiddleware 
 } from "../middlewares/auth.middleware.js";
 
+import upload from "../config/uploadConfig.js";
 
-
-
-router.post("/", auditoriaMiddleware, requirePermission("gestionar_menu"), crearPlatillo);
+router.post("/", auditoriaMiddleware, requirePermission("gestionar_menu"), upload.single('imagen'), crearPlatillo);
 
 router.get("/", auditoriaMiddleware, requirePermission("ver_menu"), obtenerPlatillos);
 
 router.get("/:id", auditoriaMiddleware, requirePermission("ver_menu"), obtenerPlatillo);
 
-router.put("/:id", auditoriaMiddleware, requirePermission("gestionar_menu"), editarPlatillo);
+router.put("/:id", auditoriaMiddleware, requirePermission("gestionar_menu"), upload.single('imagen'), editarPlatillo);
 
 router.patch("/:id/estado", auditoriaMiddleware, requirePermission("gestionar_menu"), cambiarEstadoPlatillo);
 
