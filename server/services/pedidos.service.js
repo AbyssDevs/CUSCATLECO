@@ -1,18 +1,57 @@
 import db from "../config/db.js";
 import { cambiarEstadoMesa } from "./mesas.service.js";
 
-//Cambio de mesa a Ocupada al se crear un pedido.
+ 
+  // Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
+const crearPedido = async ({ id_mesa, tipo, userId }) => {
 
-//Esto es para ir avanzando con el servicio de pedidos, no es el código final, solo es un mock para probar la funcionalidad de cambio de estado de mesa al crear un pedido.
-//Esto despues lo borras Stan, y creas el servicio de pedidos con toda la lógica necesaria. 
-export const crearPedidoMock = async (data, userId) => {
-    return{
-        id_pedido: 2,
-        estado: "Pendiente",
-    }
-}
+    let result;
 
+    if (tipo === "Salon") {
+
+      [result] = await db.query(`
+        INSERT INTO pedidos
+        (id_mesa, id_mesero, pedido_tipo)
+        VALUES (?, ?, ?)
+        `, [
+        id_mesa,
+        userId,
+        tipo
+      ]);
+
+  } else if (tipo === "Llevar") {
+
+      [result] = await db.query(`
+        INSERT INTO pedidos
+        (id_mesa, id_mesero, pedido_tipo)
+        VALUES (?, ?, ?)
+      `, [
+        null,
+        userId,
+        tipo
+      ]);
+
+  } else {
+    throw new Error("Tipo de pedido inválido");
+  }
+
+    return {
+      id_pedido: result.insertId,
+      pedido_estado: "Pendiente",
+      pedido_tipo: tipo
+    };
+  }; 
+
+
+//Inciar pedido
 export const iniciarPedido = async ({ id_mesa, tipo, userId }) => {
+
+  if (tipo !== "Salon" && tipo !== "Llevar") {
+   throw Object.assign(
+     new Error("Tipo de pedido inválido"),
+     { status: 400 }
+   );
+}
 
   // PEDIDO EN SALÓN
   if (tipo === "Salon") {
@@ -41,7 +80,7 @@ export const iniciarPedido = async ({ id_mesa, tipo, userId }) => {
   }
 
   // CREAR PEDIDO
-  const pedido = await crearPedidoMock({}, userId);
+  const pedido = await crearPedido({ tipo, id_mesa, userId });
 
   // SOLO SI ES SALÓN → ocupar mesa
   if (tipo === "Salon") {
