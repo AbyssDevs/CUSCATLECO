@@ -4,7 +4,8 @@ const router = express.Router();
 import {
     iniciarPedido,
     crearPedido,
-    agregarPlatilloAPedido
+    agregarPlatilloAPedido,
+    eliminarPlatilloPedido
 } from '../controllers/pedidos.controller.js';
 
 import {
@@ -17,5 +18,7 @@ router.post('/iniciar', auditoriaMiddleware, requirePermission('crear_pedido'), 
 router.post('/crear', auditoriaMiddleware, requirePermission('crear_pedido'), crearPedido);
 
 router.post('/:id_pedido/platillos', auditoriaMiddleware, requirePermission('crear_pedido'), agregarPlatilloAPedido);
+
+router.delete('/platillos/:id_detalle', auditoriaMiddleware, requirePermission('crear_pedido'), eliminarPlatilloPedido);
 
 export default router;

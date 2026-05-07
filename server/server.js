@@ -88,7 +88,7 @@ app.use("/api", authRoutes);
 app.use("/api/empleados", requirePermission("gestionar_usuarios"), empleadosRoutes);
 app.use("/api/platillos", auditoriaMiddleware, platillosRoutes);
 app.use("/api/mesas", auditoriaMiddleware, mesasRoutes);
-app.use("/api/pedidos", auditoriaMiddleware, pedidosRoutes)
+app.use("/api/pedidos", pedidosRoutes)
 
 // Iniciar el servidor
 app.listen(PORT, () => {
