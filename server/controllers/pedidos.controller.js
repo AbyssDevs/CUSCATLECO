@@ -35,7 +35,21 @@ export const iniciarPedido = async (req, res) => {
 };
 
  
+export const agregarPlatilloAPedido = async (req, res) => {
+  try {
+    const data = await pedidosService.agregarPlatilloAPedido({
+      id_pedido: req.params.id_pedido,
+      ...req.body
+    });
 
+    res.status(201).json(data);
+
+  } catch (error) {
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
  
     
 
