@@ -1,11 +1,12 @@
 -- ============================================================
 -- SCHEMA COMPLETO - RESTAURANTE SABOR CUSCATLECO
--- Equipo: Abyss | Sprint 1
+-- Equipo: Abyss | Sprint 3
 -- Fecha: 2026
 -- ============================================================
 CREATE DATABASE IF NOT EXISTS cuscatleco;
 
 USE cuscatleco;
+
 -- ============================================================
 -- 1. ROLES Y PERMISOS
 -- ============================================================
@@ -24,7 +25,7 @@ CREATE TABLE permisos (
     permiso_descripcion VARCHAR(200),
     permiso_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
 );
--- Relacion N:M entre roles y permisos
+
 CREATE TABLE rol_permiso (
     id_rol INT NOT NULL,
     id_permiso INT NOT NULL,
@@ -32,6 +33,7 @@ CREATE TABLE rol_permiso (
     FOREIGN KEY (id_rol) REFERENCES roles (id_rol) ON DELETE CASCADE,
     FOREIGN KEY (id_permiso) REFERENCES permisos (id_permiso) ON DELETE CASCADE
 );
+
 -- ============================================================
 -- 2. USUARIOS Y CLIENTES
 -- ============================================================
@@ -54,7 +56,7 @@ CREATE TABLE usuario_rol (
     FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_rol) REFERENCES roles (id_rol) ON DELETE CASCADE
 );
--- Rangos de fidelidad para clientes (Bronce/Plata/Oro)
+
 CREATE TABLE rangos_cliente (
     id_rango INT PRIMARY KEY AUTO_INCREMENT,
     rango_cliente_nombre ENUM('Bronce', 'Plata', 'Oro') NOT NULL UNIQUE,
@@ -63,7 +65,7 @@ CREATE TABLE rangos_cliente (
     rango_cliente_min_consumo DECIMAL(10, 2) DEFAULT 0.00,
     rango_cliente_descripcion VARCHAR(200)
 );
--- Clientes del restaurante (pueden hacer reservaciones y pedidos en linea)
+
 CREATE TABLE clientes (
     id_cliente INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT NOT NULL,
@@ -74,6 +76,7 @@ CREATE TABLE clientes (
     FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario) ON DELETE CASCADE,
     FOREIGN KEY (id_rango) REFERENCES rangos_cliente (id_rango)
 );
+
 -- ============================================================
 -- 3. MESAS
 -- ============================================================
@@ -81,13 +84,27 @@ CREATE TABLE mesas (
     id_mesa INT PRIMARY KEY AUTO_INCREMENT,
     mesa_numero INT NOT NULL UNIQUE,
     mesa_capacidad INT NOT NULL,
+    mesa_ubicacion VARCHAR(45),
     mesa_estado ENUM(
         'Disponible',
         'Ocupada',
-        'Reservada'
+        'Reservada',
+        'Limpieza',
+        'Mantenimiento'
     ) DEFAULT 'Disponible',
-    mesa_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP
+
+    mesa_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    mesa_actualizada_por INT DEFAULT NULL,
+    mesa_actualizada_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_mesa_usuario
+        FOREIGN KEY (mesa_actualizada_por)
+        REFERENCES usuarios(id_usuario)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
 );
+
 -- ============================================================
 -- 4. RESERVACIONES
 -- ============================================================
@@ -108,6 +125,7 @@ CREATE TABLE reservaciones (
     FOREIGN KEY (id_cliente) REFERENCES clientes (id_cliente),
     FOREIGN KEY (id_mesa) REFERENCES mesas (id_mesa)
 );
+
 -- ============================================================
 -- 5. MENU Y PLATILLOS
 -- ============================================================
@@ -132,30 +150,38 @@ CREATE TABLE platillos (
     FOREIGN KEY (id_categoria) REFERENCES categorias (id_categoria),
     FOREIGN KEY (platillo_actualizado_por) REFERENCES usuarios (id_usuario)
 );
+
 -- ============================================================
--- 6. PEDIDOS
+-- 6. PEDIDOS (VERSIÓN MEJORADA)
 -- ============================================================
 CREATE TABLE pedidos (
     id_pedido INT PRIMARY KEY AUTO_INCREMENT,
-    id_mesa INT NOT NULL,
+    id_mesa INT NULL, -- NULL para pedidos "Para llevar"
     id_mesero INT NOT NULL,
-    id_cliente INT NOT NULL,
+    id_cliente INT NULL,
     pedido_estado ENUM(
         'Pendiente',
         'EnPreparacion',
-        'Preparado',
+        'Listo',
         'Entregado',
-        'Facturado',
-        'Anulado'
+        'Cerrado',
+        'Cancelado'
     ) DEFAULT 'Pendiente',
     pedido_tipo ENUM('Salon', 'Llevar') DEFAULT 'Salon',
     pedido_observaciones TEXT,
     pedido_total DECIMAL(10, 2) DEFAULT 0.00,
     pedido_fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
     pedido_actualizado_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    pedido_enviado_cocina_en DATETIME NULL,
+    pedido_listo_en DATETIME NULL,
+    pedido_entregado_en DATETIME NULL,
+    pedido_cancelado_en DATETIME NULL,
+    pedido_cancelado_por INT NULL,
+    pedido_cancelado_motivo VARCHAR(200) NULL,
     FOREIGN KEY (id_mesa) REFERENCES mesas (id_mesa),
     FOREIGN KEY (id_mesero) REFERENCES usuarios (id_usuario),
-    FOREIGN KEY (id_cliente) REFERENCES clientes (id_cliente)
+    FOREIGN KEY (id_cliente) REFERENCES clientes (id_cliente),
+    FOREIGN KEY (pedido_cancelado_por) REFERENCES usuarios (id_usuario)
 );
 
 CREATE TABLE detalle_pedido (
@@ -169,9 +195,9 @@ CREATE TABLE detalle_pedido (
     FOREIGN KEY (id_pedido) REFERENCES pedidos (id_pedido) ON DELETE CASCADE,
     FOREIGN KEY (id_platillo) REFERENCES platillos (id_platillo)
 );
+
 -- ============================================================
 -- 7. FACTURACION ELECTRONICA
--- (Estructura preparada para sprints futuros)
 -- ============================================================
 CREATE TABLE facturas (
     id_factura INT PRIMARY KEY AUTO_INCREMENT,
@@ -199,19 +225,22 @@ CREATE TABLE facturas (
 CREATE TABLE detalle_factura (
     id_detalle INT PRIMARY KEY AUTO_INCREMENT,
     id_factura INT NOT NULL,
+    id_platillo INT,
     detalle_factura_descripcion VARCHAR(200) NOT NULL,
     detalle_factura_cantidad INT NOT NULL,
     detalle_factura_precio_unitario DECIMAL(10, 2) NOT NULL,
     detalle_factura_subtotal DECIMAL(10, 2) NOT NULL,
-    FOREIGN KEY (id_factura) REFERENCES facturas (id_factura) ON DELETE CASCADE
+    FOREIGN KEY (id_factura) REFERENCES facturas (id_factura) ON DELETE CASCADE,
+    FOREIGN KEY (id_platillo) REFERENCES platillos (id_platillo)
 );
+
 -- ============================================================
--- 8. NOTIFICACIONES
--- (Preparada para confirmaciones de reservaciones y pedidos)
+-- 8. NOTIFICACIONES (VERSIÓN MEJORADA)
 -- ============================================================
 CREATE TABLE notificaciones (
     id_notificacion INT PRIMARY KEY AUTO_INCREMENT,
     id_usuario INT NOT NULL,
+    id_pedido INT NULL,
     notificacion_tipo ENUM(
         'Reservacion',
         'Pedido',
@@ -220,9 +249,13 @@ CREATE TABLE notificaciones (
     notificacion_asunto VARCHAR(200),
     notificacion_mensaje TEXT,
     notificacion_enviada BOOLEAN DEFAULT FALSE,
+    notificacion_leida BOOLEAN DEFAULT FALSE,
+    notificacion_leida_en DATETIME NULL,
     notificacion_fecha DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario)
+    FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario),
+    FOREIGN KEY (id_pedido) REFERENCES pedidos (id_pedido)
 );
+
 -- ============================================================
 -- 9. AUDITORIA Y TRAZABILIDAD
 -- ============================================================
@@ -241,7 +274,6 @@ CREATE TABLE auditoria_log (
     FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario)
 );
 
--- Índices para búsquedas rápidas
 CREATE INDEX idx_auditoria_usuario ON auditoria_log (id_usuario);
 
 CREATE INDEX idx_auditoria_accion ON auditoria_log (accion);
@@ -252,9 +284,9 @@ CREATE INDEX idx_auditoria_fecha ON auditoria_log (fecha_hora);
 
 CREATE INDEX idx_auditoria_entidad ON auditoria_log (modulo, entidad_id);
 
--- ============================================================
--- 10. DATOS INICIALES (SEED)
--- ============================================================
+-- . DATOS INICIALES (SEED)
+
+
 -- Roles del sistema
 INSERT INTO
     roles (rol_nombre, rol_descripcion)
@@ -278,6 +310,7 @@ VALUES (
         'Cliente',
         'Acceso al portal de clientes'
     );
+
 -- Permisos del sistema
 INSERT INTO
     permisos (
@@ -385,9 +418,9 @@ VALUES (
         'Registros',
         'Ver los registros de auditoria'
     );
-    
+
 -- Permisos por rol
--- Administrador (todos los permisos)
+-- Administrador (id_rol=1)
 INSERT INTO
     rol_permiso (id_rol, id_permiso)
 VALUES (1, 1),
@@ -433,6 +466,7 @@ VALUES (4, 1),
     (4, 7),
     (4, 8),
     (4, 19);
+
 -- Rangos de cliente
 INSERT INTO
     rangos_cliente (
@@ -463,8 +497,8 @@ VALUES (
         300.00,
         'Descuento del 15% con 15 pedidos o $300 acumulados'
     );
--- IMPORTANTE: En producción reemplazar con hash bcrypt real
--- Password por defecto: 123
+
+-- Usuario administrador (password: 123)
 INSERT INTO
     usuarios (
         usuario_nombre,
@@ -475,11 +509,30 @@ INSERT INTO
 VALUES (
         'Administrador',
         'admin@saborcuscatleco.com',
-        '123',
+        '$2b$10$nuQeszTNbPeM5RHe/UXDOO.pFLefLIcptEDvdvnkjp9N3cPPkeg72',
         '77777777'
     );
+
 -- Asignar rol administrador
 INSERT INTO usuario_rol (id_usuario, id_rol) VALUES (1, 1);
+
+-- Usuario y cliente "Consumidor Final / Anónimo" (para pedidos sin cliente registrado)
+INSERT INTO
+    usuarios (
+        usuario_nombre,
+        usuario_email,
+        usuario_password,
+        usuario_telefono
+    )
+VALUES (
+        'Consumidor Final',
+        'anonimo@saborcuscatleco.com',
+        '',
+        '00000000'
+    );
+
+INSERT INTO clientes (id_usuario, id_rango) VALUES (2, 1);
+
 -- Categorías del menú
 INSERT INTO
     categorias (
@@ -499,14 +552,19 @@ VALUES (
         'Bebidas frías y calientes'
     ),
     ('Postres', 'Dulces y postres');
+
 -- Mesas del restaurante
 INSERT INTO
-    mesas (mesa_numero, mesa_capacidad)
-VALUES (1, 4),
-    (2, 4),
-    (3, 6),
-    (4, 6),
-    (5, 2),
-    (6, 2),
-    (7, 8),
-    (8, 8);
+    mesas (
+        mesa_numero,
+        mesa_capacidad,
+        mesa_ubicacion
+    )
+VALUES (1, 4, 'Zona Interior'),
+    (2, 4, 'Zona Interior'),
+    (3, 6, 'Terraza'),
+    (4, 6, 'Terraza'),
+    (5, 2, 'Barra'),
+    (6, 2, 'Barra'),
+    (7, 8, 'Salón VIP'),
+    (8, 8, 'Salón VIP');
