@@ -165,7 +165,6 @@ export const agregarPlatilloAPedido = async ({
   }
 
   // Verificar si ya existe el platillo en el pedido
-  // Verificar si ya existe el platillo en el pedido
 const [detalleRows] = await db.query(
   `SELECT 
       id_detalle,
@@ -246,6 +245,84 @@ const [detalleRows] = await db.query(
 
   return {
     message: "Platillo agregado correctamente",
+    pedido_total: total
+  };
+};
+
+export const eliminarPlatilloPedido = async (id_detalle) => {
+
+  // Buscar detalle
+  const [detalleRows] = await db.query(
+    `SELECT id_pedido
+     FROM detalle_pedido
+     WHERE id_detalle = ?`,
+    [id_detalle]
+  );
+
+  if (detalleRows.length === 0) {
+    throw Object.assign(
+      new Error("Detalle de pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const detalle = detalleRows[0];
+
+  // Obtener estado del pedido
+  const [pedidoRows] = await db.query(
+    `SELECT pedido_estado
+     FROM pedidos
+     WHERE id_pedido = ?`,
+    [detalle.id_pedido]
+  );
+
+  if (pedidoRows.length === 0) {
+    throw Object.assign(
+      new Error("Pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const pedido = pedidoRows[0];
+
+  // Validar estado
+  if (pedido.pedido_estado !== "Pendiente") {
+    throw Object.assign(
+      new Error(
+        "No se pueden eliminar platillos de un pedido enviado a cocina"
+      ),
+      { status: 400 }
+    );
+  }
+
+  // Eliminar detalle
+  await db.query(
+    `DELETE FROM detalle_pedido
+     WHERE id_detalle = ?`,
+    [id_detalle]
+  );
+
+  // Recalcular total
+  const [totalRows] = await db.query(
+    `SELECT 
+        SUM(detalle_pedido_subtotal) AS total
+     FROM detalle_pedido
+     WHERE id_pedido = ?`,
+    [detalle.id_pedido]
+  );
+
+  const total = totalRows[0].total || 0;
+
+  // Actualizar pedido
+  await db.query(
+    `UPDATE pedidos
+     SET pedido_total = ?
+     WHERE id_pedido = ?`,
+    [total, detalle.id_pedido]
+  );
+
+  return {
+    message: "Platillo eliminado correctamente",
     pedido_total: total
   };
 };

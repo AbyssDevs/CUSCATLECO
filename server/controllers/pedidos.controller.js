@@ -51,6 +51,21 @@ export const agregarPlatilloAPedido = async (req, res) => {
   }
 };
  
-    
 
+export const eliminarPlatilloPedido = async (req, res) => {
+  try {
 
+    const data =
+      await pedidosService.eliminarPlatilloPedido(
+        req.params.id_detalle
+      );
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
