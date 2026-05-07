@@ -326,3 +326,94 @@ export const eliminarPlatilloPedido = async (id_detalle) => {
     pedido_total: total
   };
 };
+
+export const modificarCantidadPlatillo = async ({ id_detalle, cantidad }) => {
+  // Validar que cantidad sea un número válido
+  const cantidadNum = Number(cantidad);
+
+  if (isNaN(cantidadNum)) {
+    throw Object.assign(new Error("La cantidad debe ser un número válido"), {
+      status: 400,
+    });
+  }
+
+  // Validar cantidad
+  if (cantidadNum < 1 || cantidadNum > 99) {
+    throw Object.assign(new Error("La cantidad debe estar entre 1 y 99"), {
+      status: 400,
+    });
+  }
+
+  // Buscar detalle
+  const [detalleRows] = await db.query(
+    `SELECT
+        id_pedido,
+        detalle_pedido_precio_unitario
+     FROM detalle_pedido
+     WHERE id_detalle = ?`,
+    [id_detalle],
+  );
+
+  if (detalleRows.length === 0) {
+    throw Object.assign(new Error("Detalle no encontrado"), { status: 404 });
+  }
+
+  const detalle = detalleRows[0];
+
+  // Validar pedido
+  const [pedidoRows] = await db.query(
+    `SELECT pedido_estado
+     FROM pedidos
+     WHERE id_pedido = ?`,
+    [detalle.id_pedido],
+  );
+
+  if (pedidoRows.length === 0) {
+    throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+  }
+
+  if (pedidoRows[0].pedido_estado !== "Pendiente") {
+    throw Object.assign(new Error("El pedido no se puede modificar"), {
+      status: 400,
+    });
+  }
+
+  // Nuevo subtotal
+  const subtotal = detalle.detalle_pedido_precio_unitario * cantidadNum;
+
+  // Actualizar detalle
+  await db.query(
+    `UPDATE detalle_pedido
+     SET
+        detalle_pedido_cantidad = ?,
+        detalle_pedido_subtotal = ?
+     WHERE id_detalle = ?`,
+    [cantidadNum, subtotal, id_detalle],
+  );
+
+  // Recalcular total
+  const [totalRows] = await db.query(
+    `SELECT
+      SUM(detalle_pedido_subtotal) AS total
+   FROM detalle_pedido
+   WHERE id_pedido = ?`,
+    [detalle.id_pedido],
+  );
+
+  // Convertir el total a número con 2 decimales
+  const total = Number(totalRows[0].total) || 0;
+  const totalFormateado = parseFloat(total.toFixed(2));
+
+  // Actualizar pedido
+  await db.query(
+    `UPDATE pedidos
+   SET pedido_total = ?
+   WHERE id_pedido = ?`,
+    [totalFormateado, detalle.id_pedido],
+  );
+
+  return {
+    message: "Cantidad actualizada correctamente",
+    pedido_total: totalFormateado,
+  };
+};

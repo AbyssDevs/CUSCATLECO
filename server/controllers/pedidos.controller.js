@@ -69,3 +69,21 @@ export const eliminarPlatilloPedido = async (req, res) => {
     });
   }
 };
+
+export const modificarCantidadPlatillo = async (req, res) => {
+  try {
+  
+    const data = await pedidosService.modificarCantidadPlatillo({
+      id_detalle: req.params.id_detalle,
+      cantidad: req.body.cantidad
+    });
+
+    res.json(data);
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
