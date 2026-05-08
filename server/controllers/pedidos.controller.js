@@ -87,3 +87,21 @@ export const modificarCantidadPlatillo = async (req, res) => {
     });
   }
 };
+
+export const obtenerPedidosActivosMesero = async (req, res) => {
+  try {
+
+    const data =
+      await pedidosService.obtenerPedidosActivosMesero(
+        req.user.id
+      );
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
