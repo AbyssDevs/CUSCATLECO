@@ -68,6 +68,19 @@
             <div id="tomar-pedido">
                 <h1>Tomar Pedido Nuevo</h1>
                 
+                <!-- SELECTOR DE TIPO DE PEDIDO -->
+                <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;">
+                    <h3 style="margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Tipo de Pedido</h3>
+                    <div style="display: flex; gap: 15px;">
+                        <button class="pedido-type-btn active" data-type="salon" style="flex: 1; padding: 15px; border: 2px solid #7a1d1d; background: #7a1d1d; color: white; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; font-size: 16px;">
+                            <i class="fas fa-chair" style="margin-right: 8px;"></i> En Salón
+                        </button>
+                        <button class="pedido-type-btn" data-type="llevar" style="flex: 1; padding: 15px; border: 2px solid #ddd; background: white; color: #333; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; font-size: 16px;">
+                            <i class="fas fa-bag-shopping" style="margin-right: 8px;"></i> Para Llevar
+                        </button>
+                    </div>
+                </div>
+
                 <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px;">
                     <div style="display: flex; gap: 15px; margin-bottom: 20px;">
                         <div style="flex: 1;">
@@ -206,6 +219,27 @@
     <script src="/js/alerts.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/mesas_admin.js"></script>
+    
+    <script>
+        // Selector de tipo de pedido - UI interactiva
+        document.querySelectorAll('.pedido-type-btn').forEach(button => {
+            button.addEventListener('click', function() {
+                // Remover clase active de todos los botones
+                document.querySelectorAll('.pedido-type-btn').forEach(btn => {
+                    btn.classList.remove('active');
+                    btn.style.background = 'white';
+                    btn.style.color = '#333';
+                    btn.style.borderColor = '#ddd';
+                });
+                
+                // Agregar clase active al botón clickeado
+                this.classList.add('active');
+                this.style.background = '#7a1d1d';
+                this.style.color = 'white';
+                this.style.borderColor = '#7a1d1d';
+            });
+        });
+    </script>
     
 </body>
 
