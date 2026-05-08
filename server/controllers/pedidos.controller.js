@@ -87,3 +87,35 @@ export const modificarCantidadPlatillo = async (req, res) => {
     });
   }
 };
+
+export const marcarPedidoEntregado = async (req, res) => {
+  try {
+    const { id_pedido } = req.params;
+
+    const data = await pedidosService.marcarPedidoEntregado(
+      id_pedido,
+      req.user.id
+    );
+
+    res.json(data);
+  } catch (error) {
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
+
+export const enviarPedidoACocina = async (req, res) => {
+  try {
+    const { id_pedido } = req.params;
+
+    const data = await pedidosService.enviarPedidoACocina(id_pedido);
+
+    return res.json(data);
+
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      error: error.message || "Error al enviar pedido a cocina"
+    });
+  }
+};
