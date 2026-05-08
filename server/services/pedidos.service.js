@@ -3,7 +3,7 @@ import { cambiarEstadoMesa } from "./mesas.service.js";
 
  
   // Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
-const crearPedido = async ({ id_mesa, tipo, userId }) => {
+export const crearPedido = async ({ id_mesa, tipo, userId }) => {
 
     let result;
 
@@ -104,6 +104,24 @@ export const agregarPlatilloAPedido = async ({
       { status: 400 }
     );
   }
+
+// Validar notas del pedido
+if (detalle_pedido_notas) {
+  if (typeof detalle_pedido_notas !== "string") {
+    throw Object.assign(
+      new Error("Las notas deben ser texto"),
+      { status: 400 }
+    );
+  }
+
+  if (detalle_pedido_notas.length > 200) {
+    throw Object.assign(
+      new Error("Las notas no pueden superar 200 caracteres"),
+      { status: 400 }
+    );
+  }
+}
+
 
   // Validar el pedido
   const [pedidoRows] = await db.query(
