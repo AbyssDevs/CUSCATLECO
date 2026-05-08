@@ -3,7 +3,7 @@ import { cambiarEstadoMesa } from "./mesas.service.js";
 
  
   // Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
-const crearPedido = async ({ id_mesa, tipo, userId }) => {
+export const crearPedido = async ({ id_mesa, tipo, userId }) => {
 
     let result;
 
@@ -415,5 +415,88 @@ export const modificarCantidadPlatillo = async ({ id_detalle, cantidad }) => {
   return {
     message: "Cantidad actualizada correctamente",
     pedido_total: totalFormateado,
+  };
+};
+
+ 
+// Enviar pedido a cocina
+export const enviarPedidoACocina = async (id_pedido) => {
+
+  const [rows] = await db.query(`
+    SELECT pedido_estado
+    FROM pedidos
+    WHERE id_pedido = ?
+  `, [id_pedido]);
+
+  if (rows.length === 0) {
+    throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+  }
+
+  if (rows[0].pedido_estado !== "Pendiente") {
+    throw Object.assign(
+      new Error("Solo pedidos pendientes pueden enviarse a cocina"),
+      { status: 400 }
+    );
+  }
+
+  await db.query(`
+    UPDATE pedidos
+    SET 
+  pedido_estado = 'EnPreparacion',
+  pedido_enviado_cocina_en = NOW()
+    WHERE id_pedido = ?
+  `, [id_pedido]);
+
+  return {
+    message: "Pedido enviado a cocina"
+  };
+};
+
+
+// Marcar pedido como entregado
+export const marcarPedidoEntregado = async (id_pedido, userId) => {
+
+  const [rows] = await db.query(`
+    SELECT pedido_estado, id_mesa
+    FROM pedidos
+    WHERE id_pedido = ? AND id_mesero = ?
+  `, [id_pedido, userId]);
+
+  if (rows.length === 0) {
+    throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+  }
+
+  const pedido = rows[0];
+
+  // Solo pedidos listos
+  if (pedido.pedido_estado !== "Listo") {
+    throw Object.assign(
+      new Error("Solo pedidos en estado 'Listo' pueden entregarse"),
+      { status: 400 }
+    );
+  }
+
+const [result] = await db.query(`
+  UPDATE pedidos
+  SET 
+    pedido_estado = 'Entregado',
+    pedido_entregado_en = NOW()
+  WHERE id_pedido = ? AND pedido_estado = 'Listo'
+`, [id_pedido]);
+
+if (result.affectedRows === 0) {
+  throw Object.assign(
+    new Error("El pedido ya no está en estado 'Listo'"),
+    { status: 400 }
+  );
+}
+
+  // liberar mesa automáticamente
+  if (pedido.id_mesa) {
+    await cambiarEstadoMesa(pedido.id_mesa, "Disponible");
+  }
+
+  return {
+    message: "Pedido entregado correctamente"
   };
 };

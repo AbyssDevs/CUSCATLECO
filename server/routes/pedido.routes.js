@@ -6,7 +6,11 @@ import {
     crearPedido,
     agregarPlatilloAPedido,
     eliminarPlatilloPedido,
-    modificarCantidadPlatillo
+    modificarCantidadPlatillo,
+    obtenerPedidosActivos,
+    enviarPedidoACocina,
+    marcarPedidoEntregado,
+  
 } from '../controllers/pedidos.controller.js';
 
 import {
@@ -23,5 +27,14 @@ router.post('/:id_pedido/platillos', auditoriaMiddleware, requirePermission('cre
 router.delete('/platillos/:id_detalle', auditoriaMiddleware, requirePermission('crear_pedido'), eliminarPlatilloPedido);
 
 router.put("/platillos/:id_detalle", requirePermission("crear_pedido"), modificarCantidadPlatillo);
+
+router.patch('/:id_pedido/enviar',auditoriaMiddleware,requirePermission('crear_pedido'),enviarPedidoACocina);
+
+router.patch(
+  '/:id_pedido/listo',
+  auditoriaMiddleware,
+  requirePermission('gestionar_cocina'),
+  marcarPedidoListo
+);
 
 export default router;
