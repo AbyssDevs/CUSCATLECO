@@ -380,3 +380,4 @@ window.addEventListener("DOMContentLoaded", () => {
     actualizarFormularioModo();
   }
 });
+//Mejoras puestas pero no se guardaron en el commit anterior, se vuelven a agregar para no perderlas.
