@@ -349,10 +349,29 @@ function attachMenuControls() {
   });
 }
 
+function attachPedidoDeleteConfirmation() {
+  const containers = document.querySelectorAll("#lista-platillos-pedido");
+  containers.forEach((container) => {
+    container.addEventListener("click", async (event) => {
+      const button = event.target.closest(".btn-eliminar");
+      if (!button) return;
+      event.preventDefault();
+
+      const row = button.closest("div");
+      const select = row ? row.querySelector("select") : null;
+      const nombrePlatillo = select?.selectedOptions[0]?.textContent?.trim();
+      const nombreParaMostrar = nombrePlatillo && nombrePlatillo !== "Seleccione un platillo..." ? nombrePlatillo : "este platillo";
+
+      await confirmar(`¿Eliminar ${nombreParaMostrar} del pedido?`);
+    });
+  });
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
 
   attachMenuControls();
+  attachPedidoDeleteConfirmation();
 
   const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
   if (menuSection && menuSection.style.display !== "none") {
