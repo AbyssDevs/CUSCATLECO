@@ -17,7 +17,7 @@ router.post('/', auditoriaMiddleware, requirePermission('gestionar_mesas'), crea
 
 router.post('/bulk', auditoriaMiddleware, requirePermission('gestionar_mesas'), crearMesas);
 
-router.get('/', requirePermission('ver_mesas'), listarMesas);
+router.get('/', requirePermission('listar_mesas'), listarMesas);
 
 router.delete('/:id', requirePermission('gestionar_mesas'), eliminarMesa);
 
