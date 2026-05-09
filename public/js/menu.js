@@ -118,11 +118,7 @@ function renderMenu(items) {
 
   if (tableBody) {
     if (filteredItems.length === 0) {
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="${adminMode ? 6 : 4}" style="padding: 18px; text-align: center;">No hay platillos disponibles en este momento</td>
-        </tr>
-      `;
+      tableBody.innerHTML = '';
     } else {
       tableBody.innerHTML = filteredItems
         .map((item) => {
