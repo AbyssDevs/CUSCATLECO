@@ -64,25 +64,80 @@
             </div>
 
 
-            <!-- TOMAR PEDIDO -->
-            <div id="tomar-pedido">
-                <h1>Tomar Pedido Nuevo</h1>
-                
-                <!-- SELECTOR DE TIPO DE PEDIDO -->
-                <div class="pedido-type-card">
-                    <h3>Tipo de Pedido</h3>
-                    <div class="tipo-pedido-selector">
-                        <button class="pedido-type-btn active" data-type="salon">
-                            <i class="fas fa-chair"></i>
-                            En Salón
-                        </button>
-                        <button class="pedido-type-btn" data-type="llevar">
-                            <i class="fas fa-bag-shopping"></i>
-                            Para Llevar
-                        </button>
-                    </div>
-                </div>
+  <!-- TOMAR PEDIDO -->
+<div id="tomar-pedido">
+    <h1>Tomar Pedido Nuevo</h1>
+
+    <!-- SELECTOR DE TIPO DE PEDIDO -->
+    <div class="pedido-type-card">
+        <h3>Tipo de Pedido</h3>
+
+        <div class="tipo-pedido-selector">
+            <button class="pedido-type-btn active" data-type="salon">
+                <i class="fas fa-chair"></i>
+                En Salón
+            </button>
+
+            <button class="pedido-type-btn" data-type="llevar">
+                <i class="fas fa-bag-shopping"></i>
+                Para Llevar
+            </button>
+        </div>
+    </div>
+
+    <!-- FORMULARIO -->
+    <div class="form-pedido-card">
+
+        <!-- FORMULARIO SALON -->
+        <div id="formSalon">
+
+            <div class="form-group">
+                <label>Número de Mesa</label>
+                <input type="text" placeholder="Ej. 10">
             </div>
+
+        </div>
+
+        <!-- FORMULARIO PARA LLEVAR -->
+        <div id="formLlevar" style="display: none;">
+
+            <div class="form-group">
+                <label>Nombre del Cliente</label>
+                <input type="text" placeholder="Ej. Juan Pérez">
+            </div>
+
+        </div>
+
+        <h3>Seleccionar Platillos</h3>
+
+        <div class="platillo-row">
+
+            <select>
+                <option>Seleccione un platillo...</option>
+                <option>Pupusas</option>
+                <option>Hamburguesa</option>
+                <option>Pizza</option>
+            </select>
+
+            <input type="number" value="1" min="1">
+
+            <button class="btn-delete-platillo">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+
+        </div>
+
+        <button class="btn-agregar-platillo">
+            <i class="fa-solid fa-plus"></i>
+            Añadir otro platillo
+        </button>
+
+        <button class="btn-enviar-pedido">
+            Enviar Pedido a Cocina
+        </button>
+
+    </div>
+</div>
 
             <div id="verMesas" style="display: none;">
                 <h1>Ver Mesas</h1>

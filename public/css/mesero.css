@@ -528,3 +528,76 @@ tr:hover {
         font-size: 0.7rem;
     }
 }
+
+/* FORMULARIO TOMAR PEDIDO */
+#tomar-pedido {
+    max-width: 900px;
+}
+
+.form-pedido-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #f0f0f0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-pedido-card h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #222;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.platillo-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.platillo-row select {
+    flex: 1;
+}
+
+.platillo-row input {
+    width: 120px;
+}
+
+.btn-delete-platillo {
+    background: #dc3545;
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+}
+
+.btn-delete-platillo:hover {
+    background: #bb2d3b;
+}
+
+.btn-agregar-platillo {
+    background: #0d6efd;
+    margin-top: 10px;
+}
+
+.btn-agregar-platillo:hover {
+    background: #0b5ed7;
+}
+
+.btn-enviar-pedido {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    font-size: 15px;
+}
