@@ -434,13 +434,29 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
      LEFT JOIN mesas m
         ON p.id_mesa = m.id_mesa
      WHERE p.id_mesero = ?
-       AND p.pedido_estado NOT IN ('Facturado', 'Anulado')
+       AND p.pedido_estado NOT IN ('Cancelado', 'Cerrado')
      ORDER BY p.pedido_fecha_hora DESC`,
     [id_mesero]
   );
 
   return rows;
 };
+
+
+
+//Obtener pedidos para cocina enviados por los meseros
+export const obtenerPedidosCocina = async () => {
+  const [rows] = await db.query(`
+    SELECT *
+    FROM pedidos
+    WHERE pedido_estado IN ('EnPreparacion', 'Listo')
+    ORDER BY pedido_fecha_hora ASC
+  `);
+
+  return rows;
+};
+
+
 
 // Cancelar pedido
 export const cancelarPedido = async (id_pedido, motivo, userId) => {
@@ -474,12 +490,12 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
   }
 
   // Evitar doble cancelación
-  if (pedido.pedido_estado === "Cancelado") {
-    throw Object.assign(
-      new Error("El pedido ya fue cancelado anteriormente"),
-      { status: 400 }
-    );
-  }
+if (pedido.pedido_estado === "Cancelado") {
+  throw Object.assign(
+    new Error("El pedido está cancelado y no se puede modificar"),
+    { status: 400 }
+  );
+}
 
   // Guardar estado anterior
   const estadoAnterior = pedido.pedido_estado;
@@ -520,3 +536,5 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
   };
 
 };
+
+ 

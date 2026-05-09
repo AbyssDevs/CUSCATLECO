@@ -126,3 +126,17 @@ export const obtenerPedidosActivosMesero = async (req, res) => {
     });
   }
 };
+
+
+export const obtenerPedidosCocina = async (req, res) => {
+  try {
+    const data = await pedidosService.obtenerPedidosCocina();
+
+    return res.json(data);
+
+  } catch (error) {
+    return res.status(500).json({
+      error: error.message || "Error al obtener pedidos de cocina"
+    });
+  }
+};
