@@ -316,6 +316,56 @@
             return item;
         }
 
+        // Función para mostrar feedback visual al agregar platillo
+        function showAddFeedback() {
+            // Evitar múltiples mensajes si se hace clic rápidamente
+            if (document.querySelector('.add-feedback')) {
+                return;
+            }
+
+            const feedback = document.createElement('div');
+            feedback.className = 'add-feedback';
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                font-weight: 500;
+                font-size: 14px;
+                z-index: 1000;
+                opacity: 0;
+                transform: translateY(-10px);
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            feedback.innerHTML = '<i class="fas fa-check"></i> Platillo agregado al pedido';
+
+            document.body.appendChild(feedback);
+
+            // Animación de entrada
+            setTimeout(() => {
+                feedback.style.opacity = '1';
+                feedback.style.transform = 'translateY(0)';
+            }, 10);
+
+            // Animación de salida y eliminación
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                feedback.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    if (feedback.parentNode) {
+                        feedback.parentNode.removeChild(feedback);
+                    }
+                }, 300);
+            }, 2500);
+        }
+
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('.qty-control').forEach(setupQtyControl);
 
@@ -327,13 +377,18 @@
                     event.preventDefault();
                     const newItem = createPedidoItem();
                     lista.appendChild(newItem);
+                    
+                    // Mostrar feedback visual
+                    showAddFeedback();
                 });
             }
 
             document.querySelectorAll('.pedido-item .btn-eliminar').forEach(btn => {
                 btn.addEventListener('click', function() {
                     const item = btn.closest('.pedido-item');
-                    if (item) item.remove();
+                    if (item) {
+                        item.remove();
+                    }
                 });
             });
         });
