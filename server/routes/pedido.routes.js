@@ -7,8 +7,9 @@ import {
     agregarPlatilloAPedido,
     eliminarPlatilloPedido,
     modificarCantidadPlatillo,
+    obtenerPedidosActivosMesero,
     enviarPedidoACocina,
-    marcarPedidoEntregado,
+    marcarPedidoEntregado
   
 } from '../controllers/pedidos.controller.js';
 
@@ -31,5 +32,6 @@ router.post('/:id_pedido/enviar',auditoriaMiddleware,requirePermission('crear_pe
 
 router.put('/:id_pedido/entregar',auditoriaMiddleware,requirePermission('crear_pedido'),marcarPedidoEntregado);
 
+router.get("/activos",requirePermission("crear_pedido"), obtenerPedidosActivosMesero);
 
 export default router;

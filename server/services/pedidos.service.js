@@ -418,6 +418,7 @@ export const modificarCantidadPlatillo = async ({ id_detalle, cantidad }) => {
   };
 };
 
+
  
 // Enviar pedido a cocina
 export const enviarPedidoACocina = async (id_pedido) => {
@@ -499,4 +500,26 @@ if (result.affectedRows === 0) {
   return {
     message: "Pedido entregado correctamente"
   };
+
+//Ver pedidos activos del mesero
+export const obtenerPedidosActivosMesero = async (id_mesero) => {
+
+  const [rows] = await db.query(
+    `SELECT
+        p.id_pedido,
+        p.pedido_tipo,
+        p.pedido_estado,
+        p.pedido_total,
+        p.pedido_fecha_hora,
+        m.mesa_numero
+     FROM pedidos p
+     LEFT JOIN mesas m
+        ON p.id_mesa = m.id_mesa
+     WHERE p.id_mesero = ?
+       AND p.pedido_estado NOT IN ('Facturado', 'Anulado')
+     ORDER BY p.pedido_fecha_hora DESC`,
+    [id_mesero]
+  );
+
+  return rows};
 };
