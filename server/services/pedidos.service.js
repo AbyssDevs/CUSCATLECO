@@ -597,11 +597,10 @@ export const cambiarEstadoPedidoCocina = async (
   nuevoEstado
 ) => {
 
-  // Estados permitidos
- const estadosValidos = [
-  "EnPreparacion",
-  "Listo"
-];
+  const estadosValidos = [
+    "EnPreparacion",
+    "Listo"
+  ];
 
   if (!estadosValidos.includes(nuevoEstado)) {
     throw Object.assign(
@@ -610,7 +609,6 @@ export const cambiarEstadoPedidoCocina = async (
     );
   }
 
-  // Buscar pedido
   const [pedidoRows] = await db.query(
     `SELECT pedido_estado
      FROM pedidos
@@ -627,47 +625,37 @@ export const cambiarEstadoPedidoCocina = async (
 
   const pedido = pedidoRows[0];
 
-  // No permitir anulados
   if (pedido.pedido_estado === "Cancelado") {
     throw Object.assign(
-      new Error(
-        "No se puede modificar un pedido cancelado"
-      ),
+      new Error("No se puede modificar un pedido cancelado"),
       { status: 400 }
     );
   }
 
-  // No permitir facturados
   if (pedido.pedido_estado === "Cerrado") {
     throw Object.assign(
-      new Error(
-        "No se puede modificar un pedido cerrado"
-      ),
+      new Error("No se puede modificar un pedido cerrado"),
       { status: 400 }
     );
   }
 
-  // Validaciones de flujo
+  // Validaciones
   if (
-    nuevoEstado === "EnPreparacion"
-    && pedido.pedido_estado !== "Pendiente"
+    nuevoEstado === "EnPreparacion" &&
+    pedido.pedido_estado !== "Pendiente"
   ) {
     throw Object.assign(
-      new Error(
-        "Solo pedidos pendientes pueden pasar a preparación"
-      ),
+      new Error("Solo pedidos pendientes pueden pasar a preparación"),
       { status: 400 }
     );
   }
 
   if (
-    nuevoEstado === "Preparado"
-    && pedido.pedido_estado !== "EnPreparacion"
+    nuevoEstado === "Listo" &&
+    pedido.pedido_estado !== "EnPreparacion"
   ) {
     throw Object.assign(
-      new Error(
-        "Solo pedidos en preparación pueden marcarse como listos"
-      ),
+      new Error("Solo pedidos en preparación pueden marcarse como listos"),
       { status: 400 }
     );
   }
@@ -680,19 +668,19 @@ export const cambiarEstadoPedidoCocina = async (
 
   const params = [nuevoEstado];
 
-  // Registrar horas
   if (nuevoEstado === "EnPreparacion") {
-
     sql += `,
-      pedido_en_preparacion_en = NOW()
+      pedido_enviado_cocina_en = NOW()
     `;
-
   }
 
-  if (nuevoEstado === "Listo")
-    sql += `
-    WHERE id_pedido = ?
-  `;
+  if (nuevoEstado === "Listo") {
+    sql += `,
+      pedido_listo_en = NOW()
+    `;
+  }
+
+  sql += ` WHERE id_pedido = ?`;
 
   params.push(id_pedido);
 
@@ -701,7 +689,7 @@ export const cambiarEstadoPedidoCocina = async (
   return {
     message:
       nuevoEstado === "EnPreparacion"
-        ? "Pedido marcado en preparación"
+        ? "Pedido en preparación"
         : "Pedido marcado como listo"
   };
 };
