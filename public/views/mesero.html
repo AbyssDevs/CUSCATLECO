@@ -92,11 +92,12 @@
                     <h3 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seleccionar Platillos</h3>
                     
                     <!-- Controles del menú integrado -->
-                    <div class="menu-page-header" style="margin-bottom: 15px;">
+                    <div class="menu-page-header" style="margin-bottom: 15px; gap: 10px; align-items: center;">
                         <select id="pedidoCategoryFilter">
                             <option value="">Todas las categorías</option>
                         </select>
                         <input id="pedidoSearchInput" type="text" placeholder="Buscar platillo..." autocomplete="off">
+                        <button id="pedidoRefreshButton" type="button" class="btn-refresh">Actualizar</button>
                     </div>
 
                     <div id="pedidoMenuLoading" class="menu-loading" style="display: none;">
@@ -594,7 +595,12 @@
             const searchInput = document.getElementById("pedidoSearchInput");
             const sortableHeaders = document.querySelectorAll("#tomar-pedido th.sortable");
 
+            if (categorySelect && categorySelect.dataset.initialized === "true") {
+                return;
+            }
+
             if (categorySelect) {
+                categorySelect.dataset.initialized = "true";
                 categorySelect.addEventListener("change", (event) => {
                     pedidoMenuState.filter.categoria_id = event.target.value;
                     loadPedidoMenu();
@@ -625,6 +631,24 @@
 
                     loadPedidoMenu();
                 });
+            });
+        }
+
+        function setupPedidoRefreshButton() {
+            const refreshButton = document.getElementById('pedidoRefreshButton');
+            if (!refreshButton || refreshButton.dataset.initialized === 'true') return;
+
+            refreshButton.dataset.initialized = 'true';
+            refreshButton.addEventListener('click', async () => {
+                refreshButton.disabled = true;
+                refreshButton.classList.add('loading');
+
+                try {
+                    await loadPedidoMenu();
+                } finally {
+                    refreshButton.disabled = false;
+                    refreshButton.classList.remove('loading');
+                }
             });
         }
 
@@ -725,8 +749,10 @@
             if (selectedView) {
                 selectedView.style.display = 'block';
                 
-                // Si es la vista de tomar pedido, cargar el menú
+                // Si es la vista de tomar pedido, cargar el menú y activar controles
                 if (viewId === 'tomar-pedido') {
+                    attachPedidoMenuControls();
+                    setupPedidoRefreshButton();
                     loadPedidoMenu();
                 }
             }
