@@ -69,45 +69,18 @@
                 <h1>Tomar Pedido Nuevo</h1>
                 
                 <!-- SELECTOR DE TIPO DE PEDIDO -->
-                <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 20px;">
-                    <h3 style="margin-top: 0; margin-bottom: 15px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Tipo de Pedido</h3>
-                    <div style="display: flex; gap: 15px;">
-                        <button class="pedido-type-btn active" data-type="salon" style="flex: 1; padding: 15px; border: 2px solid #7a1d1d; background: #7a1d1d; color: white; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; font-size: 16px;">
-                            <i class="fas fa-chair" style="margin-right: 8px;"></i> En Salón
+                <div class="pedido-type-card">
+                    <h3>Tipo de Pedido</h3>
+                    <div class="tipo-pedido-selector">
+                        <button class="pedido-type-btn active" data-type="salon">
+                            <i class="fas fa-chair"></i>
+                            En Salón
                         </button>
-                        <button class="pedido-type-btn" data-type="llevar" style="flex: 1; padding: 15px; border: 2px solid #ddd; background: white; color: #333; border-radius: 6px; cursor: pointer; font-weight: 500; transition: all 0.3s ease; font-size: 16px;">
-                            <i class="fas fa-bag-shopping" style="margin-right: 8px;"></i> Para Llevar
+                        <button class="pedido-type-btn" data-type="llevar">
+                            <i class="fas fa-bag-shopping"></i>
+                            Para Llevar
                         </button>
                     </div>
-                </div>
-
-                <div style="max-width: 600px;">
-                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                        <div style="flex: 1;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Número de Mesa</label>
-                            <input type="number" id="mesa_num" placeholder="Ej. 10" style="width: 100%; box-sizing: border-box;">
-                        </div>
-                    </div>
-                    
-                    <h3 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seleccionar Platillos</h3>
-                    
-                    <div id="lista-platillos-pedido">
-                        <!-- Ejemplo de items a agregar -->
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <select style="flex: 2;">
-                                <option value="">Seleccione un platillo...</option>
-                                <option value="1">Pupusas Revueltas</option>
-                                <option value="2">Pupusas de Queso</option>
-                                <option value="3">Sopa de Gallina</option>
-                            </select>
-                            <input type="number" placeholder="Cant." min="1" value="1" style="flex: 1;">
-                            <button class="btn-eliminar"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>
-                    
-                    <button class="btn-agregar" style="margin-top: 10px; margin-bottom: 20px;"><i class="fa-solid fa-plus"></i> Añadir otro platillo</button>
-                    
-                    <button style="width: 100%; padding: 15px; font-size: 16px;">Enviar Pedido a Cocina</button>
                 </div>
             </div>
 
@@ -221,116 +194,14 @@
     <script src="../js/mesas_admin.js"></script>
     
     <script>
-        // Variable para controlar si ya se agregaron platillos
-        let hasProducts = false;
-        
-        // Función para actualizar el estado del selector de tipo de pedido
-        function updateOrderTypeSelector() {
-            const buttons = document.querySelectorAll('.pedido-type-btn');
-            
-            if (hasProducts) {
-                // Bloquear selector cuando hay productos
-                buttons.forEach(btn => {
-                    btn.disabled = true;
-                    btn.style.opacity = '0.6';
-                    btn.style.cursor = 'not-allowed';
-                    btn.style.pointerEvents = 'none';
-                });
-                
-                // Agregar indicador visual de bloqueo
-                const selectorContainer = document.querySelector('.pedido-type-btn').parentElement.parentElement;
-                if (!selectorContainer.querySelector('.blocked-indicator')) {
-                    const indicator = document.createElement('div');
-                    indicator.className = 'blocked-indicator';
-                    indicator.style.cssText = 'font-size: 12px; color: #888; margin-top: 8px; font-style: italic;';
-                    indicator.textContent = 'No se puede cambiar el tipo de pedido después de agregar platillos';
-                    selectorContainer.appendChild(indicator);
-                }
-            } else {
-                // Habilitar selector cuando no hay productos
-                buttons.forEach(btn => {
-                    btn.disabled = false;
-                    btn.style.opacity = '1';
-                    btn.style.cursor = 'pointer';
-                    btn.style.pointerEvents = 'auto';
-                });
-                
-                // Remover indicador de bloqueo si existe
-                const indicator = document.querySelector('.blocked-indicator');
-                if (indicator) {
-                    indicator.remove();
-                }
-            }
-        }
-        
         // Selector de tipo de pedido - UI interactiva
         document.querySelectorAll('.pedido-type-btn').forEach(button => {
             button.addEventListener('click', function() {
-                // Solo permitir cambio si no hay productos agregados
-                if (hasProducts) {
-                    return; // Bloquear cambio
-                }
-                
-                // Remover clase active de todos los botones
                 document.querySelectorAll('.pedido-type-btn').forEach(btn => {
                     btn.classList.remove('active');
-                    btn.style.background = 'white';
-                    btn.style.color = '#333';
-                    btn.style.borderColor = '#ddd';
                 });
-                
-                // Agregar clase active al botón clickeado
                 this.classList.add('active');
-                this.style.background = '#7a1d1d';
-                this.style.color = 'white';
-                this.style.borderColor = '#7a1d1d';
             });
-        });
-        
-        // Función para agregar platillo (lógica básica)
-        function addPlatillo() {
-            const listaPlatillos = document.getElementById('lista-platillos-pedido');
-            const newItem = document.createElement('div');
-            newItem.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 10px;';
-            newItem.innerHTML = `
-                <select style="flex: 2;">
-                    <option value="">Seleccione un platillo...</option>
-                    <option value="1">Pupusas Revueltas</option>
-                    <option value="2">Pupusas de Queso</option>
-                    <option value="3">Sopa de Gallina</option>
-                </select>
-                <input type="number" placeholder="Cant." min="1" value="1" style="flex: 1;">
-                <button class="btn-eliminar" onclick="removePlatillo(this)"><i class="fa-solid fa-trash"></i></button>
-            `;
-            
-            listaPlatillos.appendChild(newItem);
-            
-            // Marcar que ya hay productos agregados
-            hasProducts = true;
-            updateOrderTypeSelector();
-        }
-        
-        // Función para remover platillo
-        function removePlatillo(button) {
-            button.parentElement.remove();
-            
-            // Verificar si aún quedan platillos
-            const remainingItems = document.querySelectorAll('#lista-platillos-pedido > div');
-            if (remainingItems.length === 1) { // Solo queda el item inicial
-                hasProducts = false;
-                updateOrderTypeSelector();
-            }
-        }
-        
-        // Event listener para el botón "Añadir otro platillo"
-        document.addEventListener('DOMContentLoaded', function() {
-            const addButton = document.querySelector('.btn-agregar');
-            if (addButton) {
-                addButton.addEventListener('click', addPlatillo);
-            }
-            
-            // Inicializar estado del selector
-            updateOrderTypeSelector();
         });
     </script>
     
