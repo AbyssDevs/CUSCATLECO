@@ -1,55 +1,70 @@
-# CUSCATLECO
-Credenciales
-admin@saborcuscatleco.com
-Contraseña: 123
+# 📌 CUSCATLECO
 
-## API Endpoints
-
-### Mesas
-
-- **POST /api/mesas** - Crear una mesa individual
-  - Body: `{ "mesa_numero": 1, "mesa_capacidad": 4, "mesa_estado": "Disponible" }`
-
-- **POST /api/mesas/bulk** - Crear múltiples mesas (máximo 50)
-  - Body: `{ "mesas": [{ "mesa_numero": 1, "mesa_capacidad": 4 }, { "mesa_numero": 2, "mesa_capacidad": 2 }] }`
-  - El estado por defecto es "Disponible" si no se especifica.
+Sistema web para la gestión de pedidos en restaurante, que permite administrar órdenes, estados y usuarios (mesero y cocina).
 
 ---
 
-## Requisitos
+## 🚀 Instalación
 
-Antes de ejecutar el proyecto necesitas tener instalado:
-
-- Node.js
-- Git
-- Mysql
+### 1. Clonar repositorio
+git clone https://github.com/AbyssDevs/CUSCATLECO.git  
+cd CUSCATLECO  
 
 ---
 
-## Instalación
-
-1. Clonar el repositorio:
-
-git clone  https://github.com/AbyssDevs/CUSCATLECO.git
-
-2. Entrar a la carpeta del proyecto:
-
-cd public
-
-3. Instalar dependencias:
-
-npm install
+### 2. Instalar dependencias
+npm install  
 
 ---
 
-## Ejecución del proyecto
+### 3. Instalar dependencias adicionales necesarias
+npm install bcrypt multer  
 
-Para iniciar el proyecto ejecuta:
+Estas librerías son necesarias para el funcionamiento del sistema:
 
-npm start
+- bcrypt → Encriptación de contraseñas  
+- multer → Manejo de subida de archivos (ej: imágenes)
 
-Luego abre en el navegador:
+---
 
-http://localhost:3000
+## ⚙️ Configuración de la base de datos
+
+### IMPORTANTE  
+Debes configurar tu propia contraseña de MySQL.
+
+---
+
+### 1. Crear base de datos
+CREATE DATABASE cuscatleco;
+
+---
+
+### 2. Importar el script SQL  
+Busca el archivo `.sql` dentro del proyecto e impórtalo en MySQL Workbench o phpMyAdmin.
+
+---
+
+### 3. Configurar conexión  
+
+Ubica el archivo donde se conecta la base de datos (db.js) y cambia:
+
+  host: "localhost",
+  user: "root",
+  password: "TU_PASSWORD",
+  database: "cuscatleco", 
+
+Reemplaza `TU_PASSWORD` por tu contraseña real de MySQL.
+
+---
+
+## ▶️ Ejecución del proyecto
+
+npm run dev  
+
+Si no funciona:
+
+node server/server.js  
+
+---
 
 ---
