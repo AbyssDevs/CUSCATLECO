@@ -10,7 +10,8 @@ import {
     modificarCantidadPlatillo,
     obtenerPedidosActivosMesero,
     cancelarPedido,
-    obtenerPedidosPendientesCocina
+    obtenerPedidosPendientesCocina,
+    cambiarEstadoPedidoCocina
 
 } from '../controllers/pedidos.controller.js';
 
@@ -35,5 +36,6 @@ router.patch("/:id/cancelar",requirePermission("crear_pedido"), cancelarPedido);
 
 router.get("/cocina/pendientes",requirePermission("ver_pedidos"), obtenerPedidosPendientesCocina);
 
+router.patch("/:id/cocina/estado",requirePermission("ver_pedidos"), cambiarEstadoPedidoCocina);
 
 export default router;
