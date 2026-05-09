@@ -84,17 +84,25 @@ CREATE TABLE mesas (
     id_mesa INT PRIMARY KEY AUTO_INCREMENT,
     mesa_numero INT NOT NULL UNIQUE,
     mesa_capacidad INT NOT NULL,
-    mesa_ubicacion VARCHAR(45) DEFAULT NULL,
+    mesa_ubicacion VARCHAR(45),
     mesa_estado ENUM(
         'Disponible',
         'Ocupada',
         'Reservada',
-        'Limpieza'
+        'Limpieza',
+        'Mantenimiento'
     ) DEFAULT 'Disponible',
+
     mesa_creado_en DATETIME DEFAULT CURRENT_TIMESTAMP,
+
     mesa_actualizada_por INT DEFAULT NULL,
     mesa_actualizada_en DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (mesa_actualizada_por) REFERENCES usuarios (id_usuario)
+
+    CONSTRAINT fk_mesa_usuario
+        FOREIGN KEY (mesa_actualizada_por)
+        REFERENCES usuarios(id_usuario)
+        ON UPDATE CASCADE
+        ON DELETE SET NULL
 );
 
 -- ============================================================
@@ -150,7 +158,7 @@ CREATE TABLE pedidos (
     id_pedido INT PRIMARY KEY AUTO_INCREMENT,
     id_mesa INT NULL, -- NULL para pedidos "Para llevar"
     id_mesero INT NOT NULL,
-    id_cliente INT NOT NULL,
+    id_cliente INT NULL,
     pedido_estado ENUM(
         'Pendiente',
         'EnPreparacion',
@@ -249,8 +257,35 @@ CREATE TABLE notificaciones (
 );
 
 -- ============================================================
--- 9. DATOS INICIALES (SEED)
+-- 9. AUDITORIA Y TRAZABILIDAD
 -- ============================================================
+CREATE TABLE auditoria_log (
+    id_auditoria INT PRIMARY KEY AUTO_INCREMENT,
+    id_usuario INT NOT NULL,
+    usuario_nombre VARCHAR(100) NOT NULL,
+    usuario_rol VARCHAR(50) NOT NULL,
+    accion VARCHAR(50) NOT NULL,
+    modulo VARCHAR(50) NOT NULL,
+    entidad_id INT NULL,
+    descripcion TEXT,
+    datos_anteriores JSON NULL,
+    datos_nuevos JSON NULL,
+    fecha_hora DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (id_usuario) REFERENCES usuarios (id_usuario)
+);
+
+CREATE INDEX idx_auditoria_usuario ON auditoria_log (id_usuario);
+
+CREATE INDEX idx_auditoria_accion ON auditoria_log (accion);
+
+CREATE INDEX idx_auditoria_modulo ON auditoria_log (modulo);
+
+CREATE INDEX idx_auditoria_fecha ON auditoria_log (fecha_hora);
+
+CREATE INDEX idx_auditoria_entidad ON auditoria_log (modulo, entidad_id);
+
+-- . DATOS INICIALES (SEED)
+
 
 -- Roles del sistema
 INSERT INTO
@@ -346,7 +381,7 @@ VALUES (
     (
         'gestionar_mesas',
         'Mesas',
-        'CRUD Mesas'
+        'Crear y eliminar mesas'
     ),
     (
         'actualizar_estado_mesa',
@@ -354,7 +389,7 @@ VALUES (
         'Editar estado de la mesa'
     ),
     (
-        'ver_mesas',
+        'listar_mesas',
         'Mesas',
         'Ver mesas'
     ),
@@ -377,6 +412,11 @@ VALUES (
         'ver_cocina',
         'Cocina',
         'Ver el panel de cocina'
+    ),
+    (
+		'ver_auditoria',
+        'Registros',
+        'Ver los registros de auditoria'
     );
 
 -- Permisos por rol
@@ -396,11 +436,10 @@ VALUES (1, 1),
     (1, 11),
     (1, 12),
     (1, 13),
-    (1, 14),
     (1, 15),
-    (1, 16);
-
--- Mesero (id_rol=2)
+    (1, 16),
+    (1, 20);
+-- Mesero
 INSERT INTO
     rol_permiso (id_rol, id_permiso)
 VALUES (2, 1),
@@ -411,17 +450,16 @@ VALUES (2, 1),
     (2, 14),
     (2, 15),
     (2, 17);
-
--- Cajero (id_rol=3)
+-- Cajero
 INSERT INTO
     rol_permiso (id_rol, id_permiso)
 VALUES (3, 1),
+    (3, 4),
     (3, 7),
     (3, 9),
     (3, 12),
     (3, 18);
-
--- Cocina (id_rol=4)
+-- Cocina
 INSERT INTO
     rol_permiso (id_rol, id_permiso)
 VALUES (4, 1),
@@ -471,7 +509,7 @@ INSERT INTO
 VALUES (
         'Administrador',
         'admin@saborcuscatleco.com',
-        '123',
+        '$2b$10$nuQeszTNbPeM5RHe/UXDOO.pFLefLIcptEDvdvnkjp9N3cPPkeg72',
         '77777777'
     );
 
