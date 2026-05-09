@@ -383,7 +383,7 @@ function renderPedidoMenu(items) {
               <td class="descripcion-col">${truncateText(item.platillo_descripcion || "", 100)}</td>
               <td class="precio-col">${formatPrice(item.platillo_precio)}</td>
               <td class="accion-col">
-                ${disponible ? `<button class="btn-agregar-pedido" onclick="agregarPlatilloAlPedido(${item.id_platillo}, '${item.platillo_nombre.replace(/'/g, "\\'")}')"><i class="fa-solid fa-plus"></i> Agregar</button>` : '<span class="no-disponible">No disponible</span>'}
+                <button class="btn-agregar-pedido ${!disponible ? 'disabled' : ''}" ${!disponible ? 'disabled' : ''} onclick="${disponible ? `agregarPlatilloAlPedido(${item.id_platillo}, '${item.platillo_nombre.replace(/'/g, "\\'")}')` : ''}"><i class="fa-solid fa-plus"></i> Agregar</button>
               </td>
             </tr>
           `;
