@@ -466,3 +466,45 @@ tr:hover {
         font-size: 0.7rem;
     }
 }
+
+/* ESTILOS PARA BOTÓN AGREGAR EN PEDIDOS */
+.btn-agregar-pedido {
+    background: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.btn-agregar-pedido:hover {
+    background: #45a049;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(76, 175, 80, 0.3);
+}
+
+.btn-agregar-pedido:active {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(76, 175, 80, 0.3);
+}
+
+.btn-agregar-pedido i {
+    font-size: 0.8rem;
+}
+
+.no-disponible {
+    color: #999;
+    font-style: italic;
+    font-size: 0.9rem;
+}
+
+.accion-col {
+    text-align: center;
+    width: 120px;
+}

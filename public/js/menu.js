@@ -349,6 +349,50 @@ function attachMenuControls() {
   });
 }
 
+function renderPedidoMenu(items) {
+  menuState.items = items;
+  const tableBody = document.getElementById("pedidoMenuTableBody");
+
+  const filteredItems = [...items];
+
+  if (tableBody) {
+    if (filteredItems.length === 0) {
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="6" style="padding: 18px; text-align: center;">No hay platillos disponibles en este momento</td>
+        </tr>
+      `;
+    } else {
+      tableBody.innerHTML = filteredItems
+        .map((item) => {
+          const disponible = item.platillo_disponible === true || item.platillo_disponible === 1 || item.platillo_disponible === "1";
+          const actualizadoInfo = item.actualizado_por && item.fecha_actualizacion
+            ? `<span class="menu-item-meta">Actualizado por ${item.actualizado_por} el ${item.fecha_actualizacion}</span>`
+            : "";
+          return `
+            <tr>
+              <td><img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
+              <td>
+                <div style="display:flex; flex-direction:column; gap:6px;">
+                  <strong>${item.platillo_nombre || "Sin nombre"}</strong>
+                  ${actualizadoInfo}
+                  ${!disponible ? `<span class="menu-card-status">No disponible</span>` : ""}
+                </div>
+              </td>
+              <td class="categoria-col">${item.categoria_nombre || "-"}</td>
+              <td class="descripcion-col">${truncateText(item.platillo_descripcion || "", 100)}</td>
+              <td class="precio-col">${formatPrice(item.platillo_precio)}</td>
+              <td class="accion-col">
+                ${disponible ? `<button class="btn-agregar-pedido" onclick="agregarPlatilloAlPedido(${item.id_platillo}, '${item.platillo_nombre.replace(/'/g, "\\'")}')"><i class="fa-solid fa-plus"></i> Agregar</button>` : '<span class="no-disponible">No disponible</span>'}
+              </td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+  }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
 
