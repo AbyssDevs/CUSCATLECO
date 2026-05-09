@@ -349,32 +349,41 @@ function attachMenuControls() {
   });
 }
 
-function attachPedidoDeleteConfirmation() {
-  const containers = document.querySelectorAll("#lista-platillos-pedido");
-  containers.forEach((container) => {
-    container.addEventListener("click", async (event) => {
-      const button = event.target.closest(".btn-eliminar");
-      if (!button) return;
-      event.preventDefault();
-
-      const row = button.closest("div");
-      const select = row ? row.querySelector("select") : null;
-      const nombrePlatillo = select?.selectedOptions[0]?.textContent?.trim();
-      const nombreParaMostrar = nombrePlatillo && nombrePlatillo !== "Seleccione un platillo..." ? nombrePlatillo : "este platillo";
-
-      await confirmar(`¿Eliminar ${nombreParaMostrar} del pedido?`);
-    });
-  });
-}
-
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
 
   attachMenuControls();
-  attachPedidoDeleteConfirmation();
 
   const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
   if (menuSection && menuSection.style.display !== "none") {
     loadMenu();
   }
 });
+
+/**
+ * Deshabilita los botones de 'Eliminar' de los platillos en el pedido
+ * cuando el estado del pedido es diferente a 'Pendiente'.
+ * Esta función puede ser llamada cada vez que se cargue un pedido
+ * o cuando cambie su estado.
+ *
+ * @param {string} estadoPedido - El estado actual del pedido (ej: 'Pendiente', 'Preparando', etc.)
+ */
+function validarEstadoBotonesEliminarPlatillos(estadoPedido) {
+  const container = document.getElementById("lista-platillos-pedido");
+  if (!container) return;
+
+  const botonesEliminar = container.querySelectorAll(".btn-eliminar");
+  const esPendiente = !estadoPedido || estadoPedido.trim().toLowerCase() === "pendiente";
+
+  botonesEliminar.forEach((btn) => {
+    btn.disabled = !esPendiente;
+    
+    // Opcional: Agregar un tooltip nativo para indicar por qué está deshabilitado
+    if (!esPendiente) {
+      btn.title = "No se puede eliminar porque el pedido ya no está Pendiente";
+    } else {
+      btn.removeAttribute("title");
+    }
+  });
+}
+
