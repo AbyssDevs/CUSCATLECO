@@ -521,8 +521,50 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
 
 };
 
+// Marcar pedido como entregado
+export const marcarPedidoEntregado = async (id_pedido, userId) => {
+
+  const [rows] = await db.query(`
+    SELECT pedido_estado, id_mesa
+    FROM pedidos
+    WHERE id_pedido = ? AND id_mesero = ?
+  `, [id_pedido, userId]);
+
+  if (rows.length === 0) {
+    throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+  }
+
+  const pedido = rows[0];
+
+  // VALIDACIÓN CLAVE
+  if (pedido.pedido_estado !== "Listo") {
+    throw Object.assign(
+      new Error("Solo pedidos en estado 'Listo' pueden entregarse"),
+      { status: 400 }
+    );
+  }
+
+  // CAMBIO DE ESTADO
+  await db.query(`
+    UPDATE pedidos
+    SET 
+      pedido_estado = 'Entregado',
+      pedido_entregado_en = NOW()
+    WHERE id_pedido = ?
+  `, [id_pedido]);
+
+  // liberar mesa si aplica
+  if (pedido.id_mesa) {
+    await cambiarEstadoMesa(pedido.id_mesa, "Disponible", userId);
+  }
+
+  return {
+    message: "Pedido entregado correctamente"
+  };
+};
 
 
+// Obtener detalle completo de un pedido
 export const obtenerDetallePedido = async (id_pedido) => {
 
   // Datos generales del pedido

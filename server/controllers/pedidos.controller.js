@@ -129,6 +129,28 @@ export const obtenerPedidosActivosMesero = async (req, res) => {
 
 
 
+export const marcarPedidoEntregado = async (req, res) => {
+  try {
+
+    const { id_pedido } = req.params;
+
+    const data = await pedidosService.marcarPedidoEntregado(
+      id_pedido,
+      req.user.id
+    );
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
+
+
+
 export const obtenerDetallePedido = async (req, res) => {
   try {
 

@@ -8,6 +8,7 @@ import {
     eliminarPlatilloPedido,
     modificarCantidadPlatillo,
     obtenerPedidosActivosMesero,
+    marcarPedidoEntregado,
     obtenerDetallePedido,
     cancelarPedido
 
@@ -31,6 +32,8 @@ router.put("/platillos/:id_detalle", requirePermission("crear_pedido"), modifica
 router.get("/activos",requirePermission("crear_pedido"), obtenerPedidosActivosMesero);
 
 router.patch("/:id/cancelar",requirePermission("crear_pedido"), cancelarPedido);
+
+router.put('/:id_pedido/entregar',auditoriaMiddleware,requirePermission('crear_pedido'),marcarPedidoEntregado);
 
 router.get('/:id_pedido',requirePermission('crear_pedido'),obtenerDetallePedido);
 
