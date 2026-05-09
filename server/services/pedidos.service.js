@@ -4,6 +4,10 @@ import { cambiarEstadoMesa } from "./mesas.service.js";
  
 // Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
 export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
+    
+    if (!items || !Array.isArray(items) || items.length === 0) {
+      throw new Error("El pedido debe contener al menos un platillo");
+    }
 
     let result;
 

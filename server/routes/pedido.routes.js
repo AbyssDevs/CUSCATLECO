@@ -12,6 +12,6 @@ import {
 } from "../middlewares/auth.middleware.js";
 
 router.post('/iniciar', auditoriaMiddleware, requirePermission('crear_pedido'), iniciarPedido);
-router.post('/crear', auditoriaMiddleware, requirePermission('crear_pedido'), crearPedido);
+router.post('/', auditoriaMiddleware, requirePermission('crear_pedido'), crearPedido);
 
 export default router;
