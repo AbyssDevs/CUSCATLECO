@@ -1,6 +1,6 @@
 # 📌 CUSCATLECO
 
-## Sistema web para la gestión de pedidos en restaurante, que permite administrar órdenes, estados y usuarios (mesero y cocina).
+## Sistema POS para Restaurante Sabor Cuscatleco | Gestión de pedidos, roles de usuario (Administrador, Mesero, Cajero, Cocina) y facturación electrónica. Desarrollado con Scrum | UNIVO 2026.
 
 ---
 
