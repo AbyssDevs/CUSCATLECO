@@ -76,25 +76,63 @@
                         </div>
                     </div>
                     
+                    <!-- Selector de tipo de pedido -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 8px; font-weight: 500;">Tipo de Pedido</label>
+                        <div class="tipo-pedido-selector" style="display: flex; gap: 10px;">
+                            <button type="button" class="tipo-pedido-btn active" data-tipo="salon" style="flex: 1; padding: 12px; border: 2px solid #4CAF50; background: #4CAF50; color: white; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                <i class="fa-solid fa-utensils" style="margin-right: 8px;"></i>En Salón
+                            </button>
+                            <button type="button" class="tipo-pedido-btn" data-tipo="llevar" style="flex: 1; padding: 12px; border: 2px solid #ddd; background: white; color: #666; border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.2s;">
+                                <i class="fa-solid fa-shopping-bag" style="margin-right: 8px;"></i>Para Llevar
+                            </button>
+                        </div>
+                    </div>
+                    
                     <h3 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seleccionar Platillos</h3>
                     
+                    <!-- Controles del menú integrado -->
+                    <div class="menu-page-header" style="margin-bottom: 15px;">
+                        <select id="pedidoCategoryFilter">
+                            <option value="">Todas las categorías</option>
+                        </select>
+                        <input id="pedidoSearchInput" type="text" placeholder="Buscar platillo..." autocomplete="off">
+                    </div>
+
+                    <div id="pedidoMenuLoading" class="menu-loading" style="display: none;">
+                        <span class="spinner"></span>
+                        <span>Cargando menú...</span>
+                    </div>
+                    <div id="pedidoMenuEmpty" class="menu-empty" style="display: none;"></div>
+
+                    <!-- Tabla del menú integrada -->
+                    <div style="max-height: 400px; overflow-y: auto; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 15px;">
+                        <table class="menu-table" style="margin: 0; border: none;">
+                            <thead style="position: sticky; top: 0; background: white; z-index: 1;">
+                                <tr>
+                                    <th>Imagen</th>
+                                    <th data-sort="nombre" class="sortable">Nombre <span class="sort-indicator"></span></th>
+                                    <th>Categoría</th>
+                                    <th>Descripción</th>
+                                    <th data-sort="precio" class="sortable">Precio <span class="sort-indicator"></span></th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pedidoMenuTableBody"></tbody>
+                        </table>
+                    </div>
+                    
+                    <h4 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 8px; font-size: 16px;">Platillos en el Pedido</h4>
+                    
                     <div id="lista-platillos-pedido">
-                        <!-- Ejemplo de items a agregar -->
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <select style="flex: 2;">
-                                <option value="">Seleccione un platillo...</option>
-                                <option value="1">Pupusas Revueltas</option>
-                                <option value="2">Pupusas de Queso</option>
-                                <option value="3">Sopa de Gallina</option>
-                            </select>
-                            <input type="number" placeholder="Cant." min="1" value="1" style="flex: 1;">
-                            <button class="btn-eliminar"><i class="fa-solid fa-trash"></i></button>
-                        </div>
+                        <!-- Los platillos agregados aparecerán aquí -->
                     </div>
                     
                     <button class="btn-agregar" style="margin-top: 10px; margin-bottom: 20px;"><i class="fa-solid fa-plus"></i> Añadir otro platillo</button>
                     
-                    <button style="width: 100%; padding: 15px; font-size: 16px;">Enviar Pedido a Cocina</button>
+                    <button style="width: 100%; padding: 15px; font-size: 16px; background: #4CAF50; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 500;" onclick="enviarPedidoACocina()">
+                        <i class="fa-solid fa-paper-plane" style="margin-right: 8px;"></i>Enviar Pedido a Cocina
+                    </button>
                 </div>
             </div>
 
@@ -207,6 +245,583 @@
     <script src="../js/menu.js"></script>
     <script src="../js/mesas_admin.js"></script>
     
-</body>
+    <script>
+        // Estado del pedido
+        let tipoPedido = 'salon'; // 'salon' o 'llevar'
+        let pedidoBloqueado = false;
 
-</html>
+        // Función para manejar el selector de tipo de pedido
+        function setupTipoPedidoSelector() {
+            const botones = document.querySelectorAll('.tipo-pedido-btn');
+            
+            botones.forEach(boton => {
+                boton.addEventListener('click', function() {
+                    if (pedidoBloqueado) {
+                        showAlert('No se puede cambiar el tipo de pedido después de agregar platillos', 'warning');
+                        return;
+                    }
+                    
+                    // Remover clase active de todos los botones
+                    botones.forEach(b => {
+                        b.classList.remove('active');
+                        b.style.borderColor = '#ddd';
+                        b.style.background = 'white';
+                        b.style.color = '#666';
+                    });
+                    
+                    // Agregar clase active al botón seleccionado
+                    this.classList.add('active');
+                    this.style.borderColor = '#4CAF50';
+                    this.style.background = '#4CAF50';
+                    this.style.color = 'white';
+                    
+                    // Actualizar tipo de pedido
+                    tipoPedido = this.dataset.tipo;
+                    
+                    // Mostrar/ocultar campo de mesa según el tipo
+                    const mesaInput = document.getElementById('mesa_num');
+                    const mesaContainer = mesaInput.parentElement;
+                    
+                    if (tipoPedido === 'llevar') {
+                        mesaContainer.style.display = 'none';
+                        mesaInput.value = '';
+                    } else {
+                        mesaContainer.style.display = 'block';
+                    }
+                });
+            });
+        }
+
+        // Función para bloquear cambios después de agregar platillos
+        function bloquearTipoPedido() {
+            pedidoBloqueado = true;
+            const botones = document.querySelectorAll('.tipo-pedido-btn');
+            botones.forEach(boton => {
+                if (!boton.classList.contains('active')) {
+                    boton.style.opacity = '0.5';
+                    boton.style.cursor = 'not-allowed';
+                }
+            });
+        }
+
+        // Modificar la función agregarPlatilloAlPedido para bloquear el selector
+        function agregarPlatilloAlPedido(idPlatillo, nombrePlatillo) {
+            const lista = document.getElementById('lista-platillos-pedido');
+            if (!lista) return;
+
+            // Bloquear el selector de tipo si es el primer platillo
+            if (!pedidoBloqueado) {
+                bloquearTipoPedido();
+            }
+
+            // Crear nuevo item de pedido
+            const pedidoItem = document.createElement('div');
+            pedidoItem.className = 'pedido-item';
+            pedidoItem.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 6px;';
+            pedidoItem.innerHTML = `
+                <span style="flex: 2; font-weight: 500;">${nombrePlatillo}</span>
+                <div class="qty-control" style="display: flex; align-items: center; gap: 5px; width: 130px;">
+                    <button type="button" class="qty-btn qty-decrease" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">-</button>
+                    <input type="number" class="qty-input" value="1" min="1" max="99" style="width: 52px; text-align: center; border: 1px solid #ddd; border-radius: 6px; padding: 8px 0; font-size: 14px; background: #fafafa;">
+                    <button type="button" class="qty-btn qty-increase" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">+</button>
+                </div>
+                <button type="button" class="btn-eliminar" style="min-width: 42px; height: 38px; border-radius: 6px; background: #fff; border: 1px solid #ddd; color: #333; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
+            `;
+
+            // Configurar controles de cantidad
+            const qtyControl = pedidoItem.querySelector('.qty-control');
+            setupQtyControl(qtyControl);
+
+            // Configurar botón de eliminar
+            const removeButton = pedidoItem.querySelector('.btn-eliminar');
+            removeButton.addEventListener('click', function() {
+                pedidoItem.remove();
+                
+                // Si no quedan platillos, desbloquear el selector
+                const itemsRestantes = lista.querySelectorAll('.pedido-item');
+                if (itemsRestantes.length === 0) {
+                    desbloquearTipoPedido();
+                }
+            });
+
+            // Agregar a la lista
+            lista.appendChild(pedidoItem);
+
+            // Mostrar feedback visual
+            showAddFeedback();
+        }
+
+        // Función para desbloquear el selector de tipo
+        function desbloquearTipoPedido() {
+            pedidoBloqueado = false;
+            const botones = document.querySelectorAll('.tipo-pedido-btn');
+            botones.forEach(boton => {
+                boton.style.opacity = '1';
+                boton.style.cursor = 'pointer';
+            });
+        }
+
+        // Función para enviar pedido a cocina
+        async function enviarPedidoACocina() {
+            const lista = document.getElementById('lista-platillos-pedido');
+            const items = lista.querySelectorAll('.pedido-item');
+            
+            if (items.length === 0) {
+                showAlert('Debe agregar al menos un platillo al pedido', 'warning');
+                return;
+            }
+
+            // Validar mesa para pedidos en salón
+            const mesaInput = document.getElementById('mesa_num');
+            if (tipoPedido === 'salon' && !mesaInput.value.trim()) {
+                showAlert('Debe especificar el número de mesa para pedidos en salón', 'warning');
+                mesaInput.focus();
+                return;
+            }
+
+            // Recopilar datos del pedido
+            const platillos = [];
+            items.forEach(item => {
+                const nombre = item.querySelector('span').textContent;
+                const cantidad = parseInt(item.querySelector('.qty-input').value) || 1;
+                platillos.push({ nombre, cantidad });
+            });
+
+            const pedidoData = {
+                tipo: tipoPedido,
+                mesa: tipoPedido === 'salon' ? parseInt(mesaInput.value) : null,
+                platillos: platillos
+            };
+
+            try {
+                const response = await fetch('/api/pedidos', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(pedidoData)
+                });
+
+                if (response.ok) {
+                    showAlert('Pedido enviado a cocina exitosamente', 'success');
+                    
+                    // Limpiar formulario
+                    lista.innerHTML = '';
+                    mesaInput.value = '';
+                    desbloquearTipoPedido();
+                    
+                    // Resetear selector a "En Salón"
+                    const botones = document.querySelectorAll('.tipo-pedido-btn');
+                    botones.forEach(b => {
+                        b.classList.remove('active');
+                        b.style.borderColor = '#ddd';
+                        b.style.background = 'white';
+                        b.style.color = '#666';
+                    });
+                    const salonBtn = document.querySelector('.tipo-pedido-btn[data-tipo="salon"]');
+                    if (salonBtn) {
+                        salonBtn.classList.add('active');
+                        salonBtn.style.borderColor = '#4CAF50';
+                        salonBtn.style.background = '#4CAF50';
+                        salonBtn.style.color = 'white';
+                    }
+                    tipoPedido = 'salon';
+                    
+                } else {
+                    const error = await response.json();
+                    showAlert(error.message || 'Error al enviar el pedido', 'error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                showAlert('Error de conexión al enviar el pedido', 'error');
+            }
+        }
+
+        // Funciones adaptadas para el menú de pedidos
+        function setPedidoMenuLoading(show) {
+            const loading = document.getElementById("pedidoMenuLoading");
+            if (loading) loading.style.display = show ? "flex" : "none";
+        }
+
+        function setPedidoMenuEmpty(message) {
+            const empty = document.getElementById("pedidoMenuEmpty");
+            if (!empty) return;
+            empty.textContent = message;
+            empty.style.display = message ? "flex" : "none";
+        }
+
+        function renderPedidoMenu(items) {
+            pedidoMenuState.items = items;
+            const tableBody = document.getElementById("pedidoMenuTableBody");
+
+            if (!tableBody) return;
+
+            const filteredItems = [...items];
+
+            if (filteredItems.length === 0) {
+                tableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" style="padding: 18px; text-align: center;">No hay platillos disponibles en este momento</td>
+                    </tr>
+                `;
+            } else {
+                tableBody.innerHTML = filteredItems
+                    .map((item) => {
+                        const disponible = item.platillo_disponible === true || item.platillo_disponible === 1 || item.platillo_disponible === "1";
+                        return `
+                            <tr>
+                                <td><img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
+                                <td>
+                                    <div style="display:flex; flex-direction:column; gap:6px;">
+                                        <strong>${item.platillo_nombre || "Sin nombre"}</strong>
+                                        ${!disponible ? `<span class="menu-card-status">No disponible</span>` : ""}
+                                    </div>
+                                </td>
+                                <td class="categoria-col">${item.categoria_nombre || "-"}</td>
+                                <td class="descripcion-col">${truncateText(item.platillo_descripcion || "", 100)}</td>
+                                <td class="precio-col">${formatPrice(item.platillo_precio)}</td>
+                                <td>
+                                    <button class="btn-agregar-pedido" onclick="agregarPlatilloAlPedido(${item.id_platillo}, '${(item.platillo_nombre || '').replace(/'/g, "\\'")}')" ${!disponible ? 'disabled' : ''}>
+                                        <i class="fa-solid fa-plus"></i> Agregar
+                                    </button>
+                                </td>
+                            </tr>
+                        `;
+                    })
+                    .join("");
+            }
+
+            if (filteredItems.length === 0) {
+                setPedidoMenuEmpty("No hay platillos disponibles en este momento");
+            } else {
+                setPedidoMenuEmpty("");
+            }
+
+            updatePedidoSortHeaders();
+            renderPedidoCategoryFilter(pedidoMenuState.items);
+        }
+
+        async function loadPedidoMenu() {
+            setPedidoMenuLoading(true);
+            setPedidoMenuEmpty("");
+            updatePedidoSortHeaders();
+            
+            try {
+                // Reutilizar las categorías del menú principal si ya están cargadas
+                if (menuState.categories.length > 0) {
+                    pedidoMenuState.categories = menuState.categories;
+                } else {
+                    await ensureMenuCategories();
+                    pedidoMenuState.categories = menuState.categories;
+                }
+
+                const query = [];
+                if (pedidoMenuState.filter.categoria_id) {
+                    query.push(`categoria_id=${encodeURIComponent(pedidoMenuState.filter.categoria_id)}`);
+                }
+                if (pedidoMenuState.filter.nombre) {
+                    query.push(`nombre=${encodeURIComponent(pedidoMenuState.filter.nombre.trim())}`);
+                }
+                query.push(`orderBy=${encodeURIComponent(pedidoMenuState.filter.orderBy)}`);
+                query.push(`orderDir=${encodeURIComponent(pedidoMenuState.filter.orderDir)}`);
+
+                const response = await fetch(`/api/platillos?${query.join("&")}`);
+                if (!response.ok) {
+                    throw new Error("Error cargando el menú");
+                }
+                const items = await response.json();
+                renderPedidoMenu(items);
+            } catch (error) {
+                console.error("Error cargando menú de pedidos:", error);
+                setPedidoMenuEmpty("No hay platillos disponibles en este momento");
+                const tableBody = document.getElementById("pedidoMenuTableBody");
+                if (tableBody) tableBody.innerHTML = "";
+            } finally {
+                setPedidoMenuLoading(false);
+            }
+        }
+
+        function renderPedidoCategoryFilter(items) {
+            const select = document.getElementById("pedidoCategoryFilter");
+            if (!select) return;
+
+            const sourceItems = pedidoMenuState.categories.length > 0 ? pedidoMenuState.categories : items;
+            const selectedCategory = pedidoMenuState.filter.categoria_id;
+            const categories = Array.from(
+                new Map(
+                    sourceItems
+                        .filter((item) => item.id_categoria)
+                        .map((item) => [item.id_categoria, item.categoria_nombre || "Sin categoría"])
+                )
+            )
+                .map(([id, nombre]) => ({ id, nombre }))
+                .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
+
+            select.innerHTML = `
+                <option value="">Todas las categorías</option>
+                ${categories
+                    .map(
+                        (category) => `
+                            <option value="${category.id}" ${selectedCategory === String(category.id) ? "selected" : ""}>
+                                ${category.nombre}
+                            </option>
+                        `
+                    )
+                    .join("")}
+            `;
+
+            if (selectedCategory) {
+                select.value = selectedCategory;
+            }
+        }
+
+        function updatePedidoSortHeaders() {
+            const sortableHeaders = document.querySelectorAll("#tomar-pedido th.sortable");
+            sortableHeaders.forEach((header) => {
+                const indicator = header.querySelector(".sort-indicator");
+                if (!indicator) return;
+
+                if (header.dataset.sort === pedidoMenuState.filter.orderBy) {
+                    indicator.textContent = pedidoMenuState.filter.orderDir === "ASC" ? "▲" : "▼";
+                } else {
+                    indicator.textContent = "";
+                }
+            });
+        }
+
+        function attachPedidoMenuControls() {
+            const categorySelect = document.getElementById("pedidoCategoryFilter");
+            const searchInput = document.getElementById("pedidoSearchInput");
+            const sortableHeaders = document.querySelectorAll("#tomar-pedido th.sortable");
+
+            if (categorySelect) {
+                categorySelect.addEventListener("change", (event) => {
+                    pedidoMenuState.filter.categoria_id = event.target.value;
+                    loadPedidoMenu();
+                });
+            }
+
+            if (searchInput) {
+                searchInput.addEventListener(
+                    "input",
+                    debounce((event) => {
+                        pedidoMenuState.filter.nombre = event.target.value;
+                        loadPedidoMenu();
+                    }, 250)
+                );
+            }
+
+            sortableHeaders.forEach((header) => {
+                header.addEventListener("click", () => {
+                    const field = header.dataset.sort;
+                    if (!field) return;
+
+                    if (pedidoMenuState.filter.orderBy === field) {
+                        pedidoMenuState.filter.orderDir = pedidoMenuState.filter.orderDir === "ASC" ? "DESC" : "ASC";
+                    } else {
+                        pedidoMenuState.filter.orderBy = field;
+                        pedidoMenuState.filter.orderDir = "ASC";
+                    }
+
+                    loadPedidoMenu();
+                });
+            });
+        }
+
+        // Función para agregar platillo al pedido desde el menú
+        function agregarPlatilloAlPedido(idPlatillo, nombrePlatillo) {
+            const lista = document.getElementById('lista-platillos-pedido');
+            if (!lista) return;
+
+            // Crear nuevo item de pedido
+            const pedidoItem = document.createElement('div');
+            pedidoItem.className = 'pedido-item';
+            pedidoItem.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 10px; padding: 10px; background: #f9f9f9; border-radius: 6px;';
+            pedidoItem.innerHTML = `
+                <span style="flex: 2; font-weight: 500;">${nombrePlatillo}</span>
+                <div class="qty-control" style="display: flex; align-items: center; gap: 5px; width: 130px;">
+                    <button type="button" class="qty-btn qty-decrease" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">-</button>
+                    <input type="number" class="qty-input" value="1" min="1" max="99" style="width: 52px; text-align: center; border: 1px solid #ddd; border-radius: 6px; padding: 8px 0; font-size: 14px; background: #fafafa;">
+                    <button type="button" class="qty-btn qty-increase" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">+</button>
+                </div>
+                <button type="button" class="btn-eliminar" style="min-width: 42px; height: 38px; border-radius: 6px; background: #fff; border: 1px solid #ddd; color: #333; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
+            `;
+
+            // Configurar controles de cantidad
+            const qtyControl = pedidoItem.querySelector('.qty-control');
+            setupQtyControl(qtyControl);
+
+            // Configurar botón de eliminar
+            const removeButton = pedidoItem.querySelector('.btn-eliminar');
+            removeButton.addEventListener('click', function() {
+                pedidoItem.remove();
+            });
+
+            // Agregar a la lista
+            lista.appendChild(pedidoItem);
+
+            // Mostrar feedback visual
+            showAddFeedback();
+        }
+
+        // Función para mostrar feedback visual al agregar platillo
+        function showAddFeedback() {
+            // Evitar múltiples mensajes si se hace clic rápidamente
+            if (document.querySelector('.add-feedback')) {
+                return;
+            }
+
+            const feedback = document.createElement('div');
+            feedback.className = 'add-feedback';
+            feedback.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: #4CAF50;
+                color: white;
+                padding: 12px 20px;
+                border-radius: 6px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                font-weight: 500;
+                font-size: 14px;
+                z-index: 1000;
+                opacity: 0;
+                transform: translateY(-10px);
+                transition: all 0.3s ease;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            `;
+            feedback.innerHTML = '<i class="fas fa-check"></i> Platillo agregado al pedido';
+
+            document.body.appendChild(feedback);
+
+            // Animación de entrada
+            setTimeout(() => {
+                feedback.style.opacity = '1';
+                feedback.style.transform = 'translateY(0)';
+            }, 10);
+
+            // Animación de salida y eliminación
+            setTimeout(() => {
+                feedback.style.opacity = '0';
+                feedback.style.transform = 'translateY(-10px)';
+                setTimeout(() => {
+                    if (feedback.parentNode) {
+                        feedback.parentNode.removeChild(feedback);
+                    }
+                }, 300);
+            }, 2500);
+        }
+
+        // Función para configurar controles de cantidad
+        function setupQtyControl(qtyControl) {
+            const decreaseBtn = qtyControl.querySelector('.qty-decrease');
+            const increaseBtn = qtyControl.querySelector('.qty-increase');
+            const input = qtyControl.querySelector('.qty-input');
+
+            if (!decreaseBtn || !increaseBtn || !input) return;
+
+            decreaseBtn.addEventListener('click', function() {
+                const currentValue = parseInt(input.value) || 1;
+                if (currentValue > 1) {
+                    input.value = currentValue - 1;
+                }
+            });
+
+            increaseBtn.addEventListener('click', function() {
+                const currentValue = parseInt(input.value) || 1;
+                if (currentValue < 99) {
+                    input.value = currentValue + 1;
+                }
+            });
+
+            input.addEventListener('input', function() {
+                let value = parseInt(this.value) || 1;
+                if (value < 1) value = 1;
+                if (value > 99) value = 99;
+                this.value = value;
+            });
+
+            input.addEventListener('blur', function() {
+                if (!this.value || parseInt(this.value) < 1) {
+                    this.value = 1;
+                }
+            });
+        }
+
+        // Función para mostrar vistas (reutilizada del sistema existente)
+        function mostrarViews(viewId) {
+            // Ocultar todas las vistas
+            const views = document.querySelectorAll('.contenido > div[id]');
+            views.forEach(view => view.style.display = 'none');
+
+            // Mostrar la vista seleccionada
+            const selectedView = document.getElementById(viewId);
+            if (selectedView) {
+                selectedView.style.display = 'block';
+                
+                // Si es la vista de tomar pedido, cargar el menú
+                if (viewId === 'tomar-pedido') {
+                    loadPedidoMenu();
+                }
+            }
+        }
+
+        // Función debounce para búsqueda
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Funciones auxiliares del menú (reutilizadas)
+        function truncateText(text, maxLength) {
+            if (text.length <= maxLength) return text;
+            return text.substring(0, maxLength) + "...";
+        }
+
+        function formatPrice(price) {
+            return new Intl.NumberFormat('es-SV', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2,
+            }).format(price || 0);
+        }
+
+        // Función para cargar usuario logueado (reutilizada)
+        function cargarUsuarioLogueado() {
+            const userName = localStorage.getItem('userName');
+            const userRole = localStorage.getItem('userRole');
+            
+            if (userName) {
+                document.getElementById('userName').textContent = userName;
+            }
+            if (userRole) {
+                document.getElementById('userRole').textContent = userRole;
+            }
+        }
+
+        // Función para cerrar sesión (reutilizada)
+        function cerrarSesion() {
+            localStorage.clear();
+            window.location.href = '/';
+        }
+
+        // Función para toggle del menú móvil (reutilizada)
+        function toggleMenu() {
+            const sidebar = document.getElementById('sidebar');
+            const backdrop = document.getElementById('menuBackdrop');
+            
+            if (sidebar && backdrop) {
+                sidebar.classList.toggle('active');
+                backdrop.classList.toggle('active');
+            }
+        }
+    </script>
