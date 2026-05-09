@@ -80,15 +80,19 @@
                     
                     <div id="lista-platillos-pedido">
                         <!-- Ejemplo de items a agregar -->
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+                        <div class="pedido-item" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
                             <select style="flex: 2;">
                                 <option value="">Seleccione un platillo...</option>
                                 <option value="1">Pupusas Revueltas</option>
                                 <option value="2">Pupusas de Queso</option>
                                 <option value="3">Sopa de Gallina</option>
                             </select>
-                            <input type="number" placeholder="Cant." min="1" value="1" style="flex: 1;">
-                            <button class="btn-eliminar"><i class="fa-solid fa-trash"></i></button>
+                            <div class="qty-control" style="display: flex; align-items: center; gap: 5px; width: 130px;">
+                                <button type="button" class="qty-btn qty-decrease" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">-</button>
+                                <input type="number" class="qty-input" value="1" min="1" max="99" readonly style="width: 52px; text-align: center; border: 1px solid #ddd; border-radius: 6px; padding: 8px 0; font-size: 14px; background: #fafafa;">
+                                <button type="button" class="qty-btn qty-increase" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">+</button>
+                            </div>
+                            <button type="button" class="btn-eliminar" style="min-width: 42px; height: 38px; border-radius: 6px; background: #fff; border: 1px solid #ddd; color: #333; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
                         </div>
                     </div>
                     
@@ -207,6 +211,99 @@
     <script src="../js/menu.js"></script>
     <script src="../js/mesas_admin.js"></script>
     
+    <script>
+        function clampQuantity(value) {
+            return Math.max(1, Math.min(99, value));
+        }
+
+        function updateQtyControl(control) {
+            const input = control.querySelector('.qty-input');
+            const decrease = control.querySelector('.qty-decrease');
+            const increase = control.querySelector('.qty-increase');
+            const value = Number(input.value) || 1;
+
+            decrease.disabled = value <= 1;
+            increase.disabled = value >= 99;
+
+            decrease.style.opacity = decrease.disabled ? '0.5' : '1';
+            increase.style.opacity = increase.disabled ? '0.5' : '1';
+            decrease.style.cursor = decrease.disabled ? 'not-allowed' : 'pointer';
+            increase.style.cursor = increase.disabled ? 'not-allowed' : 'pointer';
+        }
+
+        function setupQtyControl(control) {
+            if (!control) return;
+            updateQtyControl(control);
+
+            control.querySelectorAll('.qty-btn').forEach(button => {
+                button.addEventListener('click', function() {
+                    const input = control.querySelector('.qty-input');
+                    let value = Number(input.value) || 1;
+
+                    if (button.classList.contains('qty-increase')) {
+                        value += 1;
+                    } else {
+                        value -= 1;
+                    }
+
+                    input.value = clampQuantity(value);
+                    updateQtyControl(control);
+                });
+            });
+        }
+
+        function createPedidoItem() {
+            const item = document.createElement('div');
+            item.className = 'pedido-item';
+            item.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 10px;';
+            item.innerHTML = `
+                <select style="flex: 2;">
+                    <option value="">Seleccione un platillo...</option>
+                    <option value="1">Pupusas Revueltas</option>
+                    <option value="2">Pupusas de Queso</option>
+                    <option value="3">Sopa de Gallina</option>
+                </select>
+                <div class="qty-control" style="display: flex; align-items: center; gap: 5px; width: 130px;">
+                    <button type="button" class="qty-btn qty-decrease" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">-</button>
+                    <input type="number" class="qty-input" value="1" min="1" max="99" readonly style="width: 52px; text-align: center; border: 1px solid #ddd; border-radius: 6px; padding: 8px 0; font-size: 14px; background: #fafafa;">
+                    <button type="button" class="qty-btn qty-increase" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">+</button>
+                </div>
+                <button type="button" class="btn-eliminar" style="min-width: 42px; height: 38px; border-radius: 6px; background: #fff; border: 1px solid #ddd; color: #333; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
+            `;
+
+            const qtyControl = item.querySelector('.qty-control');
+            setupQtyControl(qtyControl);
+
+            const removeButton = item.querySelector('.btn-eliminar');
+            removeButton.addEventListener('click', function() {
+                item.remove();
+            });
+
+            return item;
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.qty-control').forEach(setupQtyControl);
+
+            const addButton = document.querySelector('.btn-agregar');
+            const lista = document.getElementById('lista-platillos-pedido');
+
+            if (addButton && lista) {
+                addButton.addEventListener('click', function(event) {
+                    event.preventDefault();
+                    const newItem = createPedidoItem();
+                    lista.appendChild(newItem);
+                });
+            }
+
+            document.querySelectorAll('.pedido-item .btn-eliminar').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const item = btn.closest('.pedido-item');
+                    if (item) item.remove();
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>
