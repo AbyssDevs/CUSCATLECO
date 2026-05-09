@@ -38,7 +38,8 @@ const crearPedido = async ({ id_mesa, tipo, userId }) => {
     return {
       id_pedido: result.insertId,
       pedido_estado: "Pendiente",
-      pedido_tipo: tipo
+      pedido_tipo: tipo,
+      mesa_estado: tipo === "Salon" ? "Ocupada" : null
     };
   }; 
 
