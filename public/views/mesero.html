@@ -64,80 +64,56 @@
             </div>
 
 
-  <!-- TOMAR PEDIDO -->
-<div id="tomar-pedido">
-    <h1>Tomar Pedido Nuevo</h1>
+            <!-- TOMAR PEDIDO -->
+            <div id="tomar-pedido">
+                <h1>Tomar Pedido Nuevo</h1>
+                
+                <!-- SELECTOR DE TIPO DE PEDIDO -->
+                <div class="pedido-type-card">
+                    <h3>Tipo de Pedido</h3>
+                    <div class="tipo-pedido-selector">
+                        <button class="pedido-type-btn active" data-type="salon">
+                            <i class="fas fa-chair"></i>
+                            En Salón
+                        </button>
+                        <button class="pedido-type-btn" data-type="llevar">
+                            <i class="fas fa-bag-shopping"></i>
+                            Para Llevar
+                        </button>
+                    </div>
+                </div>
 
-    <!-- SELECTOR DE TIPO DE PEDIDO -->
-    <div class="pedido-type-card">
-        <h3>Tipo de Pedido</h3>
+                <div class="pedido-type-card" id="mesa-container">
+                    <h3>Número de Mesa</h3>
+                    <select id="mesa-select" style="width: 100%;">
+                        <option value="">Seleccione una mesa...</option>
+                    </select>
+                </div>
 
-        <div class="tipo-pedido-selector">
-            <button class="pedido-type-btn active" data-type="salon">
-                <i class="fas fa-chair"></i>
-                En Salón
-            </button>
+                <div class="pedido-type-card">
+                    <h3>Seleccionar Platillos</h3>
+                    <div id="platillos-container">
+                        <!-- La primera fila se carga por defecto -->
+                        <div class="platillo-row" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                            <select class="platillo-select" style="flex: 3;">
+                                <option value="">Seleccione un platillo...</option>
+                            </select>
+                            <input type="number" class="platillo-cantidad" value="1" min="1" style="flex: 1;">
+                            <button type="button" class="btn-eliminar-fila" style="background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-add-platillo" style="background: #007bff; color: white; margin-top: 10px; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Añadir otro platillo
+                    </button>
+                </div>
 
-            <button class="pedido-type-btn" data-type="llevar">
-                <i class="fas fa-bag-shopping"></i>
-                Para Llevar
-            </button>
-        </div>
-    </div>
-
-    <!-- FORMULARIO -->
-    <div class="form-pedido-card">
-
-        <!-- FORMULARIO SALON -->
-        <div id="formSalon">
-
-            <div class="form-group">
-                <label>Número de Mesa</label>
-                <input type="text" placeholder="Ej. 10">
+                <button id="btn-enviar-pedido" style="width: 100%; padding: 15px; background: #7a1d1d; color: white; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    Enviar Pedido a Cocina
+                </button>
             </div>
 
-        </div>
-
-        <!-- FORMULARIO PARA LLEVAR -->
-        <div id="formLlevar" style="display: none;">
-
-            <div class="form-group">
-                <label>Nombre del Cliente</label>
-                <input type="text" placeholder="Ej. Juan Pérez">
-            </div>
-
-        </div>
-
-        <h3>Seleccionar Platillos</h3>
-
-        <div class="platillo-row">
-
-            <select>
-                <option>Seleccione un platillo...</option>
-                <option>Pupusas</option>
-                <option>Hamburguesa</option>
-                <option>Pizza</option>
-            </select>
-
-            <input type="number" value="1" min="1">
-
-            <button class="btn-delete-platillo">
-                <i class="fa-solid fa-trash"></i>
-            </button>
-
-        </div>
-
-        <button class="btn-agregar-platillo">
-            <i class="fa-solid fa-plus"></i>
-            Añadir otro platillo
-        </button>
-
-        <button class="btn-enviar-pedido">
-            Enviar Pedido a Cocina
-        </button>
-
-    </div>
-</div>
 
             <div id="verMesas" style="display: none;">
                 <h1>Ver Mesas</h1>
@@ -248,18 +224,7 @@
     <script src="../js/menu.js"></script>
     <script src="../js/mesas_admin.js"></script>
     
-    <script>
-        // Selector de tipo de pedido - UI interactiva
-        document.querySelectorAll('.pedido-type-btn').forEach(button => {
-            button.addEventListener('click', function() {
-                document.querySelectorAll('.pedido-type-btn').forEach(btn => {
-                    btn.classList.remove('active');
-                });
-                this.classList.add('active');
-            });
-        });
-    </script>
-    
+    <script src="../js/mesero.js"></script>
 </body>
 
 </html>

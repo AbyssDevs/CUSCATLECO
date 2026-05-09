@@ -2,8 +2,8 @@ import db from "../config/db.js";
 import { cambiarEstadoMesa } from "./mesas.service.js";
 
  
-  // Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
-const crearPedido = async ({ id_mesa, tipo, userId }) => {
+// Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
+export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
 
     let result;
 
@@ -35,8 +35,39 @@ const crearPedido = async ({ id_mesa, tipo, userId }) => {
     throw new Error("Tipo de pedido inválido");
   }
 
+  const id_pedido = result.insertId;
+
+  // Insertar detalles del pedido
+  if (items && items.length > 0) {
+    for (const item of items) {
+      // Obtener el precio actual del platillo
+      const [platillo] = await db.query(
+        "SELECT platillo_precio FROM platillos WHERE id_platillo = ?",
+        [item.id_platillo]
+      );
+
+      if (platillo.length > 0) {
+        const precio_unitario = platillo[0].platillo_precio;
+        const subtotal = precio_unitario * item.cantidad;
+
+        await db.query(`
+          INSERT INTO detalle_pedido 
+          (id_pedido, id_platillo, detalle_pedido_cantidad, detalle_pedido_precio_unitario, detalle_pedido_subtotal)
+          VALUES (?, ?, ?, ?, ?)
+        `, [id_pedido, item.id_platillo, item.cantidad, precio_unitario, subtotal]);
+      }
+    }
+
+    // Actualizar el total del pedido
+    await db.query(`
+      UPDATE pedidos 
+      SET pedido_total = (SELECT SUM(detalle_pedido_subtotal) FROM detalle_pedido WHERE id_pedido = ?)
+      WHERE id_pedido = ?
+    `, [id_pedido, id_pedido]);
+  }
+
     return {
-      id_pedido: result.insertId,
+      id_pedido: id_pedido,
       pedido_estado: "Pendiente",
       pedido_tipo: tipo
     };
@@ -44,14 +75,14 @@ const crearPedido = async ({ id_mesa, tipo, userId }) => {
 
 
 //Inciar pedido
-export const iniciarPedido = async ({ id_mesa, tipo, userId }) => {
+export const iniciarPedido = async ({ id_mesa, tipo, userId, items }) => {
 
   if (tipo !== "Salon" && tipo !== "Llevar") {
-   throw Object.assign(
-     new Error("Tipo de pedido inválido"),
-     { status: 400 }
-   );
-}
+    throw Object.assign(
+      new Error("Tipo de pedido inválido"),
+      { status: 400 }
+    );
+  }
 
   // PEDIDO EN SALÓN
   if (tipo === "Salon") {
@@ -80,7 +111,7 @@ export const iniciarPedido = async ({ id_mesa, tipo, userId }) => {
   }
 
   // CREAR PEDIDO
-  const pedido = await crearPedido({ tipo, id_mesa, userId });
+  const pedido = await crearPedido({ tipo, id_mesa, userId, items });
 
   // SOLO SI ES SALÓN → ocupar mesa
   if (tipo === "Salon") {
