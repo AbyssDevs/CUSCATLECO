@@ -1,6 +1,6 @@
 # 📌 CUSCATLECO
 
-# Sistema web para la gestión de pedidos en restaurante, que permite administrar órdenes, estados y usuarios (mesero y cocina).
+## Sistema web para la gestión de pedidos en restaurante, que permite administrar órdenes, estados y usuarios (mesero y cocina).
 
 ---
 
