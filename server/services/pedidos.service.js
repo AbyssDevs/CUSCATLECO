@@ -520,3 +520,73 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
   };
 
 };
+
+// PEDIDOS PENDIENTES COCINA
+export const obtenerPedidosPendientesCocina = async () => {
+
+  const [rows] = await db.query(
+    `SELECT
+        p.id_pedido,
+        p.pedido_estado,
+        p.pedido_tipo,
+        p.pedido_fecha_hora,
+        p.pedido_total,
+
+        m.mesa_numero,
+
+        dp.id_detalle,
+        dp.detalle_pedido_cantidad,
+        dp.detalle_pedido_notas,
+
+        pl.platillo_nombre
+
+     FROM pedidos p
+
+     LEFT JOIN mesas m
+        ON p.id_mesa = m.id_mesa
+
+     INNER JOIN detalle_pedido dp
+        ON p.id_pedido = dp.id_pedido
+
+     INNER JOIN platillos pl
+        ON dp.id_platillo = pl.id_platillo
+
+     WHERE p.pedido_estado IN ('Pendiente', 'EnPreparacion')
+
+     ORDER BY p.pedido_fecha_hora ASC`
+  );
+
+  // Agrupar pedidos
+  const pedidosMap = {};
+
+  rows.forEach(row => {
+
+    if (!pedidosMap[row.id_pedido]) {
+
+      pedidosMap[row.id_pedido] = {
+        id_pedido: row.id_pedido,
+        pedido_estado: row.pedido_estado,
+        pedido_tipo: row.pedido_tipo,
+        pedido_fecha_hora: row.pedido_fecha_hora,
+        pedido_total: row.pedido_total,
+
+        mesa:
+          row.pedido_tipo === "Llevar"
+            ? "Para llevar"
+            : row.mesa_numero,
+
+        platillos: []
+      };
+    }
+
+    pedidosMap[row.id_pedido].platillos.push({
+      id_detalle: row.id_detalle,
+      nombre: row.platillo_nombre,
+      cantidad: row.detalle_pedido_cantidad,
+      notas: row.detalle_pedido_notas
+    });
+
+  });
+
+  return Object.values(pedidosMap);
+};
