@@ -249,6 +249,7 @@ const [detalleRows] = await db.query(
   };
 };
 
+
 export const eliminarPlatilloPedido = async (id_detalle) => {
 
   // Buscar detalle
@@ -325,7 +326,7 @@ export const eliminarPlatilloPedido = async (id_detalle) => {
     message: "Platillo eliminado correctamente",
     pedido_total: total
   };
-};
+}
 
 export const modificarCantidadPlatillo = async ({ id_detalle, cantidad }) => {
   // Validar que cantidad sea un número válido
@@ -439,4 +440,83 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
   );
 
   return rows;
+};
+
+// Cancelar pedido
+export const cancelarPedido = async (id_pedido, motivo, userId) => {
+
+  // Buscar pedido
+  const [pedidoRows] = await db.query(
+    `SELECT
+        id_mesa,
+        pedido_tipo,
+        pedido_estado
+     FROM pedidos
+     WHERE id_pedido = ?`,
+    [id_pedido]
+  );
+
+  if (pedidoRows.length === 0) {
+    throw Object.assign(
+      new Error("Pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const pedido = pedidoRows[0];
+
+  // No permitir facturados
+  if (pedido.pedido_estado === "Cerrado") {
+    throw Object.assign(
+      new Error("No se puede cancelar un pedido facturado"),
+      { status: 400 }
+    );
+  }
+
+  // Evitar doble cancelación
+  if (pedido.pedido_estado === "Cancelado") {
+    throw Object.assign(
+      new Error("El pedido ya fue cancelado anteriormente"),
+      { status: 400 }
+    );
+  }
+
+  // Guardar estado anterior
+  const estadoAnterior = pedido.pedido_estado;
+
+  // Cancelar pedido
+  await db.query(
+    `UPDATE pedidos
+     SET
+       pedido_estado = 'Cancelado',
+       pedido_cancelado_motivo = ?,
+       pedido_cancelado_en = NOW(),
+       pedido_cancelado_por = ?,
+       pedido_estado_anterior = ?
+     WHERE id_pedido = ?`,
+    [
+      motivo || null,
+      userId,
+      estadoAnterior,
+      id_pedido
+    ]
+  );
+
+  // Liberar mesa si era salón
+  if (
+    pedido.pedido_tipo === "Salon"
+    && pedido.id_mesa
+  ) {
+
+    await cambiarEstadoMesa(
+      pedido.id_mesa,
+      "Disponible",
+      userId
+    );
+  }
+
+  return {
+    message: "Pedido cancelado correctamente"
+  };
+
 };
