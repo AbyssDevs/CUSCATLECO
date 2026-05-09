@@ -5,10 +5,10 @@ import {
     iniciarPedido,
     crearPedido,
     agregarPlatilloAPedido,
-
     eliminarPlatilloPedido,
     modificarCantidadPlatillo,
     obtenerPedidosActivosMesero,
+    obtenerDetallePedido,
     cancelarPedido
 
 } from '../controllers/pedidos.controller.js';
@@ -31,6 +31,8 @@ router.put("/platillos/:id_detalle", requirePermission("crear_pedido"), modifica
 router.get("/activos",requirePermission("crear_pedido"), obtenerPedidosActivosMesero);
 
 router.patch("/:id/cancelar",requirePermission("crear_pedido"), cancelarPedido);
+
+router.get('/:id_pedido',requirePermission('crear_pedido'),obtenerDetallePedido);
 
 
 export default router;
