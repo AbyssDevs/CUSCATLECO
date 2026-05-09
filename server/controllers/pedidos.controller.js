@@ -126,3 +126,20 @@ export const obtenerPedidosActivosMesero = async (req, res) => {
     });
   }
 };
+
+export const obtenerPedidosPendientesCocina = async (req, res) => {
+
+  try {
+
+    const data =
+      await pedidosService.obtenerPedidosPendientesCocina();
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(500).json({
+      error: error.message
+    });
+  }
+};
