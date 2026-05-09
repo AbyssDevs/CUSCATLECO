@@ -378,9 +378,9 @@ function validarEstadoBotonesEliminarPlatillos(estadoPedido) {
   botonesEliminar.forEach((btn) => {
     btn.disabled = !esPendiente;
     
-    // Opcional: Agregar un tooltip nativo para indicar por qué está deshabilitado
+    // Agregar un tooltip nativo para indicar por qué está deshabilitado
     if (!esPendiente) {
-      btn.title = "No se puede eliminar porque el pedido ya no está Pendiente";
+      btn.title = "No se puede eliminar, pedido ya enviado a cocina";
     } else {
       btn.removeAttribute("title");
     }
