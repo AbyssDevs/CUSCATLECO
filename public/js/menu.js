@@ -131,7 +131,7 @@ function renderMenu(items) {
             ? `<span class="menu-item-meta">Actualizado por ${item.actualizado_por} el ${item.fecha_actualizacion}</span>`
             : "";
           return `
-            <tr>
+            <tr class="${!disponible ? 'platillo-inactivo' : ''}">
               <td><img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
               <td>
                 <div style="display:flex; flex-direction:column; gap:6px;">
@@ -166,7 +166,7 @@ function renderMenu(items) {
             ? `<span class="menu-item-meta">Actualizado por ${item.actualizado_por} el ${item.fecha_actualizacion}</span>`
             : "";
           return `
-            <div class="menu-card">
+            <div class="menu-card ${!disponible ? 'platillo-inactivo' : ''}">
               ${item.platillo_imagen_url ? `<img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-card-img">` : `<div class="menu-card-img" style="background: #eee; display:flex; align-items:center; justify-content:center; color:#888;">Sin imagen</div>`}
               <div class="menu-card-header">
                 <div>
@@ -370,7 +370,7 @@ function renderPedidoMenu(items) {
             ? `<span class="menu-item-meta">Actualizado por ${item.actualizado_por} el ${item.fecha_actualizacion}</span>`
             : "";
           return `
-            <tr>
+            <tr class="${!disponible ? 'platillo-inactivo' : ''}">
               <td><img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
               <td>
                 <div style="display:flex; flex-direction:column; gap:6px;">

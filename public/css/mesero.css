@@ -508,3 +508,54 @@ tr:hover {
     text-align: center;
     width: 120px;
 }
+
+/* ESTILOS PARA PLATILLOS INACTIVOS/NO DISPONIBLES */
+.platillo-inactivo {
+    opacity: 0.6;
+    filter: grayscale(50%);
+    background-color: #f8f8f8;
+}
+
+.platillo-inactivo .menu-item-img,
+.platillo-inactivo .menu-card-img {
+    filter: grayscale(100%) brightness(0.8);
+}
+
+.platillo-inactivo strong,
+.platillo-inactivo .menu-card-title {
+    color: #999;
+}
+
+.platillo-inactivo .categoria-col,
+.platillo-inactivo .descripcion-col,
+.platillo-inactivo .precio-col,
+.platillo-inactivo .menu-card-category,
+.platillo-inactivo .menu-card-desc,
+.platillo-inactivo .menu-card-price {
+    color: #999;
+}
+
+.menu-card.platillo-inactivo {
+    border: 1px solid #ddd;
+    background-color: #f8f8f8;
+}
+
+.menu-card-status {
+    background: #ff6b6b;
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    display: inline-block;
+    margin-top: 4px;
+}
+
+.no-disponible {
+    color: #999;
+    font-style: italic;
+    font-size: 0.9rem;
+    text-align: center;
+    display: block;
+    padding: 8px 0;
+}
