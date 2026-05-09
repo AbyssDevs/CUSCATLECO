@@ -421,13 +421,13 @@ export const modificarCantidadPlatillo = async ({ id_detalle, cantidad }) => {
 
  
 // Enviar pedido a cocina
-export const enviarPedidoACocina = async (id_pedido) => {
+export const enviarPedidoACocina = async (id_pedido, userId) => {
 
   const [rows] = await db.query(`
     SELECT pedido_estado
     FROM pedidos
-    WHERE id_pedido = ?
-  `, [id_pedido]);
+    WHERE id_pedido = ? AND id_mesero = ?
+  `, [id_pedido, userId]);
 
   if (rows.length === 0) {
     throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
@@ -440,11 +440,27 @@ export const enviarPedidoACocina = async (id_pedido) => {
     );
   }
 
+  
+  //VALIDACION PPARA ENVIOS VACIOS A COCINA
+  const [detalle] = await db.query(`
+    SELECT COUNT(*) AS total
+    FROM detalle_pedido
+    WHERE id_pedido = ?
+  `, [id_pedido]);
+
+  if (detalle[0].total === 0) {
+    throw Object.assign(
+      new Error("No puedes enviar un pedido sin platillos"),
+      { status: 400 }
+    );
+  }
+
+  // DESPUÉS SE ACTUALIZA
   await db.query(`
     UPDATE pedidos
     SET 
-  pedido_estado = 'EnPreparacion',
-  pedido_enviado_cocina_en = NOW()
+      pedido_estado = 'EnPreparacion',
+      pedido_enviado_cocina_en = NOW()
     WHERE id_pedido = ?
   `, [id_pedido]);
 
@@ -452,7 +468,6 @@ export const enviarPedidoACocina = async (id_pedido) => {
     message: "Pedido enviado a cocina"
   };
 };
-
 
 // Marcar pedido como entregado
 export const marcarPedidoEntregado = async (id_pedido, userId) => {
