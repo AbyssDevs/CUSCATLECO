@@ -52,9 +52,9 @@ export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
 
         await db.query(`
           INSERT INTO detalle_pedido 
-          (id_pedido, id_platillo, detalle_pedido_cantidad, detalle_pedido_precio_unitario, detalle_pedido_subtotal)
-          VALUES (?, ?, ?, ?, ?)
-        `, [id_pedido, item.id_platillo, item.cantidad, precio_unitario, subtotal]);
+          (id_pedido, id_platillo, detalle_pedido_cantidad, detalle_pedido_precio_unitario, detalle_pedido_subtotal, detalle_pedido_notas)
+          VALUES (?, ?, ?, ?, ?, ?)
+        `, [id_pedido, item.id_platillo, item.cantidad, precio_unitario, subtotal, item.notas]);
       }
     }
 
