@@ -251,6 +251,22 @@
         let tipoPedido = 'salon'; // 'salon' o 'llevar'
         let pedidoBloqueado = false;
 
+        // Estado del menú de pedidos para controles y actualización automática
+        const pedidoMenuState = {
+            items: [],
+            categories: [],
+            filter: {
+                categoria_id: '',
+                nombre: '',
+                orderBy: 'nombre',
+                orderDir: 'ASC',
+            },
+            lastJson: '',
+        };
+        let pedidoMenuPollingTimer = null;
+        const PEDIDO_MENU_POLLING_INTERVAL_MS = 15000;
+        let pedidoMenuControlsAttached = false;
+
         // Función para manejar el selector de tipo de pedido
         function setupTipoPedidoSelector() {
             const botones = document.querySelectorAll('.tipo-pedido-btn');
@@ -451,6 +467,58 @@
             empty.style.display = message ? "flex" : "none";
         }
 
+        function buildPedidoMenuQuery() {
+            const query = [];
+            if (pedidoMenuState.filter.categoria_id) {
+                query.push(`categoria_id=${encodeURIComponent(pedidoMenuState.filter.categoria_id)}`);
+            }
+            if (pedidoMenuState.filter.nombre) {
+                query.push(`nombre=${encodeURIComponent(pedidoMenuState.filter.nombre.trim())}`);
+            }
+            query.push(`orderBy=${encodeURIComponent(pedidoMenuState.filter.orderBy)}`);
+            query.push(`orderDir=${encodeURIComponent(pedidoMenuState.filter.orderDir)}`);
+            return query;
+        }
+
+        async function refreshPedidoMenuIfChanged() {
+            if (!document.getElementById('tomar-pedido') || document.getElementById('tomar-pedido').style.display === 'none') {
+                return;
+            }
+
+            try {
+                const query = buildPedidoMenuQuery();
+                const response = await fetch(`/api/platillos?${query.join("&")}`);
+                if (!response.ok) {
+                    return;
+                }
+
+                const items = await response.json();
+                const newJson = JSON.stringify(items);
+                if (newJson === pedidoMenuState.lastJson) {
+                    return;
+                }
+
+                pedidoMenuState.lastJson = newJson;
+                renderPedidoMenu(items);
+            } catch (error) {
+                console.error('Error recargando automáticamente el menú de pedidos:', error);
+            }
+        }
+
+        function startPedidoMenuPolling() {
+            stopPedidoMenuPolling();
+            pedidoMenuPollingTimer = window.setInterval(() => {
+                refreshPedidoMenuIfChanged();
+            }, PEDIDO_MENU_POLLING_INTERVAL_MS);
+        }
+
+        function stopPedidoMenuPolling() {
+            if (pedidoMenuPollingTimer) {
+                clearInterval(pedidoMenuPollingTimer);
+                pedidoMenuPollingTimer = null;
+            }
+        }
+
         function renderPedidoMenu(items) {
             pedidoMenuState.items = items;
             const tableBody = document.getElementById("pedidoMenuTableBody");
@@ -502,9 +570,11 @@
             renderPedidoCategoryFilter(pedidoMenuState.items);
         }
 
-        async function loadPedidoMenu() {
-            setPedidoMenuLoading(true);
-            setPedidoMenuEmpty("");
+        async function loadPedidoMenu({ showLoading = true } = {}) {
+            if (showLoading) {
+                setPedidoMenuLoading(true);
+                setPedidoMenuEmpty("");
+            }
             updatePedidoSortHeaders();
             
             try {
@@ -516,29 +586,25 @@
                     pedidoMenuState.categories = menuState.categories;
                 }
 
-                const query = [];
-                if (pedidoMenuState.filter.categoria_id) {
-                    query.push(`categoria_id=${encodeURIComponent(pedidoMenuState.filter.categoria_id)}`);
-                }
-                if (pedidoMenuState.filter.nombre) {
-                    query.push(`nombre=${encodeURIComponent(pedidoMenuState.filter.nombre.trim())}`);
-                }
-                query.push(`orderBy=${encodeURIComponent(pedidoMenuState.filter.orderBy)}`);
-                query.push(`orderDir=${encodeURIComponent(pedidoMenuState.filter.orderDir)}`);
-
+                const query = buildPedidoMenuQuery();
                 const response = await fetch(`/api/platillos?${query.join("&")}`);
                 if (!response.ok) {
                     throw new Error("Error cargando el menú");
                 }
                 const items = await response.json();
+                pedidoMenuState.lastJson = JSON.stringify(items);
                 renderPedidoMenu(items);
             } catch (error) {
                 console.error("Error cargando menú de pedidos:", error);
-                setPedidoMenuEmpty("No hay platillos disponibles en este momento");
+                if (showLoading) {
+                    setPedidoMenuEmpty("No hay platillos disponibles en este momento");
+                }
                 const tableBody = document.getElementById("pedidoMenuTableBody");
                 if (tableBody) tableBody.innerHTML = "";
             } finally {
-                setPedidoMenuLoading(false);
+                if (showLoading) {
+                    setPedidoMenuLoading(false);
+                }
             }
         }
 
@@ -591,16 +657,16 @@
         }
 
         function attachPedidoMenuControls() {
+            if (pedidoMenuControlsAttached) {
+                return;
+            }
+            pedidoMenuControlsAttached = true;
+
             const categorySelect = document.getElementById("pedidoCategoryFilter");
             const searchInput = document.getElementById("pedidoSearchInput");
             const sortableHeaders = document.querySelectorAll("#tomar-pedido th.sortable");
 
-            if (categorySelect && categorySelect.dataset.initialized === "true") {
-                return;
-            }
-
             if (categorySelect) {
-                categorySelect.dataset.initialized = "true";
                 categorySelect.addEventListener("change", (event) => {
                     pedidoMenuState.filter.categoria_id = event.target.value;
                     loadPedidoMenu();
@@ -754,6 +820,9 @@
                     attachPedidoMenuControls();
                     setupPedidoRefreshButton();
                     loadPedidoMenu();
+                    startPedidoMenuPolling();
+                } else {
+                    stopPedidoMenuPolling();
                 }
             }
         }
