@@ -3,7 +3,7 @@ import { cambiarEstadoMesa } from "./mesas.service.js";
 
  
   // Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
-const crearPedido = async ({ id_mesa, tipo, userId }) => {
+export const crearPedido = async ({ id_mesa, tipo, userId }) => {
 
     let result;
 
