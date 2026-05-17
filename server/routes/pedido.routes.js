@@ -21,13 +21,10 @@ import {
     auditoriaMiddleware
 } from "../middlewares/auth.middleware.js";
 
-router.post('/iniciar', auditoriaMiddleware, requirePermission('crear_pedido'), iniciarPedido);
 
+router.post('/iniciar', auditoriaMiddleware, requirePermission('crear_pedido'), iniciarPedido);
 router.post('/crear', auditoriaMiddleware, requirePermission('crear_pedido'), crearPedido);
 router.patch('/:id/items', auditoriaMiddleware, requirePermission('crear_pedido'), agregarItemsPedido);
-
-
-export default router;
 
 router.post('/:id_pedido/platillos', auditoriaMiddleware, requirePermission('crear_pedido'), agregarPlatilloAPedido);
 
