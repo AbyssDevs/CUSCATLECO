@@ -51,6 +51,118 @@ export const agregarPlatilloAPedido = async (req, res) => {
   }
 };
  
-    
 
 
+export const eliminarPlatilloPedido = async (req, res) => {
+  try {
+
+    const data =
+      await pedidosService.eliminarPlatilloPedido(
+        req.params.id_detalle
+      );
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
+
+export const cancelarPedido = async (req, res) => {
+  try {
+
+    const data =
+      await pedidosService.cancelarPedido(
+        req.params.id,
+        req.body.motivo,
+        req.user.id
+      );
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
+
+export const modificarCantidadPlatillo = async (req, res) => {
+  try {
+  
+    const data = await pedidosService.modificarCantidadPlatillo({
+      id_detalle: req.params.id_detalle,
+      cantidad: req.body.cantidad
+    });
+
+    res.json(data);
+
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
+
+export const obtenerPedidosActivosMesero = async (req, res) => {
+  try {
+
+    const data =
+      await pedidosService.obtenerPedidosActivosMesero(
+        req.user.id
+      );
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
+
+export const obtenerPedidosPendientesCocina = async (req, res) => {
+
+  try {
+
+    const data =
+      await pedidosService.obtenerPedidosPendientesCocina();
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(500).json({
+      error: error.message
+    });
+  }
+};
+
+export const cambiarEstadoPedidoCocina = async (
+  req,
+  res
+) => {
+
+  try {
+
+    const data =
+      await pedidosService.cambiarEstadoPedidoCocina(
+        req.params.id,
+        req.body.estado
+      );
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
