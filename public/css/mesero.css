@@ -181,6 +181,10 @@ h1, h2, h3, h4, th {
     .card {
         width: 100%;
     }
+
+    .tipo-pedido-selector {
+        flex-direction: column;
+    }
 }
 
 /* FORMS & INPUTS */
@@ -216,6 +220,64 @@ button {
     font-family: Arial, sans-serif;
     font-weight: bold;
     transition: background 0.2s ease;
+}
+
+.pedido-type-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    max-width: 600px;
+    border: 1px solid #f0f0f0;
+    margin-bottom: 20px;
+}
+
+.pedido-type-card h3 {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    font-weight: 700;
+    color: #222;
+}
+
+.tipo-pedido-selector {
+    display: flex;
+    gap: 16px;
+}
+
+.pedido-type-btn {
+    flex: 1;
+    min-height: 58px;
+    border: 2px solid #ddd;
+    border-radius: 12px;
+    background: white;
+    color: #333;
+    font-weight: 600;
+    font-size: 1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 0 18px;
+    transition: all 0.2s ease;
+}
+
+.pedido-type-btn i {
+    font-size: 1.1rem;
+}
+
+.pedido-type-btn:hover {
+    border-color: #7a1d1d;
+    transform: translateY(-1px);
+}
+
+.pedido-type-btn.active {
+    background: #7a1d1d;
+    color: white;
+    border-color: #7a1d1d;
+}
+
+.pedido-type-btn.active:hover {
+    transform: none;
 }
 
 button:hover {
@@ -465,4 +527,135 @@ tr:hover {
     .user-role {
         font-size: 0.7rem;
     }
+}
+
+/* FORMULARIO TOMAR PEDIDO */
+#tomar-pedido {
+    max-width: 900px;
+}
+
+.form-pedido-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border: 1px solid #f0f0f0;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.form-pedido-card h3 {
+    margin-top: 0;
+    margin-bottom: 20px;
+    color: #222;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 18px;
+}
+
+.form-group label {
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.platillo-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.platillo-row select {
+    flex: 1;
+}
+
+.platillo-row input {
+    width: 120px;
+}
+
+.btn-delete-platillo {
+    background: #dc3545;
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+}
+
+.btn-delete-platillo:hover {
+    background: #bb2d3b;
+}
+
+.btn-agregar-platillo {
+    background: #0d6efd;
+    margin-top: 10px;
+}
+
+.btn-agregar-platillo:hover {
+    background: #0b5ed7;
+}
+
+.btn-enviar-pedido {
+    width: 100%;
+    margin-top: 20px;
+    padding: 14px;
+    font-size: 15px;
+}
+
+.mesas-pedido-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.mesa-pedido-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 16px;
+}
+
+.mesa-pedido-card h4 {
+    margin: 0 0 8px;
+    color: #222;
+}
+
+.mesa-pedido-card p {
+    margin: 4px 0;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.mesa-pedido-status {
+    display: inline-flex;
+    margin-top: 8px;
+    font-weight: 700;
+}
+
+.btn-elegir-mesa {
+    white-space: nowrap;
+}
+
+.btn-elegir-mesa:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+.pedido-activo-info {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    color: #334155;
+}
+
+.pedido-activo-info span {
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    background: #f8fafc;
+    padding: 7px 12px;
+    font-size: 0.9rem;
 }

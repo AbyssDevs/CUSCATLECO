@@ -4,14 +4,15 @@ const router = express.Router();
 import {
     iniciarPedido,
     crearPedido,
+    agregarItemsPedido,
     agregarPlatilloAPedido,
-
     eliminarPlatilloPedido,
     modificarCantidadPlatillo,
     obtenerPedidosActivosMesero,
     cancelarPedido,
     obtenerPedidosPendientesCocina,
     cambiarEstadoPedidoCocina
+
 
 } from '../controllers/pedidos.controller.js';
 
@@ -23,6 +24,10 @@ import {
 router.post('/iniciar', auditoriaMiddleware, requirePermission('crear_pedido'), iniciarPedido);
 
 router.post('/crear', auditoriaMiddleware, requirePermission('crear_pedido'), crearPedido);
+router.patch('/:id/items', auditoriaMiddleware, requirePermission('crear_pedido'), agregarItemsPedido);
+
+
+export default router;
 
 router.post('/:id_pedido/platillos', auditoriaMiddleware, requirePermission('crear_pedido'), agregarPlatilloAPedido);
 
@@ -39,3 +44,4 @@ router.get("/cocina/pendientes",requirePermission("ver_pedidos"), obtenerPedidos
 router.patch("/:id/cocina/estado",requirePermission("ver_pedidos"), cambiarEstadoPedidoCocina);
 
 export default router;
+
