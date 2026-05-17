@@ -355,35 +355,60 @@ window.addEventListener("DOMContentLoaded", () => {
   attachMenuControls();
 
   const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
+
   if (menuSection && menuSection.style.display !== "none") {
     loadMenu();
   }
+
+  // Pedido nuevo = editable
+  validarEstadoBotonesEliminarPlatillos("Pendiente");
 });
 
 /**
- * Deshabilita los botones de 'Eliminar' de los platillos en el pedido
- * cuando el estado del pedido es diferente a 'Pendiente'.
- * Esta función puede ser llamada cada vez que se cargue un pedido
- * o cuando cambie su estado.
+ * Deshabilita los botones de eliminar platillos
+ * cuando el pedido ya fue enviado a cocina.
  *
- * @param {string} estadoPedido - El estado actual del pedido (ej: 'Pendiente', 'Preparando', etc.)
+ * Estados permitidos para eliminar:
+ * - Pendiente
  */
 function validarEstadoBotonesEliminarPlatillos(estadoPedido) {
   const container = document.getElementById("lista-platillos-pedido");
+
   if (!container) return;
 
   const botonesEliminar = container.querySelectorAll(".btn-eliminar");
-  const esPendiente = !estadoPedido || estadoPedido.trim().toLowerCase() === "pendiente";
+
+  const esPendiente =
+    estadoPedido &&
+    estadoPedido.trim().toLowerCase() === "pendiente";
 
   botonesEliminar.forEach((btn) => {
+    // Deshabilitar botón
     btn.disabled = !esPendiente;
-    
-    // Agregar un tooltip nativo para indicar por qué está deshabilitado
+
+    // Estilo visual
     if (!esPendiente) {
-      btn.title = "No se puede eliminar, pedido ya enviado a cocina";
+      btn.style.opacity = "0.5";
+      btn.style.cursor = "not-allowed";
+      btn.title = "No se puede eliminar, pedido enviado a cocina";
     } else {
+      btn.style.opacity = "1";
+      btn.style.cursor = "pointer";
       btn.removeAttribute("title");
     }
+
+    // Protección extra
+    btn.onclick = (event) => {
+      if (!esPendiente) {
+        event.preventDefault();
+
+        if (typeof toast === "function") {
+          toast("error", "No puedes eliminar un pedido enviado a cocina.");
+        }
+
+        return false;
+      }
+    };
   });
 }
 
