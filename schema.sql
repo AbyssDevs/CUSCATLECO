@@ -156,6 +156,7 @@ CREATE TABLE platillos (
 -- ============================================================
 CREATE TABLE pedidos (
     id_pedido INT PRIMARY KEY AUTO_INCREMENT,
+    pedido_numero VARCHAR(20) NOT NULL,
     id_mesa INT NULL, -- NULL para pedidos "Para llevar"
     id_mesero INT NOT NULL,
     id_cliente INT NULL,
@@ -178,6 +179,7 @@ CREATE TABLE pedidos (
     pedido_cancelado_en DATETIME NULL,
     pedido_cancelado_por INT NULL,
     pedido_cancelado_motivo VARCHAR(200) NULL,
+    UNIQUE KEY uk_pedidos_pedido_numero (pedido_numero),
     FOREIGN KEY (id_mesa) REFERENCES mesas (id_mesa),
     FOREIGN KEY (id_mesero) REFERENCES usuarios (id_usuario),
     FOREIGN KEY (id_cliente) REFERENCES clientes (id_cliente),

@@ -43,6 +43,10 @@ function mostrarViews(seccion) {
   if (seccion === "verMesas" && typeof cargarMesas === "function") {
     cargarMesas();
   }
+
+  if (seccion === "tomar-pedido" && typeof window.cargarMesasPedido === "function") {
+    window.cargarMesasPedido();
+  }
 }
 
 async function cargarUsuarioLogueado() {

@@ -46,7 +46,7 @@
                 <li onclick="mostrarViews('tomar-pedido')"><i class="fa-solid fa-plus"></i> Nuevo Pedido</li><br>
                 <li onclick="mostrarViews('menu-restaurante')"><i class="fa-solid fa-book-open"></i> Ver el Menú</li><br>
                 <li onclick="mostrarViews('verMesas')"><i class="fas fa-border-all"></i> Ver Mesas</li><br>
-                <li onclick="mostrarViews('pedidos-pendientes')"><i class="fa-solid fa-clipboard-list"></i> Entregar Pedidos</li><br>
+                <li onclick="mostrarViews('pedidos-pendientes')"><i class="fa-solid fa-clipboard-list"></i> Mis pedidos</li><br>
                 <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li>
             </ul>
 
@@ -68,39 +68,56 @@
             <div id="tomar-pedido">
                 <h1>Tomar Pedido Nuevo</h1>
                 
-                <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px;">
-                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                        <div style="flex: 1;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Número de Mesa</label>
-                            <input type="number" id="mesa_num" placeholder="Ej. 10" style="width: 100%; box-sizing: border-box;">
-                        </div>
+                <!-- SELECTOR DE TIPO DE PEDIDO -->
+                <div class="pedido-type-card">
+                    <h3>Tipo de Pedido</h3>
+                    <div class="tipo-pedido-selector">
+                        <button class="pedido-type-btn active" data-type="salon">
+                            <i class="fas fa-chair"></i>
+                            En Salón
+                        </button>
+                        <button class="pedido-type-btn" data-type="llevar">
+                            <i class="fas fa-bag-shopping"></i>
+                            Para Llevar
+                        </button>
                     </div>
-                    
-                    <h3 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seleccionar Platillos</h3>
-                    
-                    <div id="lista-platillos-pedido">
-                        <!-- Ejemplo de items a agregar -->
-                        <div class="pedido-item" style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <select style="flex: 2;">
-                                <option value="">Seleccione un platillo...</option>
-                                <option value="1">Pupusas Revueltas</option>
-                                <option value="2">Pupusas de Queso</option>
-                                <option value="3">Sopa de Gallina</option>
-                            </select>
-                            <div class="qty-control" style="display: flex; align-items: center; gap: 5px; width: 130px;">
-                                <button type="button" class="qty-btn qty-decrease" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">-</button>
-                                <input type="number" class="qty-input" value="1" min="1" max="99" style="width: 52px; text-align: center; border: 1px solid #ddd; border-radius: 6px; padding: 8px 0; font-size: 14px; background: #fafafa;">
-                                <button type="button" class="qty-btn qty-increase" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">+</button>
-                            </div>
-                            <button type="button" class="btn-eliminar" style="min-width: 42px; height: 38px; border-radius: 6px; background: #fff; border: 1px solid #ddd; color: #333; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>
-                    
-                    <button class="btn-agregar" style="margin-top: 10px; margin-bottom: 20px;"><i class="fa-solid fa-plus"></i> Añadir otro platillo</button>
-                    
-                    <button style="width: 100%; padding: 15px; font-size: 16px;">Enviar Pedido a Cocina</button>
                 </div>
+
+                <div class="pedido-type-card" id="mesa-container">
+                    <h3>Mesas disponibles</h3>
+                    <div id="mesasPedidoLoading" style="display: none; color: #555; margin-bottom: 0.75rem;">Cargando mesas...</div>
+                    <div id="mesasPedidoEmpty" style="color: #555; margin-bottom: 0.75rem;"></div>
+                    <div id="mesas-pedido-list" class="mesas-pedido-list"></div>
+                </div>
+
+                <div class="pedido-type-card" id="pedido-form-card">
+                    <div id="pedido-activo-info" class="pedido-activo-info" style="display: none;"></div>
+                    <h3>Seleccionar Platillos</h3>
+                    <div id="platillos-container">
+                        <!-- La primera fila se carga por defecto -->
+                        <div class="platillo-row" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
+                            <select class="platillo-select" style="flex: 3;">
+                                <option value="">Seleccione un platillo...</option>
+                            </select>
+                            <input type="number" class="platillo-cantidad" value="1" min="1" max="99" style="flex: 1;">
+                            <input type="text" class="platillo-notas" placeholder="Notas (opcional)" style="flex: 2; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px;">
+                            <button type="button" class="btn-eliminar-fila" style="background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-add-platillo" style="background: #007bff; color: white; margin-top: 10px; margin-bottom: 15px; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">
+                        <i class="fas fa-plus"></i> Añadir otro platillo
+                    </button>
+
+                    <button id="btn-enviar-pedido" style="width: 100%; padding: 15px; margin-bottom: 15px; background: #7a1d1d; color: white; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    Guardar pedido
+                </button>
+                </div>
+
+                
             </div>
+
 
             <div id="verMesas" style="display: none;">
                 <h1>Ver Mesas</h1>
@@ -211,188 +228,7 @@
     <script src="../js/menu.js"></script>
     <script src="../js/mesas_admin.js"></script>
     
-    <script>
-        function clampQuantity(value) {
-            return Math.max(1, Math.min(99, value));
-        }
-
-        function updateQtyControl(control) {
-            const input = control.querySelector('.qty-input');
-            const decrease = control.querySelector('.qty-decrease');
-            const increase = control.querySelector('.qty-increase');
-            const value = Number(input.value) || 1;
-
-            decrease.disabled = value <= 1;
-            increase.disabled = value >= 99;
-
-            decrease.style.opacity = decrease.disabled ? '0.5' : '1';
-            increase.style.opacity = increase.disabled ? '0.5' : '1';
-            decrease.style.cursor = decrease.disabled ? 'not-allowed' : 'pointer';
-            increase.style.cursor = increase.disabled ? 'not-allowed' : 'pointer';
-        }
-
-        function setupQtyControl(control) {
-            if (!control) return;
-            updateQtyControl(control);
-
-            control.querySelectorAll('.qty-btn').forEach(button => {
-                button.addEventListener('click', function() {
-                    const input = control.querySelector('.qty-input');
-                    let value = Number(input.value) || 1;
-
-                    if (button.classList.contains('qty-increase')) {
-                        value += 1;
-                    } else {
-                        value -= 1;
-                    }
-
-                    input.value = clampQuantity(value);
-                    updateQtyControl(control);
-                });
-            });
-
-            // Agregar funcionalidad de input manual
-            const input = control.querySelector('.qty-input');
-            input.addEventListener('input', function() {
-                // Solo permitir números enteros
-                let value = this.value.replace(/[^0-9]/g, '');
-                if (value === '') value = '1';
-                this.value = value;
-            });
-
-            input.addEventListener('blur', function() {
-                let value = Number(this.value) || 1;
-                this.value = clampQuantity(value);
-                updateQtyControl(control);
-            });
-
-            input.addEventListener('keydown', function(e) {
-                // Permitir solo números, backspace, delete, tab, escape, enter, y flechas
-                if (
-                    e.key === 'Backspace' ||
-                    e.key === 'Delete' ||
-                    e.key === 'Tab' ||
-                    e.key === 'Escape' ||
-                    e.key === 'Enter' ||
-                    (e.key >= '0' && e.key <= '9') ||
-                    (e.key === 'ArrowLeft') ||
-                    (e.key === 'ArrowRight') ||
-                    (e.key === 'ArrowUp') ||
-                    (e.key === 'ArrowDown')
-                ) {
-                    return;
-                }
-                e.preventDefault();
-            });
-        }
-
-        function createPedidoItem() {
-            const item = document.createElement('div');
-            item.className = 'pedido-item';
-            item.style.cssText = 'display: flex; align-items: center; gap: 10px; margin-bottom: 10px;';
-            item.innerHTML = `
-                <select style="flex: 2;">
-                    <option value="">Seleccione un platillo...</option>
-                    <option value="1">Pupusas Revueltas</option>
-                    <option value="2">Pupusas de Queso</option>
-                    <option value="3">Sopa de Gallina</option>
-                </select>
-                <div class="qty-control" style="display: flex; align-items: center; gap: 5px; width: 130px;">
-                    <button type="button" class="qty-btn qty-decrease" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">-</button>
-                    <input type="number" class="qty-input" value="1" min="1" max="99" style="width: 52px; text-align: center; border: 1px solid #ddd; border-radius: 6px; padding: 8px 0; font-size: 14px; background: #fafafa;">
-                    <button type="button" class="qty-btn qty-increase" style="width: 38px; height: 38px; border: 1px solid #ddd; border-radius: 6px; background: white; color: #333; cursor: pointer;">+</button>
-                </div>
-                <button type="button" class="btn-eliminar" style="min-width: 42px; height: 38px; border-radius: 6px; background: #fff; border: 1px solid #ddd; color: #333; cursor: pointer;"><i class="fa-solid fa-trash"></i></button>
-            `;
-
-            const qtyControl = item.querySelector('.qty-control');
-            setupQtyControl(qtyControl);
-
-            const removeButton = item.querySelector('.btn-eliminar');
-            removeButton.addEventListener('click', function() {
-                item.remove();
-            });
-
-            return item;
-        }
-
-        // Función para mostrar feedback visual al agregar platillo
-        function showAddFeedback() {
-            // Evitar múltiples mensajes si se hace clic rápidamente
-            if (document.querySelector('.add-feedback')) {
-                return;
-            }
-
-            const feedback = document.createElement('div');
-            feedback.className = 'add-feedback';
-            feedback.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #4CAF50;
-                color: white;
-                padding: 12px 20px;
-                border-radius: 6px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-                font-weight: 500;
-                font-size: 14px;
-                z-index: 1000;
-                opacity: 0;
-                transform: translateY(-10px);
-                transition: all 0.3s ease;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            `;
-            feedback.innerHTML = '<i class="fas fa-check"></i> Platillo agregado al pedido';
-
-            document.body.appendChild(feedback);
-
-            // Animación de entrada
-            setTimeout(() => {
-                feedback.style.opacity = '1';
-                feedback.style.transform = 'translateY(0)';
-            }, 10);
-
-            // Animación de salida y eliminación
-            setTimeout(() => {
-                feedback.style.opacity = '0';
-                feedback.style.transform = 'translateY(-10px)';
-                setTimeout(() => {
-                    if (feedback.parentNode) {
-                        feedback.parentNode.removeChild(feedback);
-                    }
-                }, 300);
-            }, 2500);
-        }
-
-        document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.qty-control').forEach(setupQtyControl);
-
-            const addButton = document.querySelector('.btn-agregar');
-            const lista = document.getElementById('lista-platillos-pedido');
-
-            if (addButton && lista) {
-                addButton.addEventListener('click', function(event) {
-                    event.preventDefault();
-                    const newItem = createPedidoItem();
-                    lista.appendChild(newItem);
-                    
-                    // Mostrar feedback visual
-                    showAddFeedback();
-                });
-            }
-
-            document.querySelectorAll('.pedido-item .btn-eliminar').forEach(btn => {
-                btn.addEventListener('click', function() {
-                    const item = btn.closest('.pedido-item');
-                    if (item) {
-                        item.remove();
-                    }
-                });
-            });
-        });
-    </script>
+    <script src="../js/mesero.js"></script>
 </body>
 
 </html>
