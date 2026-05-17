@@ -309,8 +309,8 @@ tr:hover {
     background-color: #cccccc;
     color: #666666;
     cursor: not-allowed;
-    opacity: 0.6;
-    pointer-events: auto;
+    opacity: 0.5;
+    pointer-events: none;
 }
 
 .btn-completar { background-color: #27ae60; }
