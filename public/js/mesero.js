@@ -378,24 +378,41 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     });
 
+    // ============================================
+    // CUS-124: Botón para añadir otro platillo
+    // ============================================
     document.getElementById("btn-add-platillo").addEventListener("click", () => {
+      // 1. Obtener el contenedor donde van las filas de platillos
       const container = document.getElementById("platillos-container");
+  
+      // 2. Crear una nueva fila (div)
       const newRow = document.createElement("div");
       newRow.className = "platillo-row";
       newRow.style.cssText = "display: flex; gap: 10px; margin-bottom: 10px; align-items: center;";
-      newRow.innerHTML = `
-        <select class="platillo-select" style="flex: 3;">
-          <option value="">Seleccione un platillo...</option>
-        </select>
-        <input type="number" class="platillo-cantidad" value="1" min="1" max="99" style="flex: 1;">
-        <input type="text" class="platillo-notas" placeholder="Notas (opcional)" style="flex: 2; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px;">
-        <button type="button" class="btn-eliminar-fila" style="background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">
-          <i class="fas fa-trash"></i>
-        </button>
-      `;
+  
+    // 3. Agregar el HTML interno de la fila
+    newRow.innerHTML = `
+      <select class="platillo-select" style="flex: 3;">
+        <option value="">Seleccione un platillo...</option>
+      </select>
+      <input type="number" class="platillo-cantidad" value="1" min="1" max="99" style="flex: 1;">
+      <input type="text" class="platillo-notas" placeholder="Notas (opcional)" style="flex: 2; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px;">
+      <button type="button" class="btn-eliminar-fila" style="background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">
+        <i class="fas fa-trash"></i>
+      </button>
+    `;
+  
+      // 4. Agregar la nueva fila al contenedor
       container.appendChild(newRow);
+      
+      // 5. Llenar el select con los platillos disponibles
       poblarSelectPlatillos(newRow.querySelector(".platillo-select"));
+      
+      // 6. Bloquear/desbloquear el tipo de pedido (salón/llevar)
       actualizarBloqueoTipoPedido();
+      
+      // 7. ACTUALIZAR SUBTOTAL EN TIEMPO REAL (CUS-124)
+      actualizarSubtotal();
     });
 
     document.getElementById("platillos-container").addEventListener("input", (e) => {
@@ -421,15 +438,53 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     });
 
+    // ============================================
+    // CUS-124: Eliminar fila de platillo
+    // ============================================
     document.getElementById("platillos-container").addEventListener("click", (e) => {
       if (e.target.closest(".btn-eliminar-fila")) {
         const rows = document.querySelectorAll(".platillo-row");
         if (rows.length > 1) {
           e.target.closest(".platillo-row").remove();
           actualizarBloqueoTipoPedido();
+          actualizarSubtotal();
         } else {
           toast("warning", "Debe haber al menos un platillo en el pedido");
         }
+      }
+    });
+
+    // ============================================
+    // CUS-124: Actualizar subtotal al cambiar cantidad
+    // ============================================
+    document.getElementById("platillos-container").addEventListener("input", (e) => {
+      if (e.target.classList.contains("platillo-cantidad")) {
+        let val = e.target.value;
+        if (val !== "") {
+          let num = parseInt(val);
+          if (isNaN(num)) num = 1;
+          if (num < 1) num = 1;
+          if (num > 99) num = 99;
+          if (val != num) e.target.value = num;
+        }
+        actualizarSubtotal();
+      }
+    });
+
+    // ============================================
+    // CUS-124: Actualizar subtotal al cambiar platillo
+    // ============================================
+    document.getElementById("platillos-container").addEventListener("change", (e) => {
+      if (e.target.classList.contains("platillo-cantidad")) {
+        if (e.target.value === "" || parseInt(e.target.value) < 1) {
+          e.target.value = 1;
+        } else if (parseInt(e.target.value) > 99) {
+          e.target.value = 99;
+        }
+        actualizarSubtotal();
+      }
+      if (e.target.classList.contains("platillo-select")) {
+        actualizarSubtotal();
       }
     });
 
@@ -488,6 +543,31 @@ document.addEventListener("DOMContentLoaded", () => {
     } catch (error) {
       console.error(error);
       toast("error", error.message);
+    }
+  }
+
+  // ============================================
+  // CUS-124: Actualizar subtotal en tiempo real
+  // ============================================
+  function actualizarSubtotal() {
+    let subtotal = 0;
+    const rows = document.querySelectorAll(".platillo-row");
+    
+    rows.forEach(row => {
+      const select = row.querySelector(".platillo-select");
+      const cantidad = parseInt(row.querySelector(".platillo-cantidad")?.value) || 0;
+      
+      if (select && select.value) {
+        const option = select.options[select.selectedIndex];
+        const precioTexto = option.textContent.match(/\$([0-9.]+)/);
+        const precio = precioTexto ? parseFloat(precioTexto[1]) : 0;
+        subtotal += precio * cantidad;
+      }
+    });
+    
+    const subtotalSpan = document.getElementById("subtotal-pedido");
+    if (subtotalSpan) {
+      subtotalSpan.textContent = `$${subtotal.toFixed(2)}`;
     }
   }
 
