@@ -466,3 +466,14 @@ tr:hover {
         font-size: 0.7rem;
     }
 }
+
+.btn-eliminar:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: #cccccc;
+    color: #666666;
+}
+
+.btn-eliminar[title] {
+    position: relative;
+}
