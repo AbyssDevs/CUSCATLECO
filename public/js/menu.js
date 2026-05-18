@@ -349,6 +349,103 @@ function attachMenuControls() {
   });
 }
 
+// ─── CUS-156: Subtotal automático ───────────────────────────────────────────
+
+let platillosDisponibles = [];
+
+async function cargarPlatillosParaPedido() {
+    try {
+        const res = await fetch('/api/platillos');
+        if (!res.ok) throw new Error('Error cargando platillos');
+        platillosDisponibles = await res.json();
+        // Si ya existe una fila, poblarla
+        document.querySelectorAll('.select-platillo').forEach(poblarSelectPlatillo);
+    } catch (err) {
+        console.error('Error cargando platillos para pedido:', err);
+    }
+}
+
+function poblarSelectPlatillo(select) {
+    const valorActual = select.value;
+    select.innerHTML = '<option value="">Seleccione un platillo...</option>';
+    platillosDisponibles.forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id_platillo;
+        opt.textContent = `${p.platillo_nombre} — ${formatPrice(p.platillo_precio)}`;
+        opt.dataset.precio = p.platillo_precio;
+        select.appendChild(opt);
+    });
+    if (valorActual) select.value = valorActual;
+}
+
+function actualizarSubtotalFila(fila) {
+    const select   = fila.querySelector('.select-platillo');
+    const cantidad = parseInt(fila.querySelector('.input-cantidad').value) || 0;
+    const precio   = parseFloat(select.options[select.selectedIndex]?.dataset.precio) || 0;
+    fila.querySelector('.subtotal-fila').textContent = formatPrice(precio * cantidad);
+    actualizarTotalPedido();
+}
+
+function actualizarTotalPedido() {
+    let total = 0;
+    document.querySelectorAll('.fila-platillo').forEach(fila => {
+        const select   = fila.querySelector('.select-platillo');
+        const cantidad = parseInt(fila.querySelector('.input-cantidad').value) || 0;
+        const precio   = parseFloat(select.options[select.selectedIndex]?.dataset.precio) || 0;
+        total += precio * cantidad;
+    });
+    const el = document.getElementById('total-pedido');
+    if (el) el.textContent = formatPrice(total);
+}
+
+function agregarFilaPlatillo() {
+    const div = document.createElement('div');
+    div.className = 'fila-platillo';
+    div.style.cssText = 'display:flex; align-items:center; gap:10px; margin-bottom:10px;';
+    div.innerHTML = `
+        <select class="select-platillo" style="flex:2;">
+            <option value="">Seleccione un platillo...</option>
+        </select>
+        <input type="number" class="input-cantidad" min="1" value="1" style="flex:1; width:60px;">
+        <span class="subtotal-fila" style="min-width:75px; font-weight:600;">$0.00</span>
+        <button class="btn-eliminar" onclick="eliminarFila(this)">
+            <i class="fa-solid fa-trash"></i>
+        </button>
+    `;
+    const select = div.querySelector('.select-platillo');
+    const inputCant = div.querySelector('.input-cantidad');
+    poblarSelectPlatillo(select);
+    select.addEventListener('change', () => actualizarSubtotalFila(div));
+    inputCant.addEventListener('input',  () => actualizarSubtotalFila(div));
+    document.getElementById('lista-platillos-pedido').appendChild(div);
+}
+
+function eliminarFila(btn) {
+    const estadoPedido = "Pendiente";
+
+    // Si el pedido ya fue enviado
+    if (estadoPedido.toLowerCase() !== "pendiente") {
+
+        btn.disabled = true;
+        btn.title = "No se puede eliminar, pedido ya enviado a cocina";
+
+        if (typeof toast === "function") {
+            toast("error", "No se puede eliminar, pedido ya enviado a cocina");
+        } else {
+            alert("No se puede eliminar, pedido ya enviado a cocina");
+        }
+
+        return;
+    }
+
+    const filas = document.querySelectorAll('.fila-platillo');
+
+    if (filas.length > 1) {
+        btn.closest('.fila-platillo').remove();
+        actualizarTotalPedido();
+    }
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
 
@@ -358,4 +455,31 @@ window.addEventListener("DOMContentLoaded", () => {
   if (menuSection && menuSection.style.display !== "none") {
     loadMenu();
   }
+
+  // CUS-156: Crear primera fila de platillo y cargar datos del API
+  agregarFilaPlatillo();
+  cargarPlatillosParaPedido();
+
+  // CUS-158: Auto-guardar notas al escribir
+  const notasTextarea = document.getElementById('notas-pedido');
+  if (notasTextarea) notasTextarea.addEventListener('input', autoGuardarNotas);
 });
+
+window.notasPedidoActual = '';
+
+const autoGuardarNotas = debounce(() => {
+    window.notasPedidoActual = document.getElementById('notas-pedido')?.value || '';
+    mostrarEstadoNotas('💾 Guardado automáticamente');
+}, 1000);
+
+function guardarNotasManual() {
+    window.notasPedidoActual = document.getElementById('notas-pedido')?.value || '';
+    mostrarEstadoNotas('✓ Notas guardadas');
+}
+
+function mostrarEstadoNotas(msg) {
+    const el = document.getElementById('estado-notas');
+    if (!el) return;
+    el.textContent = msg;
+    setTimeout(() => { el.textContent = ''; }, 2500);
+}
