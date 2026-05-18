@@ -2,6 +2,76 @@ document.addEventListener("DOMContentLoaded", () => {
   let platillosDisponibles = [];
   let mesasPedido = [];
   let pedidoActivo = null;
+  let pedidoEnviado = false;
+  // ============================================
+  // CUS-130: Deshabilitar botones si pedido ya enviado a cocina
+  // ============================================
+  function deshabilitarBotonesPlatillos() {
+    pedidoEnviado = true;
+
+    const btnAdd = document.getElementById("btn-add-platillo");
+    if (btnAdd) {
+      btnAdd.disabled = true;
+      btnAdd.title = "Pedido ya enviado a cocina. No se pueden agregar más platillos.";
+      btnAdd.style.opacity = "0.6";
+      btnAdd.style.cursor = "not-allowed";
+    }
+
+    const btnsEliminar = document.querySelectorAll(".btn-eliminar-fila");
+    btnsEliminar.forEach(btn => {
+      btn.disabled = true;
+      btn.title = "Pedido ya enviado a cocina";
+      btn.style.opacity = "0.6";
+      btn.style.cursor = "not-allowed";
+    });
+
+    const selects = document.querySelectorAll(".platillo-select");
+    selects.forEach(select => {
+      select.disabled = true;
+      select.style.backgroundColor = "#f0f0f0";
+    });
+
+    const inputs = document.querySelectorAll(".platillo-cantidad");
+    inputs.forEach(input => {
+      input.disabled = true;
+      input.style.backgroundColor = "#f0f0f0";
+    });
+  }
+
+  // ============================================
+  // CUS-130: Habilitar botones para nuevo pedido
+  // ============================================
+  function habilitarBotonesPlatillos() {
+    pedidoEnviado = false;
+
+    const btnAdd = document.getElementById("btn-add-platillo");
+    if (btnAdd) {
+      btnAdd.disabled = false;
+      btnAdd.title = "";
+      btnAdd.style.opacity = "1";
+      btnAdd.style.cursor = "pointer";
+    }
+
+    const btnsEliminar = document.querySelectorAll(".btn-eliminar-fila");
+    btnsEliminar.forEach(btn => {
+      btn.disabled = false;
+      btn.title = "";
+      btn.style.opacity = "1";
+      btn.style.cursor = "pointer";
+    });
+
+    const selects = document.querySelectorAll(".platillo-select");
+    selects.forEach(select => {
+      select.disabled = false;
+      select.style.backgroundColor = "";
+    });
+
+    const inputs = document.querySelectorAll(".platillo-cantidad");
+    inputs.forEach(input => {
+      input.disabled = false;
+      input.style.backgroundColor = "";
+    });
+  }
   const filtrosMesasPedido = {
     busqueda: "",
     capacidad: "",
@@ -538,7 +608,11 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al enviar pedido");
 
-      toast("success", "Pedido  guardado correctamente");
+      toast("success", "Pedido guardado correctamente");
+
+      // CUS-130: Deshabilitar botones después de enviar
+      deshabilitarBotonesPlatillos();
+
       resetForm();
     } catch (error) {
       console.error(error);
@@ -592,5 +666,6 @@ document.addEventListener("DOMContentLoaded", () => {
     poblarSelectPlatillos(container.querySelector(".platillo-select"));
     actualizarBloqueoTipoPedido();
     cargarMesasPedido();
+    habilitarBotonesPlatillos();
   }
 });
