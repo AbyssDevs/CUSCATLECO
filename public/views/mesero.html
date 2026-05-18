@@ -65,38 +65,52 @@
 
 
             <!-- TOMAR PEDIDO -->
-            <div id="tomar-pedido">
-                <h1>Tomar Pedido Nuevo</h1>
-                
-                <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px;">
-                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                        <div style="flex: 1;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Número de Mesa</label>
-                            <input type="number" id="mesa_num" placeholder="Ej. 10" style="width: 100%; box-sizing: border-box;">
-                        </div>
-                    </div>
-                    
-                    <h3 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seleccionar Platillos</h3>
-                    
-                    <div id="lista-platillos-pedido">
-                        <!-- Ejemplo de items a agregar -->
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <select style="flex: 2;">
-                                <option value="">Seleccione un platillo...</option>
-                                <option value="1">Pupusas Revueltas</option>
-                                <option value="2">Pupusas de Queso</option>
-                                <option value="3">Sopa de Gallina</option>
-                            </select>
-                            <input type="number" placeholder="Cant." min="1" value="1" style="flex: 1;">
-                            <button class="btn-eliminar"><i class="fa-solid fa-trash"></i></button>
-                        </div>
-                    </div>
-                    
-                    <button class="btn-agregar" style="margin-top: 10px; margin-bottom: 20px;"><i class="fa-solid fa-plus"></i> Añadir otro platillo</button>
-                    
-                    <button style="width: 100%; padding: 15px; font-size: 16px;">Enviar Pedido a Cocina</button>
-                </div>
+<div id="tomar-pedido">
+    <h1>Tomar Pedido Nuevo</h1>
+    
+    <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px;">
+        <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+            <div style="flex: 1;">
+                <label style="display: block; margin-bottom: 5px; font-weight: 500;">Número de Mesa</label>
+                <input type="number" id="mesa_num" placeholder="Ej. 10" style="width: 100%; box-sizing: border-box;">
             </div>
+        </div>
+        
+        <h3 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seleccionar Platillos</h3>
+        
+        <div id="lista-platillos-pedido"></div>
+
+        <button class="btn-agregar" onclick="agregarFilaPlatillo()" style="margin-top: 10px;">
+            <i class="fa-solid fa-plus"></i> Añadir otro platillo
+        </button>
+
+        <!-- TOTAL -->
+        <div style="text-align: right; margin-top: 15px; font-size: 1.1em; font-weight: 600; border-top: 2px solid #eee; padding-top: 10px;">
+            Total: <span id="total-pedido">$0.00</span>
+        </div>
+
+        <!-- NOTAS PARA COCINA (CUS-158) -->
+        <div style="margin-top: 20px;">
+            <label style="display:block; margin-bottom:5px; font-weight:500;">
+                <i class="fa-solid fa-note-sticky"></i> Notas para cocina
+            </label>
+            <textarea id="notas-pedido" rows="3"
+                placeholder="Ej: sin cebolla, alergia a maní..."
+                style="width:100%; box-sizing:border-box; padding:10px; border:1px solid #ddd; border-radius:6px; resize:vertical; font-family:inherit;">
+            </textarea>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:6px;">
+                <span id="estado-notas" style="font-size:0.85em; color:#4CAF50;"></span>
+                <button onclick="guardarNotasManual()" style="width:auto; padding:6px 14px; font-size:0.9em;">
+                    <i class="fa-solid fa-floppy-disk"></i> Guardar notas
+                </button>
+            </div>
+        </div>
+        
+        <button style="width: 100%; padding: 15px; font-size: 16px; margin-top: 20px;">
+            Enviar Pedido a Cocina
+        </button>
+    </div>
+</div>
 
             <div id="verMesas" style="display: none;">
                 <h1>Ver Mesas</h1>
