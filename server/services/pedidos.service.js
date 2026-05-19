@@ -6,6 +6,7 @@ const generarNumeroPedido = async (connection) => {
     "SELECT YEAR(CURRENT_DATE()) AS anio"
   );
 
+
   const lockName = `pedidos_correlativo_${anio}`;
   const [[lockResult]] = await connection.query(
     "SELECT GET_LOCK(?, 10) AS lock_obtenido",
@@ -63,17 +64,21 @@ export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
       `,
       [pedidoNumero, mesaPedido, userId, tipo, "Pendiente", null]
     );
+   
 
     const id_pedido = result.insertId;
 
     if (items && items.length > 0) {
       for (const item of items) {
         const [platillo] = await connection.query(
-          "SELECT platillo_precio FROM platillos WHERE id_platillo = ?",
+          "SELECT platillo_precio, platillo_disponible FROM platillos WHERE id_platillo = ?",
           [item.id_platillo]
         );
 
         if (platillo.length > 0) {
+          if (platillo[0].platillo_disponible === 0 || platillo[0].platillo_disponible === false) {
+            throw Object.assign(new Error("No se puede agregar un platillo no disponible"), { status: 400 });
+          }
           const precio_unitario = platillo[0].platillo_precio;
           const subtotal = precio_unitario * item.cantidad;
 
@@ -171,30 +176,36 @@ export const agregarItemsPedido = async ({ id_pedido, items }) => {
 
     for (const item of items) {
       const [platillo] = await connection.query(
-        "SELECT platillo_precio FROM platillos WHERE id_platillo = ?",
+        "SELECT platillo_precio, platillo_disponible FROM platillos WHERE id_platillo = ?",
         [item.id_platillo]
       );
 
-      if (platillo.length > 0) {
-        const precio_unitario = platillo[0].platillo_precio;
-        const subtotal = precio_unitario * item.cantidad;
+      if (platillo.length === 0) {
+        throw Object.assign(new Error("Platillo no encontrado"), { status: 404 });
+      }
 
-        await connection.query(
-          `
+      if (platillo[0].platillo_disponible === 0 || platillo[0].platillo_disponible === false) {
+        throw Object.assign(new Error("No se puede agregar un platillo no disponible"), { status: 400 });
+      }
+
+      const precio_unitario = platillo[0].platillo_precio;
+      const subtotal = precio_unitario * item.cantidad;
+
+      await connection.query(
+        `
             INSERT INTO detalle_pedido
             (id_pedido, id_platillo, detalle_pedido_cantidad, detalle_pedido_precio_unitario, detalle_pedido_subtotal, detalle_pedido_notas)
             VALUES (?, ?, ?, ?, ?, ?)
           `,
-          [
-            id_pedido,
-            item.id_platillo,
-            item.cantidad,
-            precio_unitario,
-            subtotal,
-            item.notas
-          ]
-        );
-      }
+        [
+          id_pedido,
+          item.id_platillo,
+          item.cantidad,
+          precio_unitario,
+          subtotal,
+          item.notas
+        ]
+      );
     }
 
     await connection.query(
@@ -281,6 +292,24 @@ export const agregarPlatilloAPedido = async ({
     );
   }
 
+// Validar notas del pedido
+if (detalle_pedido_notas) {
+  if (typeof detalle_pedido_notas !== "string") {
+    throw Object.assign(
+      new Error("Las notas deben ser texto"),
+      { status: 400 }
+    );
+  }
+
+  if (detalle_pedido_notas.length > 200) {
+    throw Object.assign(
+      new Error("Las notas no pueden superar 200 caracteres"),
+      { status: 400 }
+    );
+  }
+}
+
+
   // Validar el pedido
   const [pedidoRows] = await db.query(
     `SELECT pedido_estado
@@ -333,7 +362,7 @@ export const agregarPlatilloAPedido = async ({
 
   const platillo = platilloRows[0];
 
-  if (!platillo.platillo_disponible) {
+  if (platillo.platillo_disponible === 0 || platillo.platillo_disponible === false) {
     throw Object.assign(
       new Error("El platillo no está disponible"),
       { status: 400 }

@@ -41,4 +41,3 @@ router.get("/cocina/pendientes",requirePermission("ver_pedidos"), obtenerPedidos
 router.patch("/:id/cocina/estado",requirePermission("ver_pedidos"), cambiarEstadoPedidoCocina);
 
 export default router;
-

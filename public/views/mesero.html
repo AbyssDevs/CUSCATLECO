@@ -95,20 +95,40 @@
                     <h3>Seleccionar Platillos</h3>
                     <div id="platillos-container">
                         <!-- La primera fila se carga por defecto -->
-                        <div class="platillo-row" style="display: flex; gap: 10px; margin-bottom: 10px; align-items: center;">
-                            <select class="platillo-select" style="flex: 3;">
+                        <div class="platillo-row">
+                            <select class="platillo-select">
                                 <option value="">Seleccione un platillo...</option>
                             </select>
-                            <input type="number" class="platillo-cantidad" value="1" min="1" max="99" style="flex: 1;">
-                            <input type="text" class="platillo-notas" placeholder="Notas (opcional)" style="flex: 2; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px;">
-                            <button type="button" class="btn-eliminar-fila" style="background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">
+                            
+                            <div class="cantidad-control">
+                                <button type="button" class="btn-disminuir-cantidad">
+                                    <i class="fas fa-minus"></i>
+                                </button>
+                                <input type="number" class="platillo-cantidad" value="1" min="1" max="99">
+                                <button type="button" class="btn-aumentar-cantidad">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                            
+                            <input type="text" class="platillo-notas" placeholder="Notas (opcional)">
+                            <button type="button" class="btn-eliminar-fila">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </div>
                     </div>
+
                     <button type="button" id="btn-add-platillo" style="background: #007bff; color: white; margin-top: 10px; margin-bottom: 15px; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">
                         <i class="fas fa-plus"></i> Añadir otro platillo
                     </button>
+
+                    <!-- RESUMEN DEL PEDIDO (CUS-124) -->   
+                    <div id="resumen-pedido" style="background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin: 15px 0;">
+                        <h4 style="margin: 0 0 10px 0; color: #555;">Resumen del Pedido</h4>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-weight: 600;">Subtotal:</span>
+                            <span id="subtotal-pedido" style="font-weight: 700; font-size: 1.2rem; color: #2e7d32;">$0.00</span>
+                    </div>
+                </div>
 
                     <button id="btn-enviar-pedido" style="width: 100%; padding: 15px; margin-bottom: 15px; background: #7a1d1d; color: white; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
                     Guardar pedido
