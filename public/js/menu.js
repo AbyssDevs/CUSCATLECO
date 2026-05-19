@@ -9,8 +9,14 @@ const menuState = {
   },
 };
 
+window.activeViewId = 'menu-restaurante';
+
 function isAdminMenuPage() {
   return document.querySelector("#menuPlatillos[data-admin='true']") !== null;
+}
+
+function isPedidoMenuPage() {
+  return window.activeViewId === 'tomar-pedido';
 }
 
 function toggleMenu() {
@@ -36,7 +42,9 @@ function mostrarViews(seccion) {
     view.style.display = "block";
   }
 
-  if (seccion === "menu-restaurante") {
+  window.activeViewId = seccion;
+
+  if (seccion === "menu-restaurante" || seccion === "tomar-pedido") {
     loadMenu();
   }
 
@@ -95,13 +103,19 @@ function truncateText(text, limit = 100) {
   return normalized.length <= limit ? normalized : normalized.slice(0, limit).trim() + "...";
 }
 
+function getActiveViewElement() {
+  return document.getElementById(window.activeViewId) || document;
+}
+
 function setMenuLoading(show) {
-  const loading = document.getElementById("menuLoading");
+  const activeView = getActiveViewElement();
+  const loading = activeView.querySelector(".menu-loading") || document.getElementById("menuLoading");
   if (loading) loading.style.display = show ? "flex" : "none";
 }
 
 function setMenuEmpty(message) {
-  const empty = document.getElementById("menuEmpty");
+  const activeView = getActiveViewElement();
+  const empty = activeView.querySelector(".menu-empty") || document.getElementById("menuEmpty");
   if (!empty) return;
   empty.textContent = message;
   empty.style.display = message ? "flex" : "none";
@@ -109,16 +123,22 @@ function setMenuEmpty(message) {
 
 function renderMenu(items) {
   menuState.items = items;
-  const tableBody = document.getElementById("menuTableBody");
-  const cardList = document.getElementById("menuCardList");
+  const activeView = getActiveViewElement();
+  const tableBody = activeView.querySelector(".menu-table-body") || document.getElementById("menuTableBody");
+  const cardList = activeView.querySelector(".menu-card-list") || document.getElementById("menuCardList");
 
   const filteredItems = [...items];
 
   const adminMode = isAdminMenuPage();
+  const pedidoMode = isPedidoMenuPage();
 
   if (tableBody) {
     if (filteredItems.length === 0) {
-      tableBody.innerHTML = '';
+      tableBody.innerHTML = `
+        <tr>
+          <td colspan="${adminMode || pedidoMode ? 6 : 5}" style="padding: 18px; text-align: center;">No hay platillos disponibles en este momento</td>
+        </tr>
+      `;
     } else {
       tableBody.innerHTML = filteredItems
         .map((item) => {
@@ -126,8 +146,29 @@ function renderMenu(items) {
           const actualizadoInfo = item.actualizado_por && item.fecha_actualizacion
             ? `<span class="menu-item-meta">Actualizado por ${item.actualizado_por} el ${item.fecha_actualizacion}</span>`
             : "";
+            
+          let actionCol = "";
+          if (adminMode) {
+              actionCol = `
+                <td>
+                  <button class="btn-editar" onclick="editarPlatillo(${item.id_platillo})"><i class="fa-solid fa-pen"></i> Editar</button>
+                  <button class="btn-activar" onclick="activarPlatillo(${item.id_platillo})"><i class="fa-solid fa-power-off"></i> Activar</button>
+                  <button class="btn-desactivar" onclick="desactivarPlatillo(${item.id_platillo})"><i class="fa-solid fa-power-off"></i> Desactivar</button>
+                </td>
+              `;
+          } else if (pedidoMode) {
+              const enPedido = window.pedidoActual && window.pedidoActual.items.some(i => i.id_platillo === item.id_platillo);
+              actionCol = `
+                <td>
+                  <button class="btn-agregar" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;"' : 'style="background:#248a4c;color:white;"'}>
+                    <i class="fa-solid ${enPedido ? 'fa-plus-circle' : 'fa-plus'}"></i> ${enPedido ? 'Agregar otro' : 'Agregar'}
+                  </button>
+                </td>
+              `;
+          }
+
           return `
-            <tr class="${!disponible ? 'platillo-inactivo' : ''}">
+            <tr ${!disponible && pedidoMode ? 'style="opacity: 0.6;"' : ''}>
               <td><img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
               <td>
                 <div style="display:flex; flex-direction:column; gap:6px;">
@@ -139,11 +180,7 @@ function renderMenu(items) {
               <td class="categoria-col">${item.categoria_nombre || "-"}</td>
               <td class="descripcion-col">${truncateText(item.platillo_descripcion || "", 100)}</td>
               <td class="precio-col">${formatPrice(item.platillo_precio)}</td>
-              ${adminMode ? `
-                <td><button class="btn-editar" onclick="editarPlatillo(${item.id_platillo})"><i class="fa-solid fa-pen"></i> Editar</button></td>
-                <td><button class="btn-activar" onclick="activarPlatillo(${item.id_platillo})"><i class="fa-solid fa-power-off"></i> Activar</button></td>
-                <td><button class="btn-desactivar" onclick="desactivarPlatillo(${item.id_platillo})"><i class="fa-solid fa-power-off"></i> Desactivar</button></td>
-              ` : ""}
+              ${actionCol}
             </tr>
           `;
         })
@@ -161,8 +198,31 @@ function renderMenu(items) {
           const actualizadoInfo = item.actualizado_por && item.fecha_actualizacion
             ? `<span class="menu-item-meta">Actualizado por ${item.actualizado_por} el ${item.fecha_actualizacion}</span>`
             : "";
+            
+          let adminActions = "";
+          let pedidoActions = "";
+          
+          if (adminMode) {
+              adminActions = `
+                <div class="menu-card-actions">
+                  <button class="btn-editar" onclick="editarPlatillo(${item.id_platillo})"><i class="fa-solid fa-pen"></i> Editar</button>
+                  <button class="btn-activar" onclick="activarPlatillo(${item.id_platillo})"><i class="fa-solid fa-power-off"></i> Activar</button>
+                  <button class="btn-desactivar" onclick="desactivarPlatillo(${item.id_platillo})"><i class="fa-solid fa-trash"></i> Eliminar</button>
+                </div>
+              `;
+          } else if (pedidoMode) {
+              const enPedido = window.pedidoActual && window.pedidoActual.items.some(i => i.id_platillo === item.id_platillo);
+              pedidoActions = `
+                <div class="menu-card-actions" style="margin-top: 10px;">
+                  <button class="btn-agregar" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;width:100%;"' : 'style="background:#248a4c;color:white;width:100%;"'}>
+                    <i class="fa-solid ${enPedido ? 'fa-plus-circle' : 'fa-plus'}"></i> ${enPedido ? 'Agregar otro' : 'Agregar al pedido'}
+                  </button>
+                </div>
+              `;
+          }
+
           return `
-            <div class="menu-card ${!disponible ? 'platillo-inactivo' : ''}">
+            <div class="menu-card" ${!disponible && pedidoMode ? 'style="opacity: 0.6;"' : ''}>
               ${item.platillo_imagen_url ? `<img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-card-img">` : `<div class="menu-card-img" style="background: #eee; display:flex; align-items:center; justify-content:center; color:#888;">Sin imagen</div>`}
               <div class="menu-card-header">
                 <div>
@@ -174,13 +234,8 @@ function renderMenu(items) {
               <p class="menu-card-desc">${truncateText(item.platillo_descripcion || "", 100)}</p>
               ${actualizadoInfo}
               ${!disponible ? `<span class="menu-card-status">No disponible</span>` : ""}
-              ${adminMode ? `
-                <div class="menu-card-actions">
-                  <button class="btn-editar" onclick="editarPlatillo(${item.id_platillo})"><i class="fa-solid fa-pen"></i> Editar</button>
-                  <button class="btn-activar" onclick="activarPlatillo(${item.id_platillo})"><i class="fa-solid fa-power-off"></i> Activar</button>
-                  <button class="btn-desactivar" onclick="desactivarPlatillo(${item.id_platillo})"><i class="fa-solid fa-trash"></i> Eliminar</button>
-                </div>
-              ` : ""}
+              ${adminActions}
+              ${pedidoActions}
             </div>
           `;
         })
@@ -241,8 +296,9 @@ async function loadMenu() {
   } catch (error) {
     console.error("Error cargando menú:", error);
     setMenuEmpty("No hay platillos disponibles en este momento");
-    const tableBody = document.getElementById("menuTableBody");
-    const cardList = document.getElementById("menuCardList");
+    const activeView = getActiveViewElement();
+    const tableBody = activeView.querySelector(".menu-table-body") || document.getElementById("menuTableBody");
+    const cardList = activeView.querySelector(".menu-card-list") || document.getElementById("menuCardList");
     if (tableBody) tableBody.innerHTML = "";
     if (cardList) cardList.innerHTML = "";
   } finally {
@@ -259,8 +315,8 @@ function debounce(fn, delay = 250) {
 }
 
 function renderCategoryFilter(items) {
-  const select = document.getElementById("menuCategoryFilter");
-  if (!select) return;
+  const selects = document.querySelectorAll(".menu-category-filter, #menuCategoryFilter");
+  if (selects.length === 0) return;
 
   const sourceItems = menuState.categories.length > 0 ? menuState.categories : items;
   const selectedCategory = menuState.filter.categoria_id;
@@ -274,7 +330,7 @@ function renderCategoryFilter(items) {
     .map(([id, nombre]) => ({ id, nombre }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre, "es", { sensitivity: "base" }));
 
-  select.innerHTML = `
+  const optionsHtml = `
     <option value="">Todas las categorías</option>
     ${categories
       .map(
@@ -287,13 +343,18 @@ function renderCategoryFilter(items) {
       .join("")}
   `;
 
-  if (selectedCategory) {
-    select.value = selectedCategory;
-  }
+  selects.forEach(select => {
+    select.innerHTML = optionsHtml;
+    if (selectedCategory) {
+      select.value = selectedCategory;
+    }
+  });
 }
 
 function updateSortHeaders() {
-  const sortableHeaders = document.querySelectorAll("#menu-restaurante th.sortable, #menuPlatillos th.sortable");
+  const activeView = getActiveViewElement();
+  const sortableHeaders = activeView.querySelectorAll("th.sortable");
+  
   sortableHeaders.forEach((header) => {
     const indicator = header.querySelector(".sort-indicator");
     if (!indicator) return;
@@ -307,86 +368,48 @@ function updateSortHeaders() {
 }
 
 function attachMenuControls() {
-  const categorySelect = document.getElementById("menuCategoryFilter");
-  const searchInput = document.getElementById("menuSearchInput");
-  const sortableHeaders = document.querySelectorAll("#menu-restaurante th.sortable, #menuPlatillos th.sortable");
-
-  if (categorySelect) {
-    categorySelect.addEventListener("change", (event) => {
+  // Use delegation or attach to all found elements
+  const categorySelects = document.querySelectorAll(".menu-category-filter, #menuCategoryFilter");
+  const searchInputs = document.querySelectorAll(".menu-search-input, #menuSearchInput");
+  
+  categorySelects.forEach(select => {
+    select.addEventListener("change", (event) => {
       menuState.filter.categoria_id = event.target.value;
       loadMenu();
     });
-  }
+  });
 
-  if (searchInput) {
-    searchInput.addEventListener(
+  searchInputs.forEach(input => {
+    input.addEventListener(
       "input",
       debounce((event) => {
         menuState.filter.nombre = event.target.value;
         loadMenu();
       }, 250)
     );
-  }
-
-  sortableHeaders.forEach((header) => {
-    header.addEventListener("click", () => {
-      const field = header.dataset.sort;
-      if (!field) return;
-
-      if (menuState.filter.orderBy === field) {
-        menuState.filter.orderDir = menuState.filter.orderDir === "ASC" ? "DESC" : "ASC";
-      } else {
-        menuState.filter.orderBy = field;
-        menuState.filter.orderDir = "ASC";
-      }
-
-      loadMenu();
-    });
   });
-}
 
-function renderPedidoMenu(items) {
-  menuState.items = items;
-  const tableBody = document.getElementById("pedidoMenuTableBody");
+  // Delegated event for sortable headers so it works for multiple tables
+  document.addEventListener("click", (event) => {
+    const header = event.target.closest("th.sortable");
+    if (!header) return;
 
-  const filteredItems = [...items];
+    // Only process if header is in the active view
+    const activeView = getActiveViewElement();
+    if (!activeView.contains(header)) return;
 
-  if (tableBody) {
-    if (filteredItems.length === 0) {
-      tableBody.innerHTML = `
-        <tr>
-          <td colspan="6" style="padding: 18px; text-align: center;">No hay platillos disponibles en este momento</td>
-        </tr>
-      `;
+    const field = header.dataset.sort;
+    if (!field) return;
+
+    if (menuState.filter.orderBy === field) {
+      menuState.filter.orderDir = menuState.filter.orderDir === "ASC" ? "DESC" : "ASC";
     } else {
-      tableBody.innerHTML = filteredItems
-        .map((item) => {
-          const disponible = item.platillo_disponible === true || item.platillo_disponible === 1 || item.platillo_disponible === "1";
-          const actualizadoInfo = item.actualizado_por && item.fecha_actualizacion
-            ? `<span class="menu-item-meta">Actualizado por ${item.actualizado_por} el ${item.fecha_actualizacion}</span>`
-            : "";
-          return `
-            <tr class="${!disponible ? 'platillo-inactivo' : ''}">
-              <td><img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
-              <td>
-                <div style="display:flex; flex-direction:column; gap:6px;">
-                  <strong>${item.platillo_nombre || "Sin nombre"}</strong>
-                  ${actualizadoInfo}
-                  ${!disponible ? `<span class="menu-card-status">No disponible</span>` : ""}
-                </div>
-              </td>
-              <td class="categoria-col">${item.categoria_nombre || "-"}</td>
-              <td class="descripcion-col">${truncateText(item.platillo_descripcion || "", 100)}</td>
-              <td class="precio-col">${formatPrice(item.platillo_precio)}</td>
-              <td class="accion-col">
-                <button class="btn-agregar-pedido ${!disponible ? 'disabled' : ''}" ${!disponible ? 'disabled' : ''} onclick="${disponible ? `agregarPlatilloAlPedido(${item.id_platillo}, '${item.platillo_nombre.replace(/'/g, "\\'")}')` : ''}"><i class="fa-solid fa-plus"></i> Agregar</button>
-              </td>
-            </tr>
-          `;
-        })
-        .join("");
+      menuState.filter.orderBy = field;
+      menuState.filter.orderDir = "ASC";
     }
-  }
+
+    loadMenu();
+  });
 }
 
 window.addEventListener("DOMContentLoaded", () => {
@@ -396,6 +419,8 @@ window.addEventListener("DOMContentLoaded", () => {
 
   const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
   if (menuSection && menuSection.style.display !== "none") {
+    loadMenu();
+  } else if (document.getElementById('tomar-pedido') && document.getElementById('tomar-pedido').style.display !== "none") {
     loadMenu();
   }
 });
