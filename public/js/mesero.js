@@ -458,19 +458,26 @@ document.addEventListener("DOMContentLoaded", () => {
       // 2. Crear una nueva fila (div)
       const newRow = document.createElement("div");
       newRow.className = "platillo-row";
-      newRow.style.cssText = "display: flex; gap: 10px; margin-bottom: 10px; align-items: center;";
   
-    // 3. Agregar el HTML interno de la fila
-    newRow.innerHTML = `
-      <select class="platillo-select" style="flex: 3;">
-        <option value="">Seleccione un platillo...</option>
-      </select>
-      <input type="number" class="platillo-cantidad" value="1" min="1" max="99" style="flex: 1;">
-      <input type="text" class="platillo-notas" placeholder="Notas (opcional)" style="flex: 2; padding: 12px 15px; border: 1px solid #ddd; border-radius: 6px;">
-      <button type="button" class="btn-eliminar-fila" style="background: #dc3545; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer;">
-        <i class="fas fa-trash"></i>
-      </button>
-    `;
+      // 3. Agregar el HTML interno de la fila
+      newRow.innerHTML = `
+        <select class="platillo-select">
+          <option value="">Seleccione un platillo...</option>
+        </select>
+        <div class="cantidad-control">
+          <button type="button" class="btn-disminuir-cantidad">
+            <i class="fas fa-minus"></i>
+          </button>
+          <input type="number" class="platillo-cantidad" value="1" min="1" max="99">
+          <button type="button" class="btn-aumentar-cantidad">
+            <i class="fas fa-plus"></i>
+          </button>
+        </div>
+        <input type="text" class="platillo-notas" placeholder="Notas (opcional)">
+        <button type="button" class="btn-eliminar-fila">
+          <i class="fas fa-trash"></i>
+        </button>
+      `;
   
       // 4. Agregar la nueva fila al contenedor
       container.appendChild(newRow);
@@ -483,6 +490,9 @@ document.addEventListener("DOMContentLoaded", () => {
       
       // 7. ACTUALIZAR SUBTOTAL EN TIEMPO REAL (CUS-124)
       actualizarSubtotal();
+
+      // 8. notificacion "Platillo añadido al pedido"
+      toast("success", "Platillo añadido al pedido");
     });
 
     document.getElementById("platillos-container").addEventListener("input", (e) => {
@@ -520,6 +530,30 @@ document.addEventListener("DOMContentLoaded", () => {
           actualizarSubtotal();
         } else {
           toast("warning", "Debe haber al menos un platillo en el pedido");
+        }
+      }
+      
+      // ============================================
+      // INCREMENTAR CANTIDAD
+      // ============================================
+      if (e.target.closest(".btn-aumentar-cantidad")) {
+        const inputCantidad = e.target.closest(".cantidad-control").querySelector(".platillo-cantidad");
+        let valor = parseInt(inputCantidad.value) || 1;
+        if (valor < 99) {
+          inputCantidad.value = valor + 1;
+          actualizarSubtotal();
+        }
+      }
+      
+      // ============================================
+      // DISMINUIR CANTIDAD
+      // ============================================
+      if (e.target.closest(".btn-disminuir-cantidad")) {
+        const inputCantidad = e.target.closest(".cantidad-control").querySelector(".platillo-cantidad");
+        let valor = parseInt(inputCantidad.value) || 1;
+        if (valor > 1) {
+          inputCantidad.value = valor - 1;
+          actualizarSubtotal();
         }
       }
     });
