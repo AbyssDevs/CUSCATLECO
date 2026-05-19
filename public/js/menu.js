@@ -51,6 +51,10 @@ function mostrarViews(seccion) {
   if (seccion === "verMesas" && typeof cargarMesas === "function") {
     cargarMesas();
   }
+
+  if (seccion === "tomar-pedido" && typeof window.cargarMesasPedido === "function") {
+    window.cargarMesasPedido();
+  }
 }
 
 async function cargarUsuarioLogueado() {
@@ -123,6 +127,7 @@ function setMenuEmpty(message) {
 
 function renderMenu(items) {
   menuState.items = items;
+  window.menuItems = items;
   const activeView = getActiveViewElement();
   const tableBody = activeView.querySelector(".menu-table-body") || document.getElementById("menuTableBody");
   const cardList = activeView.querySelector(".menu-card-list") || document.getElementById("menuCardList");
@@ -421,6 +426,7 @@ window.addEventListener("DOMContentLoaded", () => {
   if (menuSection && menuSection.style.display !== "none") {
     loadMenu();
   } else if (document.getElementById('tomar-pedido') && document.getElementById('tomar-pedido').style.display !== "none") {
+    window.activeViewId = 'tomar-pedido';
     loadMenu();
   }
 });
