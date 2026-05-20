@@ -22,6 +22,8 @@ document.addEventListener("DOMContentLoaded", () => {
       input.disabled = true;
       input.style.backgroundColor = "#f0f0f0";
     });
+
+    actualizarEstadoBotonesMenu();
   }
 
   // ============================================
@@ -43,6 +45,8 @@ document.addEventListener("DOMContentLoaded", () => {
       input.disabled = false;
       input.style.backgroundColor = "";
     });
+
+    actualizarEstadoBotonesMenu();
   }
   const filtrosMesasPedido = {
     busqueda: "",
@@ -66,6 +70,7 @@ document.addEventListener("DOMContentLoaded", () => {
     await cargarMesasPedido();
     renderEstadoPedidoVacio();
     syncPedidoActualGlobal();
+    actualizarEstadoBotonesMenu();
     aplicarTipoPedido("salon");
   }
 
@@ -474,9 +479,52 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
+  function obtenerCantidadesPedidoActual() {
+    const cantidades = new Map();
+    document.querySelectorAll("#platillos-container .platillo-row").forEach((row) => {
+      const idPlatillo = row.dataset.idPlatillo || row.querySelector(".platillo-id")?.value;
+      const cantidad = parseInt(row.querySelector(".platillo-cantidad")?.value) || 0;
+      if (idPlatillo && cantidad > 0) {
+        cantidades.set(String(idPlatillo), cantidad);
+      }
+    });
+    return cantidades;
+  }
+
+  function actualizarEstadoBotonesMenu() {
+    const cantidades = obtenerCantidadesPedidoActual();
+
+    document.querySelectorAll(".btn-agregar[data-id-platillo]").forEach((button) => {
+      const idPlatillo = String(button.dataset.idPlatillo);
+      const cantidad = cantidades.get(idPlatillo);
+      const enPedido = cantidad > 0;
+      const disponible = button.dataset.disponible !== "false";
+      const defaultText = button.dataset.defaultText || "Agregar";
+      const iconClass = enPedido ? "fa-plus-circle" : "fa-plus";
+
+      button.innerHTML = `<i class="fa-solid ${iconClass}"></i> ${enPedido ? "Agregar otro" : defaultText}`;
+      button.disabled = pedidoEnviado || !disponible;
+      button.title = pedidoEnviado ? "Pedido ya enviado a cocina" : "";
+    });
+
+    document.querySelectorAll(".menu-cantidad-pedido[data-id-platillo]").forEach((label) => {
+      const cantidad = cantidades.get(String(label.dataset.idPlatillo));
+      if (cantidad > 0) {
+        label.textContent = `Cantidad: ${cantidad}`;
+        label.style.display = "";
+      } else {
+        label.textContent = "";
+        label.style.display = "none";
+      }
+    });
+  }
+
+  window.actualizarEstadoBotonesMenu = actualizarEstadoBotonesMenu;
+
   function agregarPlatilloDesdeMenu(idPlatillo) {
     if (pedidoEnviado) {
       toast("warning", "Pedido ya enviado a cocina. No se pueden agregar más platillos.");
+      actualizarEstadoBotonesMenu();
       return;
     }
 
@@ -511,6 +559,7 @@ document.addEventListener("DOMContentLoaded", () => {
     actualizarBloqueoTipoPedido();
     actualizarSubtotal();
     syncPedidoActualGlobal();
+    actualizarEstadoBotonesMenu();
     toast("success", "Platillo agregado al pedido");
   }
 
@@ -527,6 +576,7 @@ document.addEventListener("DOMContentLoaded", () => {
         actualizarBloqueoTipoPedido();
         actualizarSubtotal();
         syncPedidoActualGlobal();
+        actualizarEstadoBotonesMenu();
       }
 
       if (e.target.closest(".btn-aumentar-cantidad")) {
@@ -535,6 +585,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (valor < 99) inputCantidad.value = valor + 1;
         actualizarSubtotal();
         syncPedidoActualGlobal();
+        actualizarEstadoBotonesMenu();
       }
 
       if (e.target.closest(".btn-disminuir-cantidad")) {
@@ -543,6 +594,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (valor > 1) inputCantidad.value = valor - 1;
         actualizarSubtotal();
         syncPedidoActualGlobal();
+        actualizarEstadoBotonesMenu();
       }
     });
 
@@ -560,6 +612,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       actualizarSubtotal();
       syncPedidoActualGlobal();
+      actualizarEstadoBotonesMenu();
     });
 
     container.addEventListener("change", (e) => {
@@ -573,6 +626,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       actualizarSubtotal();
       syncPedidoActualGlobal();
+      actualizarEstadoBotonesMenu();
     });
 
     document.getElementById("btn-enviar-pedido").addEventListener("click", enviarPedido);
@@ -662,7 +716,9 @@ document.addEventListener("DOMContentLoaded", () => {
     actualizarSubtotal();
     actualizarBloqueoTipoPedido();
     syncPedidoActualGlobal();
+    actualizarEstadoBotonesMenu();
     cargarMesasPedido();
     habilitarBotonesPlatillos();
+    actualizarEstadoBotonesMenu();
   }
 });

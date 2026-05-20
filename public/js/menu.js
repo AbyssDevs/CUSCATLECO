@@ -162,10 +162,13 @@ function renderMenu(items) {
                 </td>
               `;
           } else if (pedidoMode) {
-              const enPedido = window.pedidoActual && window.pedidoActual.items.some(i => i.id_platillo === item.id_platillo);
+              const pedidoItem = window.pedidoActual?.items?.find(i => String(i.id_platillo) === String(item.id_platillo));
+              const enPedido = Boolean(pedidoItem);
+              const cantidadEnPedido = Number(pedidoItem?.cantidad) || 0;
               actionCol = `
                 <td>
-                  <button class="btn-agregar" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;"' : 'style="background:#248a4c;color:white;"'}>
+                  <span class="menu-item-meta menu-cantidad-pedido" data-id-platillo="${item.id_platillo}" ${enPedido ? "" : 'style="display:none;"'}>${enPedido ? `Cantidad: ${cantidadEnPedido}` : ""}</span>
+                  <button class="btn-agregar" data-id-platillo="${item.id_platillo}" data-default-text="Agregar" data-disponible="${disponible ? "true" : "false"}" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;"' : 'style="background:#248a4c;color:white;"'}>
                     <i class="fa-solid ${enPedido ? 'fa-plus-circle' : 'fa-plus'}"></i> ${enPedido ? 'Agregar otro' : 'Agregar'}
                   </button>
                 </td>
@@ -216,10 +219,13 @@ function renderMenu(items) {
                 </div>
               `;
           } else if (pedidoMode) {
-              const enPedido = window.pedidoActual && window.pedidoActual.items.some(i => i.id_platillo === item.id_platillo);
+              const pedidoItem = window.pedidoActual?.items?.find(i => String(i.id_platillo) === String(item.id_platillo));
+              const enPedido = Boolean(pedidoItem);
+              const cantidadEnPedido = Number(pedidoItem?.cantidad) || 0;
               pedidoActions = `
                 <div class="menu-card-actions" style="margin-top: 10px;">
-                  <button class="btn-agregar" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;width:100%;"' : 'style="background:#248a4c;color:white;width:100%;"'}>
+                  <span class="menu-item-meta menu-cantidad-pedido" data-id-platillo="${item.id_platillo}" ${enPedido ? "" : 'style="display:none;"'}>${enPedido ? `Cantidad: ${cantidadEnPedido}` : ""}</span>
+                  <button class="btn-agregar" data-id-platillo="${item.id_platillo}" data-default-text="Agregar al pedido" data-disponible="${disponible ? "true" : "false"}" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;width:100%;"' : 'style="background:#248a4c;color:white;width:100%;"'}>
                     <i class="fa-solid ${enPedido ? 'fa-plus-circle' : 'fa-plus'}"></i> ${enPedido ? 'Agregar otro' : 'Agregar al pedido'}
                   </button>
                 </div>
@@ -256,6 +262,9 @@ function renderMenu(items) {
 
   updateSortHeaders();
   renderCategoryFilter(menuState.items);
+  if (typeof window.actualizarEstadoBotonesMenu === "function") {
+    window.actualizarEstadoBotonesMenu();
+  }
 }
 
 async function ensureMenuCategories() {
