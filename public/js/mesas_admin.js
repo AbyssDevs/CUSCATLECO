@@ -529,7 +529,6 @@ window.addEventListener("DOMContentLoaded", () => {
 
 
   cargarMesasDisponiblesMesero();
-  setupTipoPedidoSelector();
 });
 
 // ============================================
@@ -577,5 +576,4 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 
   cargarMesasDisponiblesMesero();
-  setupTipoPedidoSelector();
 });

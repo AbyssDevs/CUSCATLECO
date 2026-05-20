@@ -425,6 +425,16 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  function setupTipoPedidoSelector() {
+    document.querySelectorAll(".pedido-type-btn").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        document.querySelectorAll(".pedido-type-btn").forEach((b) => b.classList.remove("active"));
+        this.classList.add("active");
+        aplicarTipoPedido(this.dataset.type);
+      });
+    });
+  }
+
   function crearFilaPlatillo(platillo, cantidad = 1) {
     const row = document.createElement("div");
     row.className = "platillo-row";
@@ -506,13 +516,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.agregarAlPedidoDesdeMenu = agregarPlatilloDesdeMenu;
   function setupEventListeners() {
-    document.querySelectorAll(".pedido-type-btn").forEach((btn) => {
-      btn.addEventListener("click", function () {
-        document.querySelectorAll(".pedido-type-btn").forEach((b) => b.classList.remove("active"));
-        this.classList.add("active");
-        aplicarTipoPedido(this.dataset.type);
-      });
-    });
+    setupTipoPedidoSelector();
 
     const container = document.getElementById("platillos-container");
 
