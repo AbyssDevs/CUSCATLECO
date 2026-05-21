@@ -7,6 +7,7 @@ const menuState = {
     orderBy: "nombre",
     orderDir: "ASC",
   },
+  rawItemsSnapshot: [] // Almacena el estado de red de la última sincronización
 };
 
 window.activeViewId = 'menu-restaurante';
@@ -97,7 +98,6 @@ function formatPrice(value) {
   });
 }
 
-// Limita la longitud del texto y añade puntos suspensivos si excede el límite
 function truncateText(text, limit = 100) {
   if (!text) return "";
   const normalized = String(text).trim();
@@ -328,7 +328,6 @@ async function ensureMenuCategories() {
   }
 
   if (USE_MOCK_DATA) {
-    // Generar categorías a partir de mock data
     const map = new Map();
     PLATILLOS_MOCK.forEach(item => {
       if (item.id_categoria) {
@@ -364,6 +363,9 @@ async function loadMenu() {
     let items = [];
 
     if (USE_MOCK_DATA) {
+      // Guardar snapshot de los datos del mock antes de filtrar
+      menuState.rawItemsSnapshot = JSON.parse(JSON.stringify(PLATILLOS_MOCK));
+
       // Simular retraso inicial de red de 200ms si no es una actualización manual
       await new Promise(resolve => setTimeout(resolve, 200));
 
@@ -491,7 +493,6 @@ function updateSortHeaders() {
 }
 
 function attachMenuControls() {
-  // Usar delegación o vinculación para todos los elementos encontrados
   const categorySelects = document.querySelectorAll(".menu-category-filter, #menuCategoryFilter");
   const searchInputs = document.querySelectorAll(".menu-search-input, #menuSearchInput");
   
@@ -512,12 +513,10 @@ function attachMenuControls() {
     );
   });
 
-  // Delegar eventos para encabezados ordenables
   document.addEventListener("click", (event) => {
     const header = event.target.closest("th.sortable");
     if (!header) return;
 
-    // Solo procesar si el encabezado pertenece a la vista activa
     const activeView = getActiveViewElement();
     if (!activeView.contains(header)) return;
 
@@ -535,7 +534,9 @@ function attachMenuControls() {
   });
 }
 
+// ========================================================
 // LÓGICA DE ACTUALIZACIÓN MANUAL (CON SPINNER Y setTimeout)
+// ========================================================
 function attachActualizarControl() {
   const btnActualizar = document.getElementById("btnActualizarMenu");
   const container = document.getElementById("platillosContainer");
@@ -544,32 +545,25 @@ function attachActualizarControl() {
   if (!btnActualizar) return;
 
   btnActualizar.addEventListener("click", () => {
-    // 1. Deshabilitar botón y cambiar a estado cargando
     btnActualizar.disabled = true;
     const originalText = btnActualizar.innerHTML;
     btnActualizar.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Cargando...`;
 
-    // 2. Mostrar Spinner y opacar contenedor de platillos
     if (loader) loader.style.display = "flex";
     if (container) container.classList.add("loading");
 
-    // 3. Simular delay asíncrono entre 1 y 1.5 segundos (1000ms a 1500ms)
     const randomDelay = Math.floor(Math.random() * 500) + 1000;
 
     setTimeout(async () => {
-      // Simular cambio sutil en los datos para notar que refrescó
-      simularCambioEnBaseDatos();
+      simularCambioEnServidorSilencioso();
 
-      // 4. Volver a renderizar (mantiene la lógica de los agregados en window.pedidoActual)
       await loadMenu();
 
-      // 5. Ocultar spinner, restaurar contenedor y rehabilitar botón
       if (loader) loader.style.display = "none";
       if (container) container.classList.remove("loading");
       btnActualizar.disabled = false;
       btnActualizar.innerHTML = originalText;
 
-      // Alerta visual de éxito (si SweetAlert está disponible en alerts.js / CDN)
       if (typeof Swal !== "undefined") {
         Swal.fire({
           toast: true,
@@ -584,21 +578,129 @@ function attachActualizarControl() {
   });
 }
 
-function simularCambioEnBaseDatos() {
-  // Cambia la disponibilidad o precio de algún plato al azar para demostrar la actualización
+function simularCambioEnServidorSilencioso() {
   const randomIndex = Math.floor(Math.random() * PLATILLOS_MOCK.length);
   const platillo = PLATILLOS_MOCK[randomIndex];
   platillo.platillo_disponible = platillo.platillo_disponible === 1 ? 0 : 1;
-  console.log(`[Simulación] Platillo "${platillo.platillo_nombre}" disponibilidad cambiada a: ${platillo.platillo_disponible === 1 ? "Disponible" : "No disponible"}`);
 }
 
+// ========================================================
+// SISTEMA DE POLLING Y SINCRONIZACIÓN AUTOMÁTICA
+// ========================================================
+
+let pollingIntervalId = null;
+
+function startMenuPolling() {
+  if (pollingIntervalId) clearInterval(pollingIntervalId);
+
+  pollingIntervalId = setInterval(async () => {
+    await ejecutarCicloPolling();
+  }, 10000);
+}
+
+function verificarCambiosEnServidor() {
+  if (!menuState.rawItemsSnapshot || menuState.rawItemsSnapshot.length === 0) return false;
+  if (menuState.rawItemsSnapshot.length !== PLATILLOS_MOCK.length) return true;
+
+  for (let i = 0; i < PLATILLOS_MOCK.length; i++) {
+    const sItem = PLATILLOS_MOCK[i];
+    const snapshotItem = menuState.rawItemsSnapshot.find(item => item.id_platillo === sItem.id_platillo);
+    
+    if (!snapshotItem) return true;
+
+    const sDisp = sItem.platillo_disponible === 1 || sItem.platillo_disponible === true;
+    const snapDisp = snapshotItem.platillo_disponible === 1 || snapshotItem.platillo_disponible === true;
+    if (sDisp !== snapDisp) return true;
+
+    if (Number(sItem.platillo_precio) !== Number(snapshotItem.platillo_precio)) return true;
+
+    if (sItem.platillo_nombre !== snapshotItem.platillo_nombre) return true;
+    if (sItem.platillo_descripcion !== snapshotItem.platillo_descripcion) return true;
+  }
+  return false;
+}
+
+async function ejecutarCicloPolling() {
+  const syncLed = document.getElementById("syncLed");
+  const syncText = document.getElementById("syncText");
+
+  if (!syncLed || !syncText) return;
+
+  syncLed.className = "sync-led state-checking";
+  syncText.textContent = "Comprobando...";
+
+  await new Promise(resolve => setTimeout(resolve, 800));
+
+  const hayCambios = verificarCambiosEnServidor();
+
+  if (hayCambios) {
+    console.log("[Polling] Se detectaron cambios en el servidor. Actualizando lista silenciosamente...");
+
+    syncLed.className = "sync-led state-updated";
+    syncText.textContent = "¡Actualizado!";
+
+    await loadMenu();
+
+    setTimeout(() => {
+      syncLed.className = "sync-led state-sync";
+      syncText.textContent = "Sincronizado";
+    }, 2500);
+  } else {
+    syncLed.className = "sync-led state-sync";
+    syncText.textContent = "Sincronizado";
+  }
+}
+
+// ========================================================
+// SIMULADOR DE CAMBIOS EN EL SERVIDOR (MODO PRUEBA / DEV)
+// ========================================================
+function simularCambioEnServidor() {
+  if (PLATILLOS_MOCK.length === 0) return;
+
+  const randomIndex = Math.floor(Math.random() * PLATILLOS_MOCK.length);
+  const platillo = PLATILLOS_MOCK[randomIndex];
+
+  const tipoCambio = Math.random() > 0.5 ? "disponibilidad" : "precio";
+
+  if (tipoCambio === "disponibilidad") {
+    platillo.platillo_disponible = platillo.platillo_disponible === 1 ? 0 : 1;
+    console.log(`[Simulador Servidor] "${platillo.platillo_nombre}" ahora disponible = ${platillo.platillo_disponible === 1 ? "Sí" : "No"}`);
+  } else {
+    const variacion = (Math.random() * 1.50 - 0.75).toFixed(2);
+    const precioAnterior = platillo.platillo_precio;
+    platillo.platillo_precio = Math.max(0.50, Number((Number(platillo.platillo_precio) + Number(variacion)).toFixed(2)));
+    console.log(`[Simulador Servidor] "${platillo.platillo_nombre}" cambió precio: $${precioAnterior} -> $${platillo.platillo_precio}`);
+  }
+
+  if (typeof Swal !== "undefined") {
+    Swal.fire({
+      toast: true,
+      position: "bottom-start",
+      icon: "info",
+      title: "Cambio simulado en servidor",
+      html: `Platillo: <b>${platillo.platillo_nombre}</b> modificado.<br>Espera el polling automático en 10 seg.`,
+      showConfirmButton: false,
+      timer: 3500
+    });
+  }
+}
+
+// ========================================================
+// INICIALIZACIÓN
+// ========================================================
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
 
   attachMenuControls();
   
-  // Registrar el botón de actualización
   attachActualizarControl();
+
+  const btnSimular = document.getElementById("btnSimularCambio");
+  if (btnSimular) {
+    btnSimular.addEventListener("click", () => {
+      simularCambioEnServidor();
+    });
+  }
 
   const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
   if (menuSection && menuSection.style.display !== "none") {
@@ -606,4 +708,6 @@ window.addEventListener("DOMContentLoaded", () => {
   } else if (document.getElementById('tomar-pedido') && document.getElementById('tomar-pedido').style.display !== "none") {
     loadMenu();
   }
+
+  startMenuPolling();
 });

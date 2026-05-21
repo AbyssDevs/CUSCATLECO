@@ -396,3 +396,118 @@
     transform: rotate(360deg);
   }
 }
+
+/* ========================================================
+   ESTILOS DE SINCRONIZACIÓN AUTOMÁTICA (POLLING Y LED)
+   ======================================================== */
+
+.sync-indicator-container {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 20px;
+  padding: 6px 14px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #4b5563;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.sync-indicator-container:hover {
+  background-color: #e5e7eb;
+}
+
+/* LED parpadeante */
+.sync-led {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  transition: background-color 0.4s ease, box-shadow 0.4s ease;
+  display: inline-block;
+}
+
+/* Estado: Sincronizado (Verde parpadeante lento) */
+.sync-led.state-sync {
+  background-color: #10b981;
+  box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+  animation: ledPulseGreen 2.2s infinite ease-in-out;
+}
+
+/* Estado: Comprobando (Naranja parpadeante rápido) */
+.sync-led.state-checking {
+  background-color: #f59e0b;
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+  animation: ledPulseOrange 0.8s infinite ease-in-out;
+}
+
+/* Estado: Actualizado con éxito (Azul flash) */
+.sync-led.state-updated {
+  background-color: #3b82f6;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.7);
+  animation: ledPulseBlue 0.4s 3 ease-in-out;
+}
+
+/* Botón de Pruebas de Desarrollador */
+.btn-dev {
+  background-color: #4b5563;
+  color: #ffffff;
+  border: 1px solid #4b5563;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+
+.btn-dev:hover {
+  background-color: #374151;
+  border-color: #374151;
+  transform: translateY(-1px);
+}
+
+.btn-dev:active {
+  transform: translateY(1px);
+}
+
+/* Animaciones Keyframes de los Leds */
+@keyframes ledPulseGreen {
+  0%, 100% {
+    opacity: 0.55;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.1);
+    box-shadow: 0 0 10px rgba(16, 185, 129, 0.7);
+  }
+}
+
+@keyframes ledPulseOrange {
+  0%, 100% {
+    opacity: 0.4;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15);
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.8);
+  }
+}
+
+@keyframes ledPulseBlue {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.2);
+    box-shadow: 0 0 14px rgba(59, 130, 246, 0.9);
+  }
+}

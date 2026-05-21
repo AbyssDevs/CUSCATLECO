@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+\<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -116,9 +116,21 @@
                                 <option value="">Todas las categorías</option>
                             </select>
                             <input class="menu-search-input" type="text" placeholder="Buscar platillo..." autocomplete="off">
+                            
+                            <!-- INDICADOR DE SINCRONIZACIÓN AUTOMÁTICA (POLLING) -->
+                            <div id="syncIndicator" class="sync-indicator-container">
+                                <span id="syncLed" class="sync-led state-sync"></span>
+                                <span id="syncText" class="sync-text">Sincronizado</span>
+                            </div>
+
                             <!-- BOTÓN ACTUALIZAR -->
                             <button id="btnActualizarMenu" class="btn-actualizar">
                                 <i class="fa-solid fa-rotate"></i> Actualizar
+                            </button>
+
+                            <!-- BOTÓN DE PRUEBAS (DESARROLLADOR) -->
+                            <button id="btnSimularCambio" class="btn-dev" title="Simula que alguien cambió un plato en el servidor">
+                                <i class="fa-solid fa-flask"></i> Forzar Cambio (Dev)
                             </button>
                         </div>
 
