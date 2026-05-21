@@ -7,7 +7,6 @@ const menuState = {
     orderBy: "nombre",
     orderDir: "ASC",
   },
-  rawItemsSnapshot: [] // Almacena el estado de red de la última sincronización
 };
 
 window.activeViewId = 'menu-restaurante';
@@ -51,6 +50,10 @@ function mostrarViews(seccion) {
 
   if (seccion === "verMesas" && typeof cargarMesas === "function") {
     cargarMesas();
+  }
+
+  if (seccion === "tomar-pedido" && typeof window.cargarMesasPedido === "function") {
+    window.cargarMesasPedido();
   }
 }
 
@@ -124,6 +127,7 @@ function setMenuEmpty(message) {
 
 function renderMenu(items) {
   menuState.items = items;
+  window.menuItems = items;
   const activeView = getActiveViewElement();
   const tableBody = activeView.querySelector(".menu-table-body") || document.getElementById("menuTableBody");
   const cardList = activeView.querySelector(".menu-card-list") || document.getElementById("menuCardList");
@@ -158,10 +162,13 @@ function renderMenu(items) {
                 </td>
               `;
           } else if (pedidoMode) {
-              const enPedido = window.pedidoActual && window.pedidoActual.items.some(i => i.id_platillo === item.id_platillo);
+              const pedidoItem = window.pedidoActual?.items?.find(i => String(i.id_platillo) === String(item.id_platillo));
+              const enPedido = Boolean(pedidoItem);
+              const cantidadEnPedido = Number(pedidoItem?.cantidad) || 0;
               actionCol = `
                 <td>
-                  <button class="btn-agregar" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;"' : 'style="background:#248a4c;color:white;"'}>
+                  <span class="menu-item-meta menu-cantidad-pedido" data-id-platillo="${item.id_platillo}" ${enPedido ? "" : 'style="display:none;"'}>${enPedido ? `Cantidad: ${cantidadEnPedido}` : ""}</span>
+                  <button class="btn-agregar" data-id-platillo="${item.id_platillo}" data-default-text="Agregar" data-disponible="${disponible ? "true" : "false"}" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;"' : 'style="background:#248a4c;color:white;"'}>
                     <i class="fa-solid ${enPedido ? 'fa-plus-circle' : 'fa-plus'}"></i> ${enPedido ? 'Agregar otro' : 'Agregar'}
                   </button>
                 </td>
@@ -212,10 +219,13 @@ function renderMenu(items) {
                 </div>
               `;
           } else if (pedidoMode) {
-              const enPedido = window.pedidoActual && window.pedidoActual.items.some(i => i.id_platillo === item.id_platillo);
+              const pedidoItem = window.pedidoActual?.items?.find(i => String(i.id_platillo) === String(item.id_platillo));
+              const enPedido = Boolean(pedidoItem);
+              const cantidadEnPedido = Number(pedidoItem?.cantidad) || 0;
               pedidoActions = `
                 <div class="menu-card-actions" style="margin-top: 10px;">
-                  <button class="btn-agregar" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;width:100%;"' : 'style="background:#248a4c;color:white;width:100%;"'}>
+                  <span class="menu-item-meta menu-cantidad-pedido" data-id-platillo="${item.id_platillo}" ${enPedido ? "" : 'style="display:none;"'}>${enPedido ? `Cantidad: ${cantidadEnPedido}` : ""}</span>
+                  <button class="btn-agregar" data-id-platillo="${item.id_platillo}" data-default-text="Agregar al pedido" data-disponible="${disponible ? "true" : "false"}" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;width:100%;"' : 'style="background:#248a4c;color:white;width:100%;"'}>
                     <i class="fa-solid ${enPedido ? 'fa-plus-circle' : 'fa-plus'}"></i> ${enPedido ? 'Agregar otro' : 'Agregar al pedido'}
                   </button>
                 </div>
@@ -252,92 +262,13 @@ function renderMenu(items) {
 
   updateSortHeaders();
   renderCategoryFilter(menuState.items);
-}
-
-// ========================================================
-// SIMULACIÓN DE DATOS (MOCK DATA) PARA FRONTEND PUERO
-// ========================================================
-const USE_MOCK_DATA = true;
-
-const PLATILLOS_MOCK = [
-  {
-    id_platillo: 1,
-    platillo_nombre: "Pupusas Revueltas",
-    platillo_precio: 1.25,
-    platillo_descripcion: "Pupusas tradicionales de maíz rellenas de chicharrón, frijoles y queso, servidas con curtido y salsa.",
-    platillo_disponible: 1,
-    platillo_imagen_url: "/uploads/pupusas.jpg",
-    categoria_nombre: "Antojitos",
-    id_categoria: 1,
-    actualizado_por: "Carlos Guardado",
-    fecha_actualizacion: "2026-05-20"
-  },
-  {
-    id_platillo: 2,
-    platillo_nombre: "Sopa de Gallina India",
-    platillo_precio: 6.50,
-    platillo_descripcion: "Sopa tradicional preparada con gallina india criolla, vegetales de la temporada y acompañada de porción de gallina asada.",
-    platillo_disponible: 1,
-    platillo_imagen_url: "/uploads/sopa.jpg",
-    categoria_nombre: "Sopas",
-    id_categoria: 2,
-    actualizado_por: "Marta Gómez",
-    fecha_actualizacion: "2026-05-19"
-  },
-  {
-    id_platillo: 3,
-    platillo_nombre: "Yuca Frita con Chicharrón",
-    platillo_precio: 3.75,
-    platillo_descripcion: "Porción de yuca frita acompañada de chicharrones crujientes, curtido y salsa de tomate casera.",
-    platillo_disponible: 1,
-    platillo_imagen_url: "/uploads/yuca.jpg",
-    categoria_nombre: "Antojitos",
-    id_categoria: 1,
-    actualizado_por: "Carlos Guardado",
-    fecha_actualizacion: "2026-05-18"
-  },
-  {
-    id_platillo: 4,
-    platillo_nombre: "Horchata de Morro",
-    platillo_precio: 1.50,
-    platillo_descripcion: "Bebida típica refrescante hecha a base de semilla de morro, arroz, canela y leche.",
-    platillo_disponible: 1,
-    platillo_imagen_url: "/uploads/horchata.jpg",
-    categoria_nombre: "Bebidas",
-    id_categoria: 3,
-    actualizado_por: "Marta Gómez",
-    fecha_actualizacion: "2026-05-20"
-  },
-  {
-    id_platillo: 5,
-    platillo_nombre: "Tamal de Elote",
-    platillo_precio: 1.00,
-    platillo_descripcion: "Tamal dulce elaborado con elote tierno molido, servido caliente. Opcional con crema.",
-    platillo_disponible: 0,
-    platillo_imagen_url: "/uploads/tamal.jpg",
-    categoria_nombre: "Antojitos",
-    id_categoria: 1,
-    actualizado_por: "Carlos Guardado",
-    fecha_actualizacion: "2026-05-15"
+  if (typeof window.actualizarEstadoBotonesMenu === "function") {
+    window.actualizarEstadoBotonesMenu();
   }
-];
+}
 
 async function ensureMenuCategories() {
   if (menuState.categories.length > 0) {
-    return;
-  }
-
-  if (USE_MOCK_DATA) {
-    const map = new Map();
-    PLATILLOS_MOCK.forEach(item => {
-      if (item.id_categoria) {
-        map.set(item.id_categoria, item.categoria_nombre);
-      }
-    });
-    menuState.categories = Array.from(map.entries()).map(([id, nombre]) => ({
-      id_categoria: id,
-      categoria_nombre: nombre
-    }));
     return;
   }
 
@@ -360,63 +291,21 @@ async function loadMenu() {
   try {
     await ensureMenuCategories();
 
-    let items = [];
-
-    if (USE_MOCK_DATA) {
-      // Guardar snapshot de los datos del mock antes de filtrar
-      menuState.rawItemsSnapshot = JSON.parse(JSON.stringify(PLATILLOS_MOCK));
-
-      // Simular retraso inicial de red de 200ms si no es una actualización manual
-      await new Promise(resolve => setTimeout(resolve, 200));
-
-      // Copiamos datos del mock
-      let filtered = [...PLATILLOS_MOCK];
-
-      // Filtro por categoría
-      if (menuState.filter.categoria_id) {
-        filtered = filtered.filter(item => String(item.id_categoria) === String(menuState.filter.categoria_id));
-      }
-
-      // Filtro por nombre
-      if (menuState.filter.nombre) {
-        const query = menuState.filter.nombre.toLowerCase().trim();
-        filtered = filtered.filter(item =>
-          item.platillo_nombre.toLowerCase().includes(query) ||
-          item.platillo_descripcion.toLowerCase().includes(query)
-        );
-      }
-
-      // Ordenación
-      const field = menuState.filter.orderBy;
-      const key = field === "precio" ? "platillo_precio" : "platillo_nombre";
-      const dir = menuState.filter.orderDir === "ASC" ? 1 : -1;
-
-      filtered.sort((a, b) => {
-        if (typeof a[key] === "string") {
-          return a[key].localeCompare(b[key]) * dir;
-        }
-        return (Number(a[key]) - Number(b[key])) * dir;
-      });
-
-      items = filtered;
-    } else {
-      const query = [];
-      if (menuState.filter.categoria_id) {
-        query.push(`categoria_id=${encodeURIComponent(menuState.filter.categoria_id)}`);
-      }
-      if (menuState.filter.nombre) {
-        query.push(`nombre=${encodeURIComponent(menuState.filter.nombre.trim())}`);
-      }
-      query.push(`orderBy=${encodeURIComponent(menuState.filter.orderBy)}`);
-      query.push(`orderDir=${encodeURIComponent(menuState.filter.orderDir)}`);
-
-      const response = await fetch(`/api/platillos?${query.join("&")}`);
-      if (!response.ok) {
-        throw new Error("Error cargando el menú");
-      }
-      items = await response.json();
+    const query = [];
+    if (menuState.filter.categoria_id) {
+      query.push(`categoria_id=${encodeURIComponent(menuState.filter.categoria_id)}`);
     }
+    if (menuState.filter.nombre) {
+      query.push(`nombre=${encodeURIComponent(menuState.filter.nombre.trim())}`);
+    }
+    query.push(`orderBy=${encodeURIComponent(menuState.filter.orderBy)}`);
+    query.push(`orderDir=${encodeURIComponent(menuState.filter.orderDir)}`);
 
+    const response = await fetch(`/api/platillos?${query.join("&")}`);
+    if (!response.ok) {
+      throw new Error("Error cargando el menú");
+    }
+    const items = await response.json();
     renderMenu(items);
   } catch (error) {
     console.error("Error cargando menú:", error);
@@ -493,6 +382,7 @@ function updateSortHeaders() {
 }
 
 function attachMenuControls() {
+  // Use delegation or attach to all found elements
   const categorySelects = document.querySelectorAll(".menu-category-filter, #menuCategoryFilter");
   const searchInputs = document.querySelectorAll(".menu-search-input, #menuSearchInput");
   
@@ -513,10 +403,12 @@ function attachMenuControls() {
     );
   });
 
+  // Delegated event for sortable headers so it works for multiple tables
   document.addEventListener("click", (event) => {
     const header = event.target.closest("th.sortable");
     if (!header) return;
 
+    // Only process if header is in the active view
     const activeView = getActiveViewElement();
     if (!activeView.contains(header)) return;
 
@@ -534,180 +426,16 @@ function attachMenuControls() {
   });
 }
 
-// ========================================================
-// LÓGICA DE ACTUALIZACIÓN MANUAL (CON SPINNER Y setTimeout)
-// ========================================================
-function attachActualizarControl() {
-  const btnActualizar = document.getElementById("btnActualizarMenu");
-  const container = document.getElementById("platillosContainer");
-  const loader = document.getElementById("loaderPlatillos");
-
-  if (!btnActualizar) return;
-
-  btnActualizar.addEventListener("click", () => {
-    btnActualizar.disabled = true;
-    const originalText = btnActualizar.innerHTML;
-    btnActualizar.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Cargando...`;
-
-    if (loader) loader.style.display = "flex";
-    if (container) container.classList.add("loading");
-
-    const randomDelay = Math.floor(Math.random() * 500) + 1000;
-
-    setTimeout(async () => {
-      simularCambioEnServidorSilencioso();
-
-      await loadMenu();
-
-      if (loader) loader.style.display = "none";
-      if (container) container.classList.remove("loading");
-      btnActualizar.disabled = false;
-      btnActualizar.innerHTML = originalText;
-
-      if (typeof Swal !== "undefined") {
-        Swal.fire({
-          toast: true,
-          position: "top-end",
-          icon: "success",
-          title: "Menú actualizado con éxito",
-          showConfirmButton: false,
-          timer: 1500
-        });
-      }
-    }, randomDelay);
-  });
-}
-
-function simularCambioEnServidorSilencioso() {
-  const randomIndex = Math.floor(Math.random() * PLATILLOS_MOCK.length);
-  const platillo = PLATILLOS_MOCK[randomIndex];
-  platillo.platillo_disponible = platillo.platillo_disponible === 1 ? 0 : 1;
-}
-
-// ========================================================
-// SISTEMA DE POLLING Y SINCRONIZACIÓN AUTOMÁTICA
-// ========================================================
-
-let pollingIntervalId = null;
-
-function startMenuPolling() {
-  if (pollingIntervalId) clearInterval(pollingIntervalId);
-
-  pollingIntervalId = setInterval(async () => {
-    await ejecutarCicloPolling();
-  }, 10000);
-}
-
-function verificarCambiosEnServidor() {
-  if (!menuState.rawItemsSnapshot || menuState.rawItemsSnapshot.length === 0) return false;
-  if (menuState.rawItemsSnapshot.length !== PLATILLOS_MOCK.length) return true;
-
-  for (let i = 0; i < PLATILLOS_MOCK.length; i++) {
-    const sItem = PLATILLOS_MOCK[i];
-    const snapshotItem = menuState.rawItemsSnapshot.find(item => item.id_platillo === sItem.id_platillo);
-    
-    if (!snapshotItem) return true;
-
-    const sDisp = sItem.platillo_disponible === 1 || sItem.platillo_disponible === true;
-    const snapDisp = snapshotItem.platillo_disponible === 1 || snapshotItem.platillo_disponible === true;
-    if (sDisp !== snapDisp) return true;
-
-    if (Number(sItem.platillo_precio) !== Number(snapshotItem.platillo_precio)) return true;
-
-    if (sItem.platillo_nombre !== snapshotItem.platillo_nombre) return true;
-    if (sItem.platillo_descripcion !== snapshotItem.platillo_descripcion) return true;
-  }
-  return false;
-}
-
-async function ejecutarCicloPolling() {
-  const syncLed = document.getElementById("syncLed");
-  const syncText = document.getElementById("syncText");
-
-  if (!syncLed || !syncText) return;
-
-  syncLed.className = "sync-led state-checking";
-  syncText.textContent = "Comprobando...";
-
-  await new Promise(resolve => setTimeout(resolve, 800));
-
-  const hayCambios = verificarCambiosEnServidor();
-
-  if (hayCambios) {
-    console.log("[Polling] Se detectaron cambios en el servidor. Actualizando lista silenciosamente...");
-
-    syncLed.className = "sync-led state-updated";
-    syncText.textContent = "¡Actualizado!";
-
-    await loadMenu();
-
-    setTimeout(() => {
-      syncLed.className = "sync-led state-sync";
-      syncText.textContent = "Sincronizado";
-    }, 2500);
-  } else {
-    syncLed.className = "sync-led state-sync";
-    syncText.textContent = "Sincronizado";
-  }
-}
-
-// ========================================================
-// SIMULADOR DE CAMBIOS EN EL SERVIDOR (MODO PRUEBA / DEV)
-// ========================================================
-function simularCambioEnServidor() {
-  if (PLATILLOS_MOCK.length === 0) return;
-
-  const randomIndex = Math.floor(Math.random() * PLATILLOS_MOCK.length);
-  const platillo = PLATILLOS_MOCK[randomIndex];
-
-  const tipoCambio = Math.random() > 0.5 ? "disponibilidad" : "precio";
-
-  if (tipoCambio === "disponibilidad") {
-    platillo.platillo_disponible = platillo.platillo_disponible === 1 ? 0 : 1;
-    console.log(`[Simulador Servidor] "${platillo.platillo_nombre}" ahora disponible = ${platillo.platillo_disponible === 1 ? "Sí" : "No"}`);
-  } else {
-    const variacion = (Math.random() * 1.50 - 0.75).toFixed(2);
-    const precioAnterior = platillo.platillo_precio;
-    platillo.platillo_precio = Math.max(0.50, Number((Number(platillo.platillo_precio) + Number(variacion)).toFixed(2)));
-    console.log(`[Simulador Servidor] "${platillo.platillo_nombre}" cambió precio: $${precioAnterior} -> $${platillo.platillo_precio}`);
-  }
-
-  if (typeof Swal !== "undefined") {
-    Swal.fire({
-      toast: true,
-      position: "bottom-start",
-      icon: "info",
-      title: "Cambio simulado en servidor",
-      html: `Platillo: <b>${platillo.platillo_nombre}</b> modificado.<br>Espera el polling automático en 10 seg.`,
-      showConfirmButton: false,
-      timer: 3500
-    });
-  }
-}
-
-// ========================================================
-// INICIALIZACIÓN
-// ========================================================
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
 
   attachMenuControls();
-  
-  attachActualizarControl();
-
-  const btnSimular = document.getElementById("btnSimularCambio");
-  if (btnSimular) {
-    btnSimular.addEventListener("click", () => {
-      simularCambioEnServidor();
-    });
-  }
 
   const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
   if (menuSection && menuSection.style.display !== "none") {
     loadMenu();
   } else if (document.getElementById('tomar-pedido') && document.getElementById('tomar-pedido').style.display !== "none") {
+    window.activeViewId = 'tomar-pedido';
     loadMenu();
   }
-
-  startMenuPolling();
 });
