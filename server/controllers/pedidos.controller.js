@@ -34,6 +34,23 @@ export const iniciarPedido = async (req, res) => {
   }
 };
 
+
+export const agregarItemsPedido = async (req, res) => {
+  try {
+    const data = await pedidosService.agregarItemsPedido({
+      id_pedido: req.params.id,
+      items: req.body.items
+    });
+
+    return res.status(200).json(data);
+
+  } catch (error) {
+    return res.status(error.status || 500).json({
+      error: error.message || "Error al agregar platillos al pedido"
+    });
+  }
+};
+
  
 export const agregarPlatilloAPedido = async (req, res) => {
   try {
@@ -43,7 +60,6 @@ export const agregarPlatilloAPedido = async (req, res) => {
     });
 
     res.status(201).json(data);
-
   } catch (error) {
     res.status(error.status || 500).json({
       error: error.message
@@ -52,12 +68,33 @@ export const agregarPlatilloAPedido = async (req, res) => {
 };
  
 
+
 export const eliminarPlatilloPedido = async (req, res) => {
   try {
 
     const data =
       await pedidosService.eliminarPlatilloPedido(
         req.params.id_detalle
+      );
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};
+
+export const cancelarPedido = async (req, res) => {
+  try {
+
+    const data =
+      await pedidosService.cancelarPedido(
+        req.params.id,
+        req.body.motivo,
+        req.user.id
       );
 
     res.json(data);
@@ -125,6 +162,7 @@ export const obtenerPedidosActivosMesero = async (req, res) => {
     });
   }
 
+
 };
 
 
@@ -143,5 +181,43 @@ export const enviarPedidoACocina = async (req, res) => {
   }
 };
  
- 
- 
+
+export const obtenerPedidosPendientesCocina = async (req, res) => {
+
+  try {
+
+    const data =
+      await pedidosService.obtenerPedidosPendientesCocina();
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(500).json({
+      error: error.message
+    });
+  }
+};
+
+export const cambiarEstadoPedidoCocina = async (
+  req,
+  res
+) => {
+
+  try {
+
+    const data =
+      await pedidosService.cambiarEstadoPedidoCocina(
+        req.params.id,
+        req.body.estado
+      );
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};

@@ -1,63 +1,250 @@
 import db from "../config/db.js";
 import { cambiarEstadoMesa } from "./mesas.service.js";
 
- 
-  // Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
-export const crearPedido = async ({ id_mesa, tipo, userId }) => {
+const generarNumeroPedido = async (connection) => {
+  const [[{ anio }]] = await connection.query(
+    "SELECT YEAR(CURRENT_DATE()) AS anio"
+  );
 
-    let result;
+  const lockName = `pedidos_correlativo_${anio}`;
+  const [[lockResult]] = await connection.query(
+    "SELECT GET_LOCK(?, 10) AS lock_obtenido",
+    [lockName]
+  );
 
-    if (tipo === "Salon") {
-
-      [result] = await db.query(`
-        INSERT INTO pedidos
-        (id_mesa, id_mesero, pedido_tipo)
-        VALUES (?, ?, ?)
-        `, [
-        id_mesa,
-        userId,
-        tipo
-      ]);
-
-  } else if (tipo === "Llevar") {
-
-      [result] = await db.query(`
-        INSERT INTO pedidos
-        (id_mesa, id_mesero, pedido_tipo)
-        VALUES (?, ?, ?)
-      `, [
-        null,
-        userId,
-        tipo
-      ]);
-
-  } else {
-    throw new Error("Tipo de pedido inválido");
+  if (lockResult.lock_obtenido !== 1) {
+    throw Object.assign(
+      new Error("No se pudo generar el correlativo del pedido"),
+      { status: 500 }
+    );
   }
 
-    return {
-      id_pedido: result.insertId,
-      pedido_estado: "Pendiente",
-      pedido_tipo: tipo
-    };
-  }; 
+  const [[{ ultimo }]] = await connection.query(
+    `
+      SELECT COALESCE(MAX(CAST(SUBSTRING(pedido_numero, 10) AS UNSIGNED)), 0) AS ultimo
+      FROM pedidos
+      WHERE pedido_numero LIKE ?
+    `,
+    [`PED-${anio}-%`]
+  );
 
+  return {
+    lockName,
+    pedidoNumero: `PED-${anio}-${String(Number(ultimo) + 1).padStart(4, "0")}`
+  };
+};
 
-//Inciar pedido
-export const iniciarPedido = async ({ id_mesa, tipo, userId }) => {
-
+// Crear pedido (numero correlativo, fecha y hora actual, estado "Pendiente")
+export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
   if (tipo !== "Salon" && tipo !== "Llevar") {
-   throw Object.assign(
-     new Error("Tipo de pedido inválido"),
-     { status: 400 }
-   );
-}
+    throw Object.assign(
+      new Error("Tipo de pedido invalido"),
+      { status: 400 }
+    );
+  }
 
-  // PEDIDO EN SALÓN
+  let connection;
+  let lockName;
+
+  try {
+    connection = await db.getConnection();
+    await connection.beginTransaction();
+
+    const correlativo = await generarNumeroPedido(connection);
+    lockName = correlativo.lockName;
+    const pedidoNumero = correlativo.pedidoNumero;
+    const mesaPedido = tipo === "Salon" ? id_mesa : null;
+
+    const [result] = await connection.query(
+      `
+        INSERT INTO pedidos
+        (pedido_numero, id_mesa, id_mesero, pedido_tipo, pedido_estado, pedido_observaciones)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `,
+      [pedidoNumero, mesaPedido, userId, tipo, "Pendiente", null]
+    );
+   
+
+    const id_pedido = result.insertId;
+
+    if (items && items.length > 0) {
+      for (const item of items) {
+        const [platillo] = await connection.query(
+          "SELECT platillo_precio, platillo_disponible FROM platillos WHERE id_platillo = ?",
+          [item.id_platillo]
+        );
+
+        if (platillo.length > 0) {
+          if (platillo[0].platillo_disponible === 0 || platillo[0].platillo_disponible === false) {
+            throw Object.assign(new Error("No se puede agregar un platillo no disponible"), { status: 400 });
+          }
+          const precio_unitario = platillo[0].platillo_precio;
+          const subtotal = precio_unitario * item.cantidad;
+
+          await connection.query(
+            `
+              INSERT INTO detalle_pedido
+              (id_pedido, id_platillo, detalle_pedido_cantidad, detalle_pedido_precio_unitario, detalle_pedido_subtotal, detalle_pedido_notas)
+              VALUES (?, ?, ?, ?, ?, ?)
+            `,
+            [
+              id_pedido,
+              item.id_platillo,
+              item.cantidad,
+              precio_unitario,
+              subtotal,
+              item.notas
+            ]
+          );
+        }
+      }
+
+      await connection.query(
+        `
+          UPDATE pedidos
+          SET pedido_total = (SELECT SUM(detalle_pedido_subtotal) FROM detalle_pedido WHERE id_pedido = ?)
+          WHERE id_pedido = ?
+        `,
+        [id_pedido, id_pedido]
+      );
+    }
+
+    await connection.commit();
+
+    return {
+      id_pedido,
+      pedido_numero: pedidoNumero,
+      pedido_estado: "Pendiente",
+      pedido_tipo: tipo,
+      mesa_estado: tipo === "Salon" ? "Ocupada" : null
+    };
+  } catch (error) {
+    if (connection) {
+      await connection.rollback();
+    }
+    throw error;
+  } finally {
+    if (connection) {
+      if (lockName) {
+        try {
+          await connection.query("SELECT RELEASE_LOCK(?)", [lockName]);
+        } catch (error) {
+          console.error("No se pudo liberar el bloqueo del correlativo", error);
+        }
+      }
+      connection.release();
+    }
+  }
+};
+
+export const agregarItemsPedido = async ({ id_pedido, items }) => {
+  if (!id_pedido) {
+    throw Object.assign(
+      new Error("Debe enviar el id del pedido"),
+      { status: 400 }
+    );
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    throw Object.assign(
+      new Error("Debe seleccionar al menos un platillo valido"),
+      { status: 400 }
+    );
+  }
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    const [pedido] = await connection.query(
+      "SELECT id_pedido, pedido_estado FROM pedidos WHERE id_pedido = ? FOR UPDATE",
+      [id_pedido]
+    );
+
+    if (pedido.length === 0) {
+      throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+    }
+
+    if (pedido[0].pedido_estado !== "Pendiente") {
+      throw Object.assign(
+        new Error("Solo se pueden modificar pedidos pendientes"),
+        { status: 400 }
+      );
+    }
+
+    for (const item of items) {
+      const [platillo] = await connection.query(
+        "SELECT platillo_precio, platillo_disponible FROM platillos WHERE id_platillo = ?",
+        [item.id_platillo]
+      );
+
+      if (platillo.length === 0) {
+        throw Object.assign(new Error("Platillo no encontrado"), { status: 404 });
+      }
+
+      if (platillo[0].platillo_disponible === 0 || platillo[0].platillo_disponible === false) {
+        throw Object.assign(new Error("No se puede agregar un platillo no disponible"), { status: 400 });
+      }
+
+      const precio_unitario = platillo[0].platillo_precio;
+      const subtotal = precio_unitario * item.cantidad;
+
+      await connection.query(
+        `
+            INSERT INTO detalle_pedido
+            (id_pedido, id_platillo, detalle_pedido_cantidad, detalle_pedido_precio_unitario, detalle_pedido_subtotal, detalle_pedido_notas)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `,
+        [
+          id_pedido,
+          item.id_platillo,
+          item.cantidad,
+          precio_unitario,
+          subtotal,
+          item.notas
+        ]
+      );
+    }
+
+    await connection.query(
+      `
+        UPDATE pedidos
+        SET pedido_total = (SELECT COALESCE(SUM(detalle_pedido_subtotal), 0) FROM detalle_pedido WHERE id_pedido = ?)
+        WHERE id_pedido = ?
+      `,
+      [id_pedido, id_pedido]
+    );
+
+    await connection.commit();
+
+    return {
+      id_pedido,
+      pedido_estado: "Pendiente",
+      message: "Platillos agregados al pedido correctamente"
+    };
+  } catch (error) {
+    await connection.rollback();
+    throw error;
+  } finally {
+    connection.release();
+  }
+};
+
+// Iniciar pedido
+export const iniciarPedido = async ({ id_mesa, tipo, userId, items }) => {
+  if (tipo !== "Salon" && tipo !== "Llevar") {
+    throw Object.assign(
+      new Error("Tipo de pedido invalido"),
+      { status: 400 }
+    );
+  }
+
+  // Pedido en salon
   if (tipo === "Salon") {
     if (!id_mesa) {
       throw Object.assign(
-        new Error("Debe enviar id_mesa para pedido en salón"),
+        new Error("Debe enviar id_mesa para pedido en salon"),
         { status: 400 }
       );
     }
@@ -73,22 +260,21 @@ export const iniciarPedido = async ({ id_mesa, tipo, userId }) => {
 
     if (mesa[0].mesa_estado !== "Disponible") {
       throw Object.assign(
-        new Error("La mesa no está disponible"),
+        new Error("La mesa no esta disponible"),
         { status: 400 }
       );
     }
   }
 
-  // CREAR PEDIDO
-  const pedido = await crearPedido({ tipo, id_mesa, userId });
+  const pedido = await crearPedido({ tipo, id_mesa, userId, items });
 
-  // SOLO SI ES SALÓN → ocupar mesa
   if (tipo === "Salon") {
     await cambiarEstadoMesa(id_mesa, "Ocupada", userId);
   }
 
   return pedido;
 };
+
 
 export const agregarPlatilloAPedido = async ({
   id_pedido,
@@ -104,6 +290,24 @@ export const agregarPlatilloAPedido = async ({
       { status: 400 }
     );
   }
+
+// Validar notas del pedido
+if (detalle_pedido_notas) {
+  if (typeof detalle_pedido_notas !== "string") {
+    throw Object.assign(
+      new Error("Las notas deben ser texto"),
+      { status: 400 }
+    );
+  }
+
+  if (detalle_pedido_notas.length > 200) {
+    throw Object.assign(
+      new Error("Las notas no pueden superar 200 caracteres"),
+      { status: 400 }
+    );
+  }
+}
+
 
   // Validar el pedido
   const [pedidoRows] = await db.query(
@@ -157,7 +361,7 @@ export const agregarPlatilloAPedido = async ({
 
   const platillo = platilloRows[0];
 
-  if (!platillo.platillo_disponible) {
+  if (platillo.platillo_disponible === 0 || platillo.platillo_disponible === false) {
     throw Object.assign(
       new Error("El platillo no está disponible"),
       { status: 400 }
@@ -249,6 +453,7 @@ const [detalleRows] = await db.query(
   };
 };
 
+
 export const eliminarPlatilloPedido = async (id_detalle) => {
 
   // Buscar detalle
@@ -325,7 +530,7 @@ export const eliminarPlatilloPedido = async (id_detalle) => {
     message: "Platillo eliminado correctamente",
     pedido_total: total
   };
-};
+}
 
 export const modificarCantidadPlatillo = async ({ id_detalle, cantidad }) => {
   // Validar que cantidad sea un número válido
@@ -515,7 +720,7 @@ if (result.affectedRows === 0) {
   return {
     message: "Pedido entregado correctamente"
   };
-
+};
 //Ver pedidos activos del mesero
 export const obtenerPedidosActivosMesero = async (id_mesero) => {
 
@@ -535,6 +740,269 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
      ORDER BY p.pedido_fecha_hora DESC`,
     [id_mesero]
   );
+  return rows;
+};
 
-  return rows};
+// Cancelar pedido
+export const cancelarPedido = async (id_pedido, motivo, userId) => {
+
+  // Buscar pedido
+  const [pedidoRows] = await db.query(
+    `SELECT
+        id_mesa,
+        pedido_tipo,
+        pedido_estado
+     FROM pedidos
+     WHERE id_pedido = ?`,
+    [id_pedido]
+  );
+
+  if (pedidoRows.length === 0) {
+    throw Object.assign(
+      new Error("Pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const pedido = pedidoRows[0];
+
+  // No permitir facturados
+  if (pedido.pedido_estado === "Cerrado") {
+    throw Object.assign(
+      new Error("No se puede cancelar un pedido facturado"),
+      { status: 400 }
+    );
+  }
+
+  // Evitar doble cancelación
+  if (pedido.pedido_estado === "Cancelado") {
+    throw Object.assign(
+      new Error("El pedido ya fue cancelado anteriormente"),
+      { status: 400 }
+    );
+  }
+
+  // Guardar estado anterior
+  const estadoAnterior = pedido.pedido_estado;
+
+  // Cancelar pedido
+  await db.query(
+    `UPDATE pedidos
+     SET
+       pedido_estado = 'Cancelado',
+       pedido_cancelado_motivo = ?,
+       pedido_cancelado_en = NOW(),
+       pedido_cancelado_por = ?,
+       pedido_estado_anterior = ?
+     WHERE id_pedido = ?`,
+    [
+      motivo || null,
+      userId,
+      estadoAnterior,
+      id_pedido
+    ]
+  );
+
+  // Liberar mesa si era salón
+  if (
+    pedido.pedido_tipo === "Salon"
+    && pedido.id_mesa
+  ) {
+
+    await cambiarEstadoMesa(
+      pedido.id_mesa,
+      "Disponible",
+      userId
+    );
+  }
+
+  return {
+    message: "Pedido cancelado correctamente"
+  };
+
+};
+
+// PEDIDOS PENDIENTES COCINA
+export const obtenerPedidosPendientesCocina = async () => {
+
+  const [rows] = await db.query(
+    `SELECT
+        p.id_pedido,
+        p.pedido_estado,
+        p.pedido_tipo,
+        p.pedido_fecha_hora,
+        p.pedido_total,
+
+        m.mesa_numero,
+
+        dp.id_detalle,
+        dp.detalle_pedido_cantidad,
+        dp.detalle_pedido_notas,
+
+        pl.platillo_nombre
+
+     FROM pedidos p
+
+     LEFT JOIN mesas m
+        ON p.id_mesa = m.id_mesa
+
+     INNER JOIN detalle_pedido dp
+        ON p.id_pedido = dp.id_pedido
+
+     INNER JOIN platillos pl
+        ON dp.id_platillo = pl.id_platillo
+
+     WHERE p.pedido_estado IN ('Pendiente', 'EnPreparacion')
+
+     ORDER BY p.pedido_fecha_hora ASC`
+  );
+
+  // Agrupar pedidos
+  const pedidosMap = {};
+
+  rows.forEach(row => {
+
+    if (!pedidosMap[row.id_pedido]) {
+
+      pedidosMap[row.id_pedido] = {
+        id_pedido: row.id_pedido,
+        pedido_estado: row.pedido_estado,
+        pedido_tipo: row.pedido_tipo,
+        pedido_fecha_hora: row.pedido_fecha_hora,
+        pedido_total: row.pedido_total,
+
+        mesa:
+          row.pedido_tipo === "Llevar"
+            ? "Para llevar"
+            : row.mesa_numero,
+
+        platillos: []
+      };
+    }
+
+    pedidosMap[row.id_pedido].platillos.push({
+      id_detalle: row.id_detalle,
+      nombre: row.platillo_nombre,
+      cantidad: row.detalle_pedido_cantidad,
+      notas: row.detalle_pedido_notas
+    });
+
+  });
+
+  return Object.values(pedidosMap);
+};
+
+// CAMBIAR ESTADO PEDIDO COCINA
+export const cambiarEstadoPedidoCocina = async (
+  id_pedido,
+  nuevoEstado
+) => {
+
+  // Estados permitidos
+ const estadosValidos = [
+  "EnPreparacion",
+  "Listo"
+];
+
+  if (!estadosValidos.includes(nuevoEstado)) {
+    throw Object.assign(
+      new Error("Estado inválido"),
+      { status: 400 }
+    );
+  }
+
+  // Buscar pedido
+  const [pedidoRows] = await db.query(
+    `SELECT pedido_estado
+     FROM pedidos
+     WHERE id_pedido = ?`,
+    [id_pedido]
+  );
+
+  if (pedidoRows.length === 0) {
+    throw Object.assign(
+      new Error("Pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const pedido = pedidoRows[0];
+
+  // No permitir anulados
+  if (pedido.pedido_estado === "Cancelado") {
+    throw Object.assign(
+      new Error(
+        "No se puede modificar un pedido cancelado"
+      ),
+      { status: 400 }
+    );
+  }
+
+  // No permitir facturados
+  if (pedido.pedido_estado === "Cerrado") {
+    throw Object.assign(
+      new Error(
+        "No se puede modificar un pedido cerrado"
+      ),
+      { status: 400 }
+    );
+  }
+
+  // Validaciones de flujo
+  if (
+    nuevoEstado === "EnPreparacion"
+    && pedido.pedido_estado !== "Pendiente"
+  ) {
+    throw Object.assign(
+      new Error(
+        "Solo pedidos pendientes pueden pasar a preparación"
+      ),
+      { status: 400 }
+    );
+  }
+
+  if (
+    nuevoEstado === "Preparado"
+    && pedido.pedido_estado !== "EnPreparacion"
+  ) {
+    throw Object.assign(
+      new Error(
+        "Solo pedidos en preparación pueden marcarse como listos"
+      ),
+      { status: 400 }
+    );
+  }
+
+  // Query dinámica
+  let sql = `
+    UPDATE pedidos
+    SET pedido_estado = ?
+  `;
+
+  const params = [nuevoEstado];
+
+  // Registrar horas
+  if (nuevoEstado === "EnPreparacion") {
+
+    sql += `,
+      pedido_en_preparacion_en = NOW()
+    `;
+
+  }
+
+  if (nuevoEstado === "Listo")
+    sql += `
+    WHERE id_pedido = ?
+  `;
+
+  params.push(id_pedido);
+
+  await db.query(sql, params);
+
+  return {
+    message:
+      nuevoEstado === "EnPreparacion"
+        ? "Pedido marcado en preparación"
+        : "Pedido marcado como listo"
+  };
 };
