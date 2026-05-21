@@ -72,6 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
     syncPedidoActualGlobal();
     actualizarEstadoBotonesMenu();
     aplicarTipoPedido("salon");
+    iniciarPollingMenu();
   }
 
   async function cargarPlatillos() {
@@ -630,6 +631,36 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     document.getElementById("btn-enviar-pedido").addEventListener("click", enviarPedido);
+
+    // ==========================================================
+    // SUBTAREA: Botón Actualizar Menú Manualmente
+    // ==========================================================
+    const btnActualizar = document.getElementById("btn-actualizar-menu");
+    if (btnActualizar) {
+      btnActualizar.addEventListener("click", async () => {
+        // Bloqueamos el botón y cambiamos el icono por feedback visual
+        btnActualizar.disabled = true;
+        btnActualizar.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Cargando...`;
+
+        // Llamamos a tu función que hace la petición real de red y maneja el spinner nativo
+        await cargarPlatillos();
+
+        // Si tienes una lógica de renderizado vinculada a filtros en un script global (como menu.js),
+        // disparamos su evento para que redibuje el DOM de la tabla/cards con la data fresca.
+        if (typeof renderizarMenuEnPantalla === "function") {
+          renderizarMenuEnPantalla(platillosDisponibles);
+        } else if (typeof window.filtrarYOrdenarMenu === "function") {
+          window.filtrarYOrdenarMenu(); 
+        }
+
+        // Sincronizamos los textos ("Agregar otro") con las cantidades activas sin perder la orden
+        actualizarEstadoBotonesMenu();
+
+        // Restauramos el botón manual
+        btnActualizar.disabled = false;
+        btnActualizar.innerHTML = `<i class="fa-solid fa-rotate"></i> Actualizar`;
+      });
+    }
   }
   function obtenerItemsPedido() {
     const items = [];

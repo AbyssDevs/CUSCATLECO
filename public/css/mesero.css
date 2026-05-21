@@ -1016,3 +1016,52 @@ tr:hover {
         grid-template-columns: 1fr;
     }
 }
+
+
+/* ==========================================================
+   ESTILOS CONTROLADOS PARA EL POLLING AUTOMÁTICO
+   ========================================================== */
+
+.polling-container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: 10px;
+}
+
+.polling-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.polling-text {
+    font-family: 'Roboto', Arial, sans-serif;
+    font-size: 0.85rem;
+    color: #666666;
+    font-weight: 500;
+}
+
+/* Estado 1: Todo al día y guardado (Verde) */
+.polling-dot.state-synced {
+    background-color: #28a745;
+}
+
+/* Estado 2: Descargando cambios del servidor (Amarillo + Animación de pulso) */
+.polling-dot.state-updating {
+    background-color: #ffc107;
+    animation: pulsoSincronizacion 1s infinite alternate;
+}
+
+@keyframes pulsoSincronizacion {
+    0% {
+        transform: scale(0.9);
+        opacity: 0.6;
+    }
+    100% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+}
