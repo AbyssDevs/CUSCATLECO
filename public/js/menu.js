@@ -51,10 +51,6 @@ function mostrarViews(seccion) {
   if (seccion === "verMesas" && typeof cargarMesas === "function") {
     cargarMesas();
   }
-
-  if (seccion === "tomar-pedido" && typeof window.cargarMesasPedido === "function") {
-    window.cargarMesasPedido();
-  }
 }
 
 async function cargarUsuarioLogueado() {
@@ -101,6 +97,7 @@ function formatPrice(value) {
   });
 }
 
+// Limita la longitud del texto y añade puntos suspensivos si excede el límite
 function truncateText(text, limit = 100) {
   if (!text) return "";
   const normalized = String(text).trim();
@@ -127,7 +124,6 @@ function setMenuEmpty(message) {
 
 function renderMenu(items) {
   menuState.items = items;
-  window.menuItems = items;
   const activeView = getActiveViewElement();
   const tableBody = activeView.querySelector(".menu-table-body") || document.getElementById("menuTableBody");
   const cardList = activeView.querySelector(".menu-card-list") || document.getElementById("menuCardList");
@@ -162,13 +158,10 @@ function renderMenu(items) {
                 </td>
               `;
           } else if (pedidoMode) {
-              const pedidoItem = window.pedidoActual?.items?.find(i => String(i.id_platillo) === String(item.id_platillo));
-              const enPedido = Boolean(pedidoItem);
-              const cantidadEnPedido = Number(pedidoItem?.cantidad) || 0;
+              const enPedido = window.pedidoActual && window.pedidoActual.items.some(i => i.id_platillo === item.id_platillo);
               actionCol = `
                 <td>
-                  <span class="menu-item-meta menu-cantidad-pedido" data-id-platillo="${item.id_platillo}" ${enPedido ? "" : 'style="display:none;"'}>${enPedido ? `Cantidad: ${cantidadEnPedido}` : ""}</span>
-                  <button class="btn-agregar" data-id-platillo="${item.id_platillo}" data-default-text="Agregar" data-disponible="${disponible ? "true" : "false"}" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;"' : 'style="background:#248a4c;color:white;"'}>
+                  <button class="btn-agregar" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;"' : 'style="background:#248a4c;color:white;"'}>
                     <i class="fa-solid ${enPedido ? 'fa-plus-circle' : 'fa-plus'}"></i> ${enPedido ? 'Agregar otro' : 'Agregar'}
                   </button>
                 </td>
@@ -219,13 +212,10 @@ function renderMenu(items) {
                 </div>
               `;
           } else if (pedidoMode) {
-              const pedidoItem = window.pedidoActual?.items?.find(i => String(i.id_platillo) === String(item.id_platillo));
-              const enPedido = Boolean(pedidoItem);
-              const cantidadEnPedido = Number(pedidoItem?.cantidad) || 0;
+              const enPedido = window.pedidoActual && window.pedidoActual.items.some(i => i.id_platillo === item.id_platillo);
               pedidoActions = `
                 <div class="menu-card-actions" style="margin-top: 10px;">
-                  <span class="menu-item-meta menu-cantidad-pedido" data-id-platillo="${item.id_platillo}" ${enPedido ? "" : 'style="display:none;"'}>${enPedido ? `Cantidad: ${cantidadEnPedido}` : ""}</span>
-                  <button class="btn-agregar" data-id-platillo="${item.id_platillo}" data-default-text="Agregar al pedido" data-disponible="${disponible ? "true" : "false"}" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;width:100%;"' : 'style="background:#248a4c;color:white;width:100%;"'}>
+                  <button class="btn-agregar" onclick="agregarAlPedidoDesdeMenu(${item.id_platillo})" ${!disponible ? 'disabled style="opacity:0.5;cursor:not-allowed;background:#ccc;width:100%;"' : 'style="background:#248a4c;color:white;width:100%;"'}>
                     <i class="fa-solid ${enPedido ? 'fa-plus-circle' : 'fa-plus'}"></i> ${enPedido ? 'Agregar otro' : 'Agregar al pedido'}
                   </button>
                 </div>
@@ -262,13 +252,93 @@ function renderMenu(items) {
 
   updateSortHeaders();
   renderCategoryFilter(menuState.items);
-  if (typeof window.actualizarEstadoBotonesMenu === "function") {
-    window.actualizarEstadoBotonesMenu();
-  }
 }
+
+// ========================================================
+// SIMULACIÓN DE DATOS (MOCK DATA) PARA FRONTEND PUERO
+// ========================================================
+const USE_MOCK_DATA = true;
+
+const PLATILLOS_MOCK = [
+  {
+    id_platillo: 1,
+    platillo_nombre: "Pupusas Revueltas",
+    platillo_precio: 1.25,
+    platillo_descripcion: "Pupusas tradicionales de maíz rellenas de chicharrón, frijoles y queso, servidas con curtido y salsa.",
+    platillo_disponible: 1,
+    platillo_imagen_url: "/uploads/pupusas.jpg",
+    categoria_nombre: "Antojitos",
+    id_categoria: 1,
+    actualizado_por: "Carlos Guardado",
+    fecha_actualizacion: "2026-05-20"
+  },
+  {
+    id_platillo: 2,
+    platillo_nombre: "Sopa de Gallina India",
+    platillo_precio: 6.50,
+    platillo_descripcion: "Sopa tradicional preparada con gallina india criolla, vegetales de la temporada y acompañada de porción de gallina asada.",
+    platillo_disponible: 1,
+    platillo_imagen_url: "/uploads/sopa.jpg",
+    categoria_nombre: "Sopas",
+    id_categoria: 2,
+    actualizado_por: "Marta Gómez",
+    fecha_actualizacion: "2026-05-19"
+  },
+  {
+    id_platillo: 3,
+    platillo_nombre: "Yuca Frita con Chicharrón",
+    platillo_precio: 3.75,
+    platillo_descripcion: "Porción de yuca frita acompañada de chicharrones crujientes, curtido y salsa de tomate casera.",
+    platillo_disponible: 1,
+    platillo_imagen_url: "/uploads/yuca.jpg",
+    categoria_nombre: "Antojitos",
+    id_categoria: 1,
+    actualizado_por: "Carlos Guardado",
+    fecha_actualizacion: "2026-05-18"
+  },
+  {
+    id_platillo: 4,
+    platillo_nombre: "Horchata de Morro",
+    platillo_precio: 1.50,
+    platillo_descripcion: "Bebida típica refrescante hecha a base de semilla de morro, arroz, canela y leche.",
+    platillo_disponible: 1,
+    platillo_imagen_url: "/uploads/horchata.jpg",
+    categoria_nombre: "Bebidas",
+    id_categoria: 3,
+    actualizado_por: "Marta Gómez",
+    fecha_actualizacion: "2026-05-20"
+  },
+  {
+    id_platillo: 5,
+    platillo_nombre: "Tamal de Elote",
+    platillo_precio: 1.00,
+    platillo_descripcion: "Tamal dulce elaborado con elote tierno molido, servido caliente. Opcional con crema.",
+    platillo_disponible: 0,
+    platillo_imagen_url: "/uploads/tamal.jpg",
+    categoria_nombre: "Antojitos",
+    id_categoria: 1,
+    actualizado_por: "Carlos Guardado",
+    fecha_actualizacion: "2026-05-15"
+  }
+];
 
 async function ensureMenuCategories() {
   if (menuState.categories.length > 0) {
+    return;
+  }
+
+  if (USE_MOCK_DATA) {
+    // Generar categorías a partir de mock data
+    const map = new Map();
+    PLATILLOS_MOCK.forEach(item => {
+      if (item.id_categoria) {
+        map.set(item.id_categoria, item.categoria_nombre);
+      }
+    });
+    menuState.categories = Array.from(map.entries()).map(([id, nombre]) => ({
+      id_categoria: id,
+      categoria_nombre: nombre
+    }));
     return;
   }
 
@@ -291,21 +361,60 @@ async function loadMenu() {
   try {
     await ensureMenuCategories();
 
-    const query = [];
-    if (menuState.filter.categoria_id) {
-      query.push(`categoria_id=${encodeURIComponent(menuState.filter.categoria_id)}`);
-    }
-    if (menuState.filter.nombre) {
-      query.push(`nombre=${encodeURIComponent(menuState.filter.nombre.trim())}`);
-    }
-    query.push(`orderBy=${encodeURIComponent(menuState.filter.orderBy)}`);
-    query.push(`orderDir=${encodeURIComponent(menuState.filter.orderDir)}`);
+    let items = [];
 
-    const response = await fetch(`/api/platillos?${query.join("&")}`);
-    if (!response.ok) {
-      throw new Error("Error cargando el menú");
+    if (USE_MOCK_DATA) {
+      // Simular retraso inicial de red de 200ms si no es una actualización manual
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      // Copiamos datos del mock
+      let filtered = [...PLATILLOS_MOCK];
+
+      // Filtro por categoría
+      if (menuState.filter.categoria_id) {
+        filtered = filtered.filter(item => String(item.id_categoria) === String(menuState.filter.categoria_id));
+      }
+
+      // Filtro por nombre
+      if (menuState.filter.nombre) {
+        const query = menuState.filter.nombre.toLowerCase().trim();
+        filtered = filtered.filter(item =>
+          item.platillo_nombre.toLowerCase().includes(query) ||
+          item.platillo_descripcion.toLowerCase().includes(query)
+        );
+      }
+
+      // Ordenación
+      const field = menuState.filter.orderBy;
+      const key = field === "precio" ? "platillo_precio" : "platillo_nombre";
+      const dir = menuState.filter.orderDir === "ASC" ? 1 : -1;
+
+      filtered.sort((a, b) => {
+        if (typeof a[key] === "string") {
+          return a[key].localeCompare(b[key]) * dir;
+        }
+        return (Number(a[key]) - Number(b[key])) * dir;
+      });
+
+      items = filtered;
+    } else {
+      const query = [];
+      if (menuState.filter.categoria_id) {
+        query.push(`categoria_id=${encodeURIComponent(menuState.filter.categoria_id)}`);
+      }
+      if (menuState.filter.nombre) {
+        query.push(`nombre=${encodeURIComponent(menuState.filter.nombre.trim())}`);
+      }
+      query.push(`orderBy=${encodeURIComponent(menuState.filter.orderBy)}`);
+      query.push(`orderDir=${encodeURIComponent(menuState.filter.orderDir)}`);
+
+      const response = await fetch(`/api/platillos?${query.join("&")}`);
+      if (!response.ok) {
+        throw new Error("Error cargando el menú");
+      }
+      items = await response.json();
     }
-    const items = await response.json();
+
     renderMenu(items);
   } catch (error) {
     console.error("Error cargando menú:", error);
@@ -382,7 +491,7 @@ function updateSortHeaders() {
 }
 
 function attachMenuControls() {
-  // Use delegation or attach to all found elements
+  // Usar delegación o vinculación para todos los elementos encontrados
   const categorySelects = document.querySelectorAll(".menu-category-filter, #menuCategoryFilter");
   const searchInputs = document.querySelectorAll(".menu-search-input, #menuSearchInput");
   
@@ -403,12 +512,12 @@ function attachMenuControls() {
     );
   });
 
-  // Delegated event for sortable headers so it works for multiple tables
+  // Delegar eventos para encabezados ordenables
   document.addEventListener("click", (event) => {
     const header = event.target.closest("th.sortable");
     if (!header) return;
 
-    // Only process if header is in the active view
+    // Solo procesar si el encabezado pertenece a la vista activa
     const activeView = getActiveViewElement();
     if (!activeView.contains(header)) return;
 
@@ -426,16 +535,75 @@ function attachMenuControls() {
   });
 }
 
+// LÓGICA DE ACTUALIZACIÓN MANUAL (CON SPINNER Y setTimeout)
+function attachActualizarControl() {
+  const btnActualizar = document.getElementById("btnActualizarMenu");
+  const container = document.getElementById("platillosContainer");
+  const loader = document.getElementById("loaderPlatillos");
+
+  if (!btnActualizar) return;
+
+  btnActualizar.addEventListener("click", () => {
+    // 1. Deshabilitar botón y cambiar a estado cargando
+    btnActualizar.disabled = true;
+    const originalText = btnActualizar.innerHTML;
+    btnActualizar.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Cargando...`;
+
+    // 2. Mostrar Spinner y opacar contenedor de platillos
+    if (loader) loader.style.display = "flex";
+    if (container) container.classList.add("loading");
+
+    // 3. Simular delay asíncrono entre 1 y 1.5 segundos (1000ms a 1500ms)
+    const randomDelay = Math.floor(Math.random() * 500) + 1000;
+
+    setTimeout(async () => {
+      // Simular cambio sutil en los datos para notar que refrescó
+      simularCambioEnBaseDatos();
+
+      // 4. Volver a renderizar (mantiene la lógica de los agregados en window.pedidoActual)
+      await loadMenu();
+
+      // 5. Ocultar spinner, restaurar contenedor y rehabilitar botón
+      if (loader) loader.style.display = "none";
+      if (container) container.classList.remove("loading");
+      btnActualizar.disabled = false;
+      btnActualizar.innerHTML = originalText;
+
+      // Alerta visual de éxito (si SweetAlert está disponible en alerts.js / CDN)
+      if (typeof Swal !== "undefined") {
+        Swal.fire({
+          toast: true,
+          position: "top-end",
+          icon: "success",
+          title: "Menú actualizado con éxito",
+          showConfirmButton: false,
+          timer: 1500
+        });
+      }
+    }, randomDelay);
+  });
+}
+
+function simularCambioEnBaseDatos() {
+  // Cambia la disponibilidad o precio de algún plato al azar para demostrar la actualización
+  const randomIndex = Math.floor(Math.random() * PLATILLOS_MOCK.length);
+  const platillo = PLATILLOS_MOCK[randomIndex];
+  platillo.platillo_disponible = platillo.platillo_disponible === 1 ? 0 : 1;
+  console.log(`[Simulación] Platillo "${platillo.platillo_nombre}" disponibilidad cambiada a: ${platillo.platillo_disponible === 1 ? "Disponible" : "No disponible"}`);
+}
+
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
 
   attachMenuControls();
+  
+  // Registrar el botón de actualización
+  attachActualizarControl();
 
   const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
   if (menuSection && menuSection.style.display !== "none") {
     loadMenu();
   } else if (document.getElementById('tomar-pedido') && document.getElementById('tomar-pedido').style.display !== "none") {
-    window.activeViewId = 'tomar-pedido';
     loadMenu();
   }
 });
