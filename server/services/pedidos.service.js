@@ -731,16 +731,54 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
         p.pedido_estado,
         p.pedido_total,
         p.pedido_fecha_hora,
-        m.mesa_numero
+        m.mesa_numero,
+        dp.id_detalle,
+        dp.detalle_pedido_cantidad,
+        dp.detalle_pedido_notas,
+        pl.platillo_nombre
      FROM pedidos p
      LEFT JOIN mesas m
         ON p.id_mesa = m.id_mesa
+     LEFT JOIN detalle_pedido dp
+        ON p.id_pedido = dp.id_pedido
+     LEFT JOIN platillos pl
+        ON dp.id_platillo = pl.id_platillo
      WHERE p.id_mesero = ?
-       AND p.pedido_estado NOT IN ('Facturado', 'Anulado')
+       AND p.pedido_estado IN ('Pendiente', 'EnPreparacion', 'Listo')
      ORDER BY p.pedido_fecha_hora DESC`,
     [id_mesero]
   );
-  return rows;
+
+  const pedidosMap = {};
+
+  rows.forEach((row) => {
+    if (!pedidosMap[row.id_pedido]) {
+      pedidosMap[row.id_pedido] = {
+        id_pedido: row.id_pedido,
+        pedido_tipo: row.pedido_tipo,
+        pedido_estado: row.pedido_estado,
+        pedido_total: row.pedido_total,
+        pedido_fecha_hora: row.pedido_fecha_hora,
+        mesa:
+          row.pedido_tipo === "Llevar"
+            ? "Para llevar"
+            : row.mesa_numero,
+        mesa_numero: row.mesa_numero,
+        platillos: []
+      };
+    }
+
+    if (row.id_detalle) {
+      pedidosMap[row.id_pedido].platillos.push({
+        id_detalle: row.id_detalle,
+        nombre: row.platillo_nombre,
+        cantidad: row.detalle_pedido_cantidad,
+        notas: row.detalle_pedido_notas
+      });
+    }
+  });
+
+  return Object.values(pedidosMap);
 };
 
 // Cancelar pedido

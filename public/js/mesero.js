@@ -72,7 +72,10 @@ document.addEventListener("DOMContentLoaded", () => {
     syncPedidoActualGlobal();
     actualizarEstadoBotonesMenu();
     aplicarTipoPedido("salon");
-    iniciarPollingMenu();
+
+    if (vistaPedidosPendientesActiva()) {
+      cargarMisPedidos();
+    }
   }
 
   async function cargarPlatillos() {
@@ -414,6 +417,189 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/'/g, "&#039;");
   }
 
+  function formatPrice(value) {
+    return `$${(Number(value) || 0).toFixed(2)}`;
+  }
+
+  function obtenerGridMisPedidos() {
+    const container = document.getElementById("pedidos-pendientes");
+    if (!container) return null;
+
+    let grid = container.querySelector(".grid-pedidos");
+    if (!grid) {
+      grid = document.createElement("div");
+      grid.className = "grid-pedidos";
+      container.appendChild(grid);
+    }
+
+    return grid;
+  }
+
+  function vistaPedidosPendientesActiva() {
+    const view = document.getElementById("pedidos-pendientes");
+    return view && view.style.display !== "none";
+  }
+
+  function estadoClasePedido(estado) {
+    if (estado === "EnPreparacion") return "preparando";
+    if (estado === "Listo") return "completado";
+    return "pendiente";
+  }
+
+  function estadoTextoPedido(estado) {
+    if (estado === "EnPreparacion") return "EnPreparacion";
+    if (estado === "Listo") return "Listo";
+    return "Pendiente";
+  }
+
+  function obtenerNombreMesaPedido(pedido) {
+    const tipo = (pedido.pedido_tipo || pedido.tipo || "").toString().toLowerCase();
+    const mesa = pedido.mesa ?? pedido.mesa_numero ?? pedido.numero_mesa;
+
+    if (tipo === "llevar" || mesa === "Para llevar" || mesa == null || mesa === "") {
+      return "Para llevar";
+    }
+
+    return `Mesa ${mesa}`;
+  }
+
+  function obtenerPlatillosPedido(pedido) {
+    return pedido.platillos || pedido.items || pedido.detalles || [];
+  }
+
+  function obtenerNombrePlatilloPedido(item) {
+    return item.nombre || item.platillo_nombre || item.nombre_platillo || "Platillo";
+  }
+
+  function obtenerCantidadPlatilloPedido(item) {
+    return item.cantidad || item.detalle_pedido_cantidad || 1;
+  }
+
+  function calcularTiempo(fecha) {
+    const creada = new Date(fecha);
+    if (Number.isNaN(creada.getTime())) return "";
+
+    const minutos = Math.max(0, Math.floor((Date.now() - creada.getTime()) / 60000));
+    if (minutos < 60) return `Hace ${minutos} minutos`;
+
+    const horas = Math.floor(minutos / 60);
+    if (horas < 24) return `Hace ${horas} horas`;
+
+    const dias = Math.floor(horas / 24);
+    return `Hace ${dias} dias`;
+  }
+
+  function obtenerClaseEstadoPedido(estado) {
+    if (estado === "EnPreparacion") return "estado-preparando";
+    if (estado === "Listo") return "estado-completado";
+    return `estado-${String(estado || "Pendiente").toLowerCase()}`;
+  }
+
+  function renderizarPedidos(pedidos) {
+    const container = document.getElementById("pedidos-pendientes");
+    if (!container) return;
+
+    container.innerHTML = "";
+
+    if (!Array.isArray(pedidos) || pedidos.length === 0) {
+      container.innerHTML = '<p style="color: #555;">No tienes pedidos activos</p>';
+      return;
+    }
+
+    pedidos.forEach((pedido) => {
+      const estado = pedido.pedido_estado || pedido.estado || "Pendiente";
+      const platillos = obtenerPlatillosPedido(pedido);
+      const card = document.createElement("div");
+      card.className = "pedido-card";
+
+      const itemsHtml = platillos.length > 0
+        ? platillos.map((p) => `<li>${escapeHtml(obtenerCantidadPlatilloPedido(p))}x ${escapeHtml(obtenerNombrePlatilloPedido(p))}</li>`).join("")
+        : "<li>Sin platillos</li>";
+
+      card.innerHTML = `
+        <div class="pedido-header">
+          <h3>Mesa ${escapeHtml(pedido.mesa_numero || "Para llevar")}</h3>
+          <span class="${obtenerClaseEstadoPedido(estado)}">${escapeHtml(estado)}</span>
+        </div>
+        <ul>
+          ${itemsHtml}
+        </ul>
+        <div class="pedido-footer">
+          <span>Total: ${formatPrice(pedido.pedido_total || pedido.total)}</span>
+          <span>${escapeHtml(calcularTiempo(pedido.pedido_fecha_hora || pedido.created_at || pedido.fecha_creacion))}</span>
+        </div>
+        <button class="btn-editar" onclick="editarPedido(${Number(pedido.id_pedido) || 0})">Editar Pedido</button>
+      `;
+
+      container.appendChild(card);
+    });
+  }
+
+  function editarPedido(idPedido) {
+    window.pedidoEditandoId = idPedido;
+    mostrarViews("tomar-pedido");
+  }
+
+  window.renderizarPedidos = renderizarPedidos;
+  window.calcularTiempo = calcularTiempo;
+  window.editarPedido = editarPedido;
+
+  async function cargarMisPedidos() {
+    const container = document.getElementById("pedidos-pendientes");
+    if (!container) return;
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      container.innerHTML = '<p>No hay sesion activa</p>';
+      return;
+    }
+
+    try {
+      const res = await fetch("/api/pedidos/mis-pedidos", {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      const pedidos = await res.json();
+      
+      container.innerHTML = "";
+      
+      pedidos.forEach(pedido => {
+        const card = document.createElement("div");
+        card.className = "pedido-card";
+        card.innerHTML = `
+          <div class="pedido-header">
+            <h3>Mesa ${pedido.mesa_numero || "Para llevar"}</h3>
+            <span class="${pedido.pedido_estado === "Pendiente" ? "pendiente" : "preparando"}">${pedido.pedido_estado}</span>
+          </div>
+          <ul>${pedido.platillos.map(p => `<li>${p.cantidad}x ${p.nombre}</li>`).join("")}</ul>
+          <div class="pedido-footer">
+            <span>Total: $${pedido.pedido_total}</span>
+            <span>Hace ${Math.floor((Date.now() - new Date(pedido.pedido_fecha_hora)) / 60000)} min</span>
+          </div>
+          <button class="btn-editar">Editar Pedido</button>
+        `;
+        container.appendChild(card);
+      });
+    } catch (error) {
+      console.error(error);
+      container.innerHTML = '<p>Error cargando pedidos</p>';
+    }
+  }
+
+  window.cargarMisPedidos = cargarMisPedidos;
+
+  function setupMisPedidosViewHook() {
+    if (typeof window.mostrarViews !== "function") return;
+
+    const mostrarViewsOriginal = window.mostrarViews;
+    window.mostrarViews = function (seccion) {
+      mostrarViewsOriginal(seccion);
+
+      if (seccion === "pedidos-pendientes") {
+        cargarMisPedidos();
+      }
+    };
+  }
+
   function obtenerPlatilloPorId(idPlatillo) {
     const source = platillosDisponibles.length > 0 ? platillosDisponibles : (window.menuItems || []);
     return source.find((p) => String(p.id_platillo) === String(idPlatillo));
@@ -660,6 +846,43 @@ document.addEventListener("DOMContentLoaded", () => {
         btnActualizar.disabled = false;
         btnActualizar.innerHTML = `<i class="fa-solid fa-rotate"></i> Actualizar`;
       });
+    }
+
+    setupMisPedidosViewHook();
+
+    const gridMisPedidos = obtenerGridMisPedidos();
+    if (gridMisPedidos) {
+      gridMisPedidos.addEventListener("click", async (event) => {
+        const btnEntregado = event.target.closest(".btn-marcar-entregado");
+        const btnEditar = event.target.closest(".btn-editar-pedido");
+
+        if (btnEntregado) {
+          await marcarPedidoEntregado(btnEntregado.dataset.idPedido);
+        }
+
+        if (btnEditar) {
+          mostrarViews("tomar-pedido");
+        }
+      });
+    }
+  }
+
+  async function marcarPedidoEntregado(idPedido) {
+    if (!idPedido) return;
+
+    try {
+      const res = await fetch(`/api/pedidos/${idPedido}/entregar`, {
+        method: "PUT"
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo marcar el pedido como entregado");
+
+      toast("success", data.message || "Pedido entregado correctamente");
+      cargarMisPedidos();
+      cargarMesasPedido();
+    } catch (error) {
+      console.error(error);
+      toast("error", error.message);
     }
   }
   function obtenerItemsPedido() {
