@@ -397,6 +397,7 @@ document.addEventListener("DOMContentLoaded", () => {
       poblarSelectPlatillos(newRow.querySelector(".platillo-select"));
       actualizarBloqueoTipoPedido();
     });
+    actualizarEstadoBotonCocina();
 
     document.getElementById("platillos-container").addEventListener("input", (e) => {
       if (e.target.classList.contains("platillo-cantidad")) {
@@ -420,6 +421,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       }
     });
+    actualizarEstadoBotonCocina();
 
     document.getElementById("platillos-container").addEventListener("click", (e) => {
       if (e.target.closest(".btn-eliminar-fila")) {
@@ -427,6 +429,7 @@ document.addEventListener("DOMContentLoaded", () => {
         if (rows.length > 1) {
           e.target.closest(".platillo-row").remove();
           actualizarBloqueoTipoPedido();
+          actualizarEstadoBotonCocina();
         } else {
           toast("warning", "Debe haber al menos un platillo en el pedido");
         }
@@ -436,19 +439,31 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-enviar-pedido").addEventListener("click", enviarPedido);
   }
 
-  function obtenerItemsPedido() {
-    const items = [];
-    const rows = document.querySelectorAll(".platillo-row");
-    rows.forEach((row) => {
-      const id_platillo = row.querySelector(".platillo-select").value;
-      const cantidad = parseInt(row.querySelector(".platillo-cantidad").value);
-      const notas = row.querySelector(".platillo-notas").value.trim();
-      if (id_platillo && cantidad > 0) {
-        items.push({ id_platillo, cantidad, notas });
-      }
-    });
-    return items;
+  function actualizarEstadoBotonCocina() {
+
+  const btn = document.getElementById("btn-enviar-cocina");
+
+  if (!btn) return;
+
+  const items = obtenerItemsPedido();
+
+  if (items.length > 0) {
+
+    btn.disabled = false;
+    btn.style.opacity = "1";
+    btn.style.cursor = "pointer";
+    btn.title = "";
+
+  } else {
+
+    btn.disabled = true;
+    btn.style.opacity = "0.7";
+    btn.style.cursor = "not-allowed";
+    btn.title = "Agrega al menos un platillo";
+
   }
+
+}
 
   async function enviarPedido() {
     const typeBtn = document.querySelector(".pedido-type-btn.active");
