@@ -110,9 +110,27 @@
                         <i class="fas fa-plus"></i> Añadir otro platillo
                     </button>
 
-                    <button id="btn-enviar-pedido" style="width: 100%; padding: 15px; margin-bottom: 15px; background: #7a1d1d; color: white; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                    Guardar pedido
-                </button>
+                    <button 
+    id="btn-enviar-cocina"
+    onclick="enviarPedidoCocina()"
+    disabled
+    title="Agrega al menos un platillo"
+    style="
+        width: 100%;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: #7a1d1d;
+        color: white;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+        opacity: 0.7;
+    ">
+    <i class="fas fa-paper-plane"></i>
+    Enviar Pedido a Cocina
+</button>
                 </div>
 
                 
