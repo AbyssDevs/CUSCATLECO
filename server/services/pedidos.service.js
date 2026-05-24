@@ -735,7 +735,9 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
         dp.id_detalle,
         dp.detalle_pedido_cantidad,
         dp.detalle_pedido_notas,
-        pl.platillo_nombre
+        pl.id_platillo,
+        pl.platillo_nombre,
+        pl.platillo_precio
      FROM pedidos p
      LEFT JOIN mesas m
         ON p.id_mesa = m.id_mesa
@@ -771,7 +773,9 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
     if (row.id_detalle) {
       pedidosMap[row.id_pedido].platillos.push({
         id_detalle: row.id_detalle,
+        id_platillo: row.id_platillo,
         nombre: row.platillo_nombre,
+        precio: row.platillo_precio,
         cantidad: row.detalle_pedido_cantidad,
         notas: row.detalle_pedido_notas
       });

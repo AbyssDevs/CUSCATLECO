@@ -383,14 +383,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const menuPanel = document.querySelector(".pedido-menu-panel");
     const info = document.getElementById("pedido-activo-info");
 
-    if (type === "llevar") {
+    // If we are NOT editing an existing order, we can clear pedidoActivo for "llevar".
+    // But if we are editing, we must keep it.
+    if (type === "llevar" && !window.pedidoEditandoId) {
       pedidoActivo = null;
+    }
+
+    if (type === "llevar") {
       if (mesaContainer) mesaContainer.style.display = "none";
       if (formCard) formCard.style.display = "block";
       if (menuPanel) menuPanel.style.display = "block";
       if (info) {
-        info.style.display = "none";
-        info.innerHTML = "";
+        if (pedidoActivo) {
+          mostrarFormularioPedido(); // Will show info properly
+        } else {
+          info.style.display = "none";
+          info.innerHTML = "";
+        }
       }
       return;
     }
@@ -422,17 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function obtenerGridMisPedidos() {
-    const container = document.getElementById("pedidos-pendientes");
-    if (!container) return null;
-
-    let grid = container.querySelector(".grid-pedidos");
-    if (!grid) {
-      grid = document.createElement("div");
-      grid.className = "grid-pedidos";
-      container.appendChild(grid);
-    }
-
-    return grid;
+    return document.getElementById("gridPedidosActivos") || null;
   }
 
   function vistaPedidosPendientesActiva() {
@@ -495,93 +494,341 @@ document.addEventListener("DOMContentLoaded", () => {
     return `estado-${String(estado || "Pendiente").toLowerCase()}`;
   }
 
-  function renderizarPedidos(pedidos) {
-    const container = document.getElementById("pedidos-pendientes");
-    if (!container) return;
+  // ==================================================================
+  // MIS PEDIDOS ACTIVOS — Module
+  // ==================================================================
+  const PEDIDOS_POR_PAGINA = 6;
+  let misPedidosData = [];
+  let misPedidosPagina = 1;
+  let misPedidosCargando = false;
 
-    container.innerHTML = "";
+  // --- Status helpers ------------------------------------------------
+  function obtenerStatusBadgeClass(estado) {
+    if (estado === "EnPreparacion") return "status-enpreparacion";
+    if (estado === "Listo") return "status-listo";
+    return "status-pendiente";
+  }
+
+  function obtenerStatusTexto(estado) {
+    if (estado === "EnPreparacion") return "En Preparación";
+    return estado || "Pendiente";
+  }
+
+  // --- Mesa helper ---------------------------------------------------
+  function obtenerTextoMesa(pedido) {
+    const tipo = (pedido.pedido_tipo || "").toLowerCase();
+    if (tipo === "llevar" || !pedido.mesa_numero) return "N/A";
+    return `Mesa ${pedido.mesa_numero}`;
+  }
+
+  // --- Hora de inicio ------------------------------------------------
+  function formatHoraInicio(fecha) {
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return "--:--";
+    return d.toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit", hour12: true });
+  }
+
+  // --- UI state toggles ----------------------------------------------
+  function toggleMisPedidosLoading(show) {
+    const el = document.getElementById("misPedidosLoading");
+    if (el) el.style.display = show ? "flex" : "none";
+  }
+
+  function toggleMisPedidosEmpty(show) {
+    const el = document.getElementById("misPedidosEmpty");
+    if (el) el.style.display = show ? "flex" : "none";
+  }
+
+  function actualizarContadorPedidos(total) {
+    const el = document.getElementById("pedidosCount");
+    if (!el) return;
+    if (total > 0) {
+      el.textContent = `${total} pedido${total !== 1 ? "s" : ""}`;
+      el.style.display = "";
+    } else {
+      el.style.display = "none";
+    }
+  }
+
+  // --- Render single card --------------------------------------------
+  function crearCardPedido(pedido) {
+    const estado = pedido.pedido_estado || "Pendiente";
+    const esPendiente = estado === "Pendiente";
+    const esListo = estado === "Listo";
+    const esLlevar = (pedido.pedido_tipo || "").toLowerCase() === "llevar";
+    const mesaTexto = obtenerTextoMesa(pedido);
+
+    const card = document.createElement("div");
+    card.className = "pedido-activo-card";
+    card.dataset.estado = estado;
+    card.dataset.idPedido = pedido.id_pedido;
+
+    // --- Meta badges ---
+    let metaHtml = `
+      <span class="pedido-meta-item">
+        <i class="fa-solid fa-chair"></i> ${escapeHtml(mesaTexto)}
+      </span>
+      <span class="pedido-meta-item">
+        <i class="fa-solid fa-clock"></i> ${escapeHtml(formatHoraInicio(pedido.pedido_fecha_hora))}
+      </span>
+    `;
+
+    if (esLlevar) {
+      metaHtml += `
+        <span class="pedido-meta-item pedido-badge-llevar">
+          <i class="fa-solid fa-bag-shopping"></i> Para Llevar
+        </span>
+      `;
+    } else {
+      metaHtml += `
+        <span class="pedido-meta-item">
+          <i class="fa-solid fa-utensils"></i> En Salón
+        </span>
+      `;
+    }
+
+    // --- Actions based on estado ---
+    let actionsHtml = "";
+    let readonlyHtml = "";
+
+    if (esPendiente) {
+      actionsHtml = `
+        <div class="pedido-card-actions">
+          <button type="button" class="btn-editar-pedido" data-action="editar" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-pen-to-square"></i> Editar Pedido
+          </button>
+          <button type="button" class="btn-eliminar-pedido" data-action="eliminar" data-id="${pedido.id_pedido}" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5 !important;">
+            <i class="fa-solid fa-trash"></i> Eliminar
+          </button>
+        </div>
+      `;
+    } else if (esListo) {
+      actionsHtml = `
+        <div class="pedido-card-actions">
+          <button type="button" class="btn-entregado" data-action="entregado" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-check-double"></i> Marcar Entregado
+          </button>
+          <button type="button" class="btn-ver-detalle" data-action="detalle" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-eye"></i> Ver Detalle
+          </button>
+        </div>
+      `;
+    } else {
+      readonlyHtml = `
+        <div class="pedido-card-readonly">
+          <i class="fa-solid fa-lock"></i> Solo lectura — pedido en preparación
+        </div>
+      `;
+      actionsHtml = `
+        <div class="pedido-card-actions">
+          <button type="button" class="btn-ver-detalle" data-action="detalle" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-eye"></i> Ver Detalle
+          </button>
+        </div>
+      `;
+    }
+
+    card.innerHTML = `
+      <div class="pedido-card-header">
+        <span class="pedido-card-numero">
+          <i class="fa-solid fa-receipt"></i>
+          Pedido #${escapeHtml(String(pedido.id_pedido))}
+        </span>
+        <span class="pedido-status-badge ${obtenerStatusBadgeClass(estado)}">
+          ${escapeHtml(obtenerStatusTexto(estado))}
+        </span>
+      </div>
+      <div class="pedido-card-body">
+        <div class="pedido-card-meta">
+          ${metaHtml}
+        </div>
+        <div class="pedido-card-subtotal">
+          <span>Subtotal actual</span>
+          <span class="subtotal-valor">${formatPrice(pedido.pedido_total || 0)}</span>
+        </div>
+      </div>
+      ${readonlyHtml}
+      ${actionsHtml}
+    `;
+
+    // Click on card body → placeholder detalle
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      abrirDetallePedido(pedido.id_pedido);
+    });
+
+    return card;
+  }
+
+  // --- Placeholder detalle -------------------------------------------
+  function abrirDetallePedido(idPedido) {
+    // CUS-94 — placeholder for future detail view
+    console.log(`[CUS-94] abrirDetallePedido(${idPedido}) — pendiente de implementación`);
+    toast("info", `Detalle del pedido #${idPedido} próximamente disponible`);
+  }
+
+  window.abrirDetallePedido = abrirDetallePedido;
+
+  // --- Render all cards with pagination -------------------------------
+  function renderizarPedidos(pedidos) {
+    const grid = obtenerGridMisPedidos();
+    if (!grid) return;
+
+    grid.innerHTML = "";
 
     if (!Array.isArray(pedidos) || pedidos.length === 0) {
-      container.innerHTML = '<p style="color: #555;">No tienes pedidos activos</p>';
+      toggleMisPedidosEmpty(true);
+      actualizarContadorPedidos(0);
+      actualizarPaginacion(0);
       return;
     }
 
-    pedidos.forEach((pedido) => {
-      const estado = pedido.pedido_estado || pedido.estado || "Pendiente";
-      const platillos = obtenerPlatillosPedido(pedido);
-      const card = document.createElement("div");
-      card.className = "pedido-card";
+    toggleMisPedidosEmpty(false);
+    actualizarContadorPedidos(pedidos.length);
 
-      const itemsHtml = platillos.length > 0
-        ? platillos.map((p) => `<li>${escapeHtml(obtenerCantidadPlatilloPedido(p))}x ${escapeHtml(obtenerNombrePlatilloPedido(p))}</li>`).join("")
-        : "<li>Sin platillos</li>";
-
-      card.innerHTML = `
-        <div class="pedido-header">
-          <h3>Mesa ${escapeHtml(pedido.mesa_numero || "Para llevar")}</h3>
-          <span class="${obtenerClaseEstadoPedido(estado)}">${escapeHtml(estado)}</span>
-        </div>
-        <ul>
-          ${itemsHtml}
-        </ul>
-        <div class="pedido-footer">
-          <span>Total: ${formatPrice(pedido.pedido_total || pedido.total)}</span>
-          <span>${escapeHtml(calcularTiempo(pedido.pedido_fecha_hora || pedido.created_at || pedido.fecha_creacion))}</span>
-        </div>
-        <button class="btn-editar" onclick="editarPedido(${Number(pedido.id_pedido) || 0})">Editar Pedido</button>
-      `;
-
-      container.appendChild(card);
+    // Sort: most recent first (already from API but ensure client-side)
+    const sorted = [...pedidos].sort((a, b) => {
+      return new Date(b.pedido_fecha_hora) - new Date(a.pedido_fecha_hora);
     });
+
+    misPedidosData = sorted;
+
+    // Paginate
+    const totalPages = Math.ceil(sorted.length / PEDIDOS_POR_PAGINA);
+    if (misPedidosPagina > totalPages) misPedidosPagina = totalPages;
+    if (misPedidosPagina < 1) misPedidosPagina = 1;
+
+    const start = (misPedidosPagina - 1) * PEDIDOS_POR_PAGINA;
+    const pageItems = sorted.slice(start, start + PEDIDOS_POR_PAGINA);
+
+    pageItems.forEach((pedido, idx) => {
+      const card = crearCardPedido(pedido);
+      card.style.animationDelay = `${idx * 0.06}s`;
+      grid.appendChild(card);
+    });
+
+    actualizarPaginacion(sorted.length);
   }
 
+  // --- Pagination controls -------------------------------------------
+  function actualizarPaginacion(total) {
+    const pagEl = document.getElementById("pedidosPagination");
+    const infoEl = document.getElementById("pagInfo");
+    const btnPrev = document.getElementById("btnPagAnterior");
+    const btnNext = document.getElementById("btnPagSiguiente");
+    if (!pagEl) return;
+
+    const totalPages = Math.max(1, Math.ceil(total / PEDIDOS_POR_PAGINA));
+
+    if (total <= PEDIDOS_POR_PAGINA) {
+      pagEl.style.display = "none";
+      return;
+    }
+
+    pagEl.style.display = "flex";
+    if (infoEl) infoEl.textContent = `Página ${misPedidosPagina} de ${totalPages}`;
+    if (btnPrev) btnPrev.disabled = misPedidosPagina <= 1;
+    if (btnNext) btnNext.disabled = misPedidosPagina >= totalPages;
+  }
+
+  // --- Edit pedido action --------------------------------------------
   function editarPedido(idPedido) {
+    const pedido = misPedidosData.find(p => String(p.id_pedido) === String(idPedido));
+    if (!pedido) {
+      toast("error", "No se encontró el pedido");
+      return;
+    }
+
+    // Configurar el pedido activo
+    pedidoActivo = {
+      ...pedido,
+      mesa_ubicacion: "Area General" 
+    };
     window.pedidoEditandoId = idPedido;
+
+    // Limpiar y popular contenedor de platillos
+    const container = document.getElementById("platillos-container");
+    container.innerHTML = "";
+    container.classList.remove("pedido-items-empty");
+
+    if (pedido.platillos && pedido.platillos.length > 0) {
+      pedido.platillos.forEach(platilloObj => {
+        let pId = platilloObj.id_platillo;
+        let pPrecio = platilloObj.precio;
+
+        // Fallback: si el backend no devolvió id_platillo o precio (ej. servidor no reiniciado)
+        if (!pId || pPrecio === undefined) {
+          const platilloEnMenu = (window.menuItems || []).find(m => m.platillo_nombre === platilloObj.nombre);
+          if (platilloEnMenu) {
+            pId = platilloEnMenu.id_platillo;
+            pPrecio = platilloEnMenu.platillo_precio;
+          }
+        }
+
+        const p = {
+          id_platillo: pId,
+          platillo_nombre: platilloObj.nombre,
+          platillo_precio: pPrecio
+        };
+        const fila = crearFilaPlatillo(p, platilloObj.cantidad);
+        container.appendChild(fila);
+      });
+    } else {
+      renderEstadoPedidoVacio();
+    }
+
+    // Actualizar tipo de pedido (Salón vs Llevar)
+    const tipo = (pedido.pedido_tipo || "salon").toLowerCase();
+    const typeBtn = document.querySelector(`.pedido-type-btn[data-type="${tipo}"]`);
+    if (typeBtn) {
+      document.querySelectorAll(".pedido-type-btn").forEach(b => b.classList.remove("active"));
+      typeBtn.classList.add("active");
+    }
+    
+    aplicarTipoPedido(tipo);
+    actualizarSubtotal();
+    actualizarBloqueoTipoPedido();
+    syncPedidoActualGlobal();
+    actualizarEstadoBotonesMenu();
+
     mostrarViews("tomar-pedido");
+    mostrarFormularioPedido();
   }
 
   window.renderizarPedidos = renderizarPedidos;
   window.calcularTiempo = calcularTiempo;
   window.editarPedido = editarPedido;
 
+  // --- Main data loader -----------------------------------------------
   async function cargarMisPedidos() {
-    const container = document.getElementById("pedidos-pendientes");
-    if (!container) return;
+    if (misPedidosCargando) return;
+    misPedidosCargando = true;
 
-    const token = localStorage.getItem("token");
-    if (!token) {
-      container.innerHTML = '<p>No hay sesion activa</p>';
-      return;
-    }
+    const grid = obtenerGridMisPedidos();
+    const btnRefresh = document.getElementById("btnActualizarPedidos");
+
+    toggleMisPedidosLoading(true);
+    toggleMisPedidosEmpty(false);
+    if (grid) grid.innerHTML = "";
+    if (btnRefresh) btnRefresh.classList.add("loading");
 
     try {
-      const res = await fetch("/api/pedidos/mis-pedidos", {
-        headers: { "Authorization": `Bearer ${token}` }
-      });
+      const res = await fetch("/api/pedidos/mis-pedidos");
+
+      if (!res.ok) {
+        throw new Error("Error al cargar pedidos");
+      }
+
       const pedidos = await res.json();
-      
-      container.innerHTML = "";
-      
-      pedidos.forEach(pedido => {
-        const card = document.createElement("div");
-        card.className = "pedido-card";
-        card.innerHTML = `
-          <div class="pedido-header">
-            <h3>Mesa ${pedido.mesa_numero || "Para llevar"}</h3>
-            <span class="${pedido.pedido_estado === "Pendiente" ? "pendiente" : "preparando"}">${pedido.pedido_estado}</span>
-          </div>
-          <ul>${pedido.platillos.map(p => `<li>${p.cantidad}x ${p.nombre}</li>`).join("")}</ul>
-          <div class="pedido-footer">
-            <span>Total: $${pedido.pedido_total}</span>
-            <span>Hace ${Math.floor((Date.now() - new Date(pedido.pedido_fecha_hora)) / 60000)} min</span>
-          </div>
-          <button class="btn-editar">Editar Pedido</button>
-        `;
-        container.appendChild(card);
-      });
+      renderizarPedidos(pedidos);
     } catch (error) {
       console.error(error);
-      container.innerHTML = '<p>Error cargando pedidos</p>';
+      toggleMisPedidosEmpty(true);
+      toast("error", "No se pudieron cargar los pedidos");
+    } finally {
+      misPedidosCargando = false;
+      toggleMisPedidosLoading(false);
+      if (btnRefresh) btnRefresh.classList.remove("loading");
     }
   }
 
@@ -595,6 +842,7 @@ document.addEventListener("DOMContentLoaded", () => {
       mostrarViewsOriginal(seccion);
 
       if (seccion === "pedidos-pendientes") {
+        misPedidosPagina = 1;
         cargarMisPedidos();
       }
     };
@@ -850,18 +1098,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
     setupMisPedidosViewHook();
 
+    // --- Mis Pedidos: Refresh button ---
+    const btnRefreshPedidos = document.getElementById("btnActualizarPedidos");
+    if (btnRefreshPedidos) {
+      btnRefreshPedidos.addEventListener("click", () => {
+        misPedidosPagina = 1;
+        cargarMisPedidos();
+      });
+    }
+
+    // --- Mis Pedidos: Pagination ---
+    const btnPagPrev = document.getElementById("btnPagAnterior");
+    const btnPagNext = document.getElementById("btnPagSiguiente");
+    if (btnPagPrev) {
+      btnPagPrev.addEventListener("click", () => {
+        if (misPedidosPagina > 1) {
+          misPedidosPagina--;
+          renderizarPedidos(misPedidosData);
+        }
+      });
+    }
+    if (btnPagNext) {
+      btnPagNext.addEventListener("click", () => {
+        const totalPages = Math.ceil(misPedidosData.length / PEDIDOS_POR_PAGINA);
+        if (misPedidosPagina < totalPages) {
+          misPedidosPagina++;
+          renderizarPedidos(misPedidosData);
+        }
+      });
+    }
+
+    // --- Mis Pedidos: Card action delegation ---
     const gridMisPedidos = obtenerGridMisPedidos();
     if (gridMisPedidos) {
       gridMisPedidos.addEventListener("click", async (event) => {
-        const btnEntregado = event.target.closest(".btn-marcar-entregado");
-        const btnEditar = event.target.closest(".btn-editar-pedido");
+        const btn = event.target.closest("button[data-action]");
+        if (!btn) return;
 
-        if (btnEntregado) {
-          await marcarPedidoEntregado(btnEntregado.dataset.idPedido);
+        const action = btn.dataset.action;
+        const idPedido = btn.dataset.id;
+
+        if (action === "entregado") {
+          await marcarPedidoEntregadoConAnimacion(idPedido, btn.closest(".pedido-activo-card"));
         }
 
-        if (btnEditar) {
-          mostrarViews("tomar-pedido");
+        if (action === "editar") {
+          editarPedido(Number(idPedido));
+        }
+
+        if (action === "detalle") {
+          abrirDetallePedido(Number(idPedido));
+        }
+
+        if (action === "eliminar") {
+          modal("info", "Aún no disponible", "La función de eliminar pedidos estará disponible pronto.");
         }
       });
     }
@@ -879,6 +1169,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
       toast("success", data.message || "Pedido entregado correctamente");
       cargarMisPedidos();
+      cargarMesasPedido();
+    } catch (error) {
+      console.error(error);
+      toast("error", error.message);
+    }
+  }
+
+  // Animated version for card removal
+  async function marcarPedidoEntregadoConAnimacion(idPedido, cardElement) {
+    if (!idPedido) return;
+
+    try {
+      const res = await fetch(`/api/pedidos/${idPedido}/entregar`, {
+        method: "PUT"
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo marcar el pedido como entregado");
+
+      toast("success", data.message || "¡Pedido entregado correctamente!");
+
+      // Animate card removal
+      if (cardElement) {
+        cardElement.classList.add("card-removing");
+        cardElement.addEventListener("animationend", () => {
+          // Remove from data array
+          misPedidosData = misPedidosData.filter(p => String(p.id_pedido) !== String(idPedido));
+          renderizarPedidos(misPedidosData);
+        }, { once: true });
+      } else {
+        misPedidosData = misPedidosData.filter(p => String(p.id_pedido) !== String(idPedido));
+        renderizarPedidos(misPedidosData);
+      }
+
       cargarMesasPedido();
     } catch (error) {
       console.error(error);
@@ -915,16 +1238,18 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const url = tipo === "Salon"
+      const isEditing = !!pedidoActivo;
+      
+      const url = isEditing
         ? `/api/pedidos/${pedidoActivo.id_pedido}/items`
         : "/api/pedidos/crear";
 
-      const body = tipo === "Salon"
+      const body = isEditing
         ? { items, notas: notasGenerales }
         : { tipo, id_mesa: null, items, notas: notasGenerales };
 
       const res = await fetch(url, {
-        method: tipo === "Salon" ? "PATCH" : "POST",
+        method: isEditing ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body)
       });
@@ -958,6 +1283,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function resetForm() {
     pedidoActivo = null;
+    window.pedidoEditandoId = null;
 
     const container = document.getElementById("platillos-container");
     container.innerHTML = '<p class="pedido-empty-text">Agregue platillos desde el menú.</p>';
