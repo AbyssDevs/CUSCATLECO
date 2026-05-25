@@ -1,7 +1,12 @@
 import db from "../config/db.js";
 import { cambiarEstadoMesa } from "./mesas.service.js";
 
+// =====================================================
+// GENERAR NUMERO DE PEDIDO
+// =====================================================
+
 const generarNumeroPedido = async (connection) => {
+
   const [[{ anio }]] = await connection.query(
     "SELECT YEAR(CURRENT_DATE()) AS anio"
   );
@@ -38,6 +43,7 @@ const generarNumeroPedido = async (connection) => {
       Number(ultimo) + 1
     ).padStart(4, "0")}`
   };
+
 };
 
 // =====================================================
@@ -106,7 +112,10 @@ export const crearPedido = async ({
     // INSERTAR ITEMS
     // =====================================================
 
-    if (items && items.length > 0) {
+    if (
+      Array.isArray(items)
+      && items.length > 0
+    ) {
 
       for (const item of items) {
 
@@ -130,7 +139,10 @@ export const crearPedido = async ({
 
         const platillo = platilloRows[0];
 
-        if (!platillo.platillo_disponible) {
+        if (
+          platillo.platillo_disponible === 0
+          || platillo.platillo_disponible === false
+        ) {
           throw Object.assign(
             new Error("Uno de los platillos no esta disponible"),
             { status: 400 }
@@ -178,6 +190,7 @@ export const crearPedido = async ({
             item.notas || null
           ]
         );
+
       }
 
       // =====================================================
@@ -199,6 +212,7 @@ export const crearPedido = async ({
         `,
         [id_pedido, id_pedido]
       );
+
     }
 
     await connection.commit();
@@ -243,11 +257,15 @@ export const crearPedido = async ({
           );
 
         }
+
       }
 
       connection.release();
+
     }
+
   }
+
 };
 
 // =====================================================
@@ -303,10 +321,6 @@ export const agregarItemsPedido = async ({
 
     const pedido = pedidoRows[0];
 
-    // =====================================================
-    // VALIDAR ESTADOS
-    // =====================================================
-
     const estadosBloqueados = [
       "EnPreparacion",
       "Listo",
@@ -352,7 +366,10 @@ export const agregarItemsPedido = async ({
 
       const platillo = platilloRows[0];
 
-      if (!platillo.platillo_disponible) {
+      if (
+        platillo.platillo_disponible === 0
+        || platillo.platillo_disponible === false
+      ) {
         throw Object.assign(
           new Error("Uno de los platillos no esta disponible"),
           { status: 400 }
@@ -400,6 +417,7 @@ export const agregarItemsPedido = async ({
           item.notas || null
         ]
       );
+
     }
 
     // =====================================================
@@ -441,6 +459,7 @@ export const agregarItemsPedido = async ({
     connection.release();
 
   }
+
 };
 
 // =====================================================
@@ -460,10 +479,6 @@ export const iniciarPedido = async ({
       { status: 400 }
     );
   }
-
-  // =====================================================
-  // VALIDAR MESA
-  // =====================================================
 
   if (tipo === "Salon") {
 
@@ -498,6 +513,7 @@ export const iniciarPedido = async ({
         { status: 400 }
       );
     }
+
   }
 
   const pedido = await crearPedido({
@@ -514,796 +530,9 @@ export const iniciarPedido = async ({
       "Ocupada",
       userId
     );
+
   }
 
   return pedido;
-};
 
-// =====================================================
-// AGREGAR PLATILLO A PEDIDO
-// =====================================================
-
-export const agregarPlatilloAPedido = async ({
-  id_pedido,
-  id_platillo,
-  cantidad,
-  detalle_pedido_notas
-}) => {
-
-  const cantidadNum = Number(cantidad);
-
-  if (
-    isNaN(cantidadNum)
-    || cantidadNum < 1
-    || cantidadNum > 99
-  ) {
-    throw Object.assign(
-      new Error("La cantidad debe estar entre 1 y 99"),
-      { status: 400 }
-    );
-  }
-
-  // =====================================================
-  // VALIDAR PEDIDO
-  // =====================================================
-
-  const [pedidoRows] = await db.query(
-    `
-      SELECT pedido_estado
-      FROM pedidos
-      WHERE id_pedido = ?
-    `,
-    [id_pedido]
-  );
-
-  if (pedidoRows.length === 0) {
-    throw Object.assign(
-      new Error("Pedido no encontrado"),
-      { status: 404 }
-    );
-  }
-
-  const pedido = pedidoRows[0];
-
-  const estadosBloqueados = [
-    "EnPreparacion",
-    "Listo",
-    "Entregado",
-    "Cerrado",
-    "Cancelado"
-  ];
-
-  if (
-    estadosBloqueados.includes(
-      pedido.pedido_estado
-    )
-  ) {
-    throw Object.assign(
-      new Error("El pedido ya no permite agregar platillos"),
-      { status: 400 }
-    );
-  }
-
-  // =====================================================
-  // VALIDAR PLATILLO
-  // =====================================================
-
-  const [platilloRows] = await db.query(
-    `
-      SELECT
-        platillo_precio,
-        platillo_disponible
-      FROM platillos
-      WHERE id_platillo = ?
-    `,
-    [id_platillo]
-  );
-
-  if (platilloRows.length === 0) {
-    throw Object.assign(
-      new Error("Platillo no encontrado"),
-      { status: 404 }
-    );
-  }
-
-  const platillo = platilloRows[0];
-
-  if (!platillo.platillo_disponible) {
-    throw Object.assign(
-      new Error("El platillo no esta disponible"),
-      { status: 400 }
-    );
-  }
-
-  // =====================================================
-  // VERIFICAR SI YA EXISTE
-  // =====================================================
-
-  const [detalleRows] = await db.query(
-    `
-      SELECT
-        id_detalle,
-        detalle_pedido_cantidad
-      FROM detalle_pedido
-      WHERE id_pedido = ?
-      AND id_platillo = ?
-      AND (
-        detalle_pedido_notas = ?
-        OR (
-          detalle_pedido_notas IS NULL
-          AND ? IS NULL
-        )
-      )
-    `,
-    [
-      id_pedido,
-      id_platillo,
-      detalle_pedido_notas || null,
-      detalle_pedido_notas || null
-    ]
-  );
-
-  const precio = Number(
-    platillo.platillo_precio
-  );
-
-  // =====================================================
-  // ACTUALIZAR O INSERTAR
-  // =====================================================
-
-  if (detalleRows.length > 0) {
-
-    const detalle = detalleRows[0];
-
-    const nuevaCantidad =
-      detalle.detalle_pedido_cantidad
-      + cantidadNum;
-
-    if (nuevaCantidad > 99) {
-      throw Object.assign(
-        new Error("La cantidad maxima permitida es 99"),
-        { status: 400 }
-      );
-    }
-
-    const nuevoSubtotal =
-      nuevaCantidad * precio;
-
-    await db.query(
-      `
-        UPDATE detalle_pedido
-        SET
-          detalle_pedido_cantidad = ?,
-          detalle_pedido_subtotal = ?
-        WHERE id_detalle = ?
-      `,
-      [
-        nuevaCantidad,
-        nuevoSubtotal,
-        detalle.id_detalle
-      ]
-    );
-
-  } else {
-
-    const subtotal =
-      cantidadNum * precio;
-
-    await db.query(
-      `
-        INSERT INTO detalle_pedido (
-          id_pedido,
-          id_platillo,
-          detalle_pedido_cantidad,
-          detalle_pedido_precio_unitario,
-          detalle_pedido_subtotal,
-          detalle_pedido_notas
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-      `,
-      [
-        id_pedido,
-        id_platillo,
-        cantidadNum,
-        precio,
-        subtotal,
-        detalle_pedido_notas || null
-      ]
-    );
-  }
-
-  // =====================================================
-  // RECALCULAR TOTAL
-  // =====================================================
-
-  const [totalRows] = await db.query(
-    `
-      SELECT
-        COALESCE(
-          SUM(detalle_pedido_subtotal),
-          0
-        ) AS total
-      FROM detalle_pedido
-      WHERE id_pedido = ?
-    `,
-    [id_pedido]
-  );
-
-  const total = Number(totalRows[0].total);
-
-  await db.query(
-    `
-      UPDATE pedidos
-      SET pedido_total = ?
-      WHERE id_pedido = ?
-    `,
-    [total, id_pedido]
-  );
-
-  return {
-    message: "Platillo agregado correctamente",
-    pedido_total: total
-  };
-};
-
-// =====================================================
-// ELIMINAR PLATILLO
-// =====================================================
-
-export const eliminarPlatilloPedido = async (
-  id_detalle
-) => {
-
-  const [detalleRows] = await db.query(
-    `
-      SELECT id_pedido
-      FROM detalle_pedido
-      WHERE id_detalle = ?
-    `,
-    [id_detalle]
-  );
-
-  if (detalleRows.length === 0) {
-    throw Object.assign(
-      new Error("Detalle no encontrado"),
-      { status: 404 }
-    );
-  }
-
-  const detalle = detalleRows[0];
-
-  const [pedidoRows] = await db.query(
-    `
-      SELECT pedido_estado
-      FROM pedidos
-      WHERE id_pedido = ?
-    `,
-    [detalle.id_pedido]
-  );
-
-  if (pedidoRows.length === 0) {
-    throw Object.assign(
-      new Error("Pedido no encontrado"),
-      { status: 404 }
-    );
-  }
-
-  const pedido = pedidoRows[0];
-
-  if (pedido.pedido_estado !== "Pendiente") {
-    throw Object.assign(
-      new Error("El pedido no se puede modificar"),
-      { status: 400 }
-    );
-  }
-
-  await db.query(
-    `
-      DELETE FROM detalle_pedido
-      WHERE id_detalle = ?
-    `,
-    [id_detalle]
-  );
-
-  // =====================================================
-  // RECALCULAR TOTAL
-  // =====================================================
-
-  const [totalRows] = await db.query(
-    `
-      SELECT
-        COALESCE(
-          SUM(detalle_pedido_subtotal),
-          0
-        ) AS total
-      FROM detalle_pedido
-      WHERE id_pedido = ?
-    `,
-    [detalle.id_pedido]
-  );
-
-  const total = Number(totalRows[0].total);
-
-  await db.query(
-    `
-      UPDATE pedidos
-      SET pedido_total = ?
-      WHERE id_pedido = ?
-    `,
-    [total, detalle.id_pedido]
-  );
-
-  return {
-    message: "Platillo eliminado correctamente",
-    pedido_total: total
-  };
-};
-
-// =====================================================
-// MODIFICAR CANTIDAD
-// =====================================================
-
-export const modificarCantidadPlatillo = async ({
-  id_detalle,
-  cantidad
-}) => {
-
-  const cantidadNum = Number(cantidad);
-
-  if (isNaN(cantidadNum)) {
-    throw Object.assign(
-      new Error("Cantidad invalida"),
-      { status: 400 }
-    );
-  }
-
-  if (
-    cantidadNum < 1
-    || cantidadNum > 99
-  ) {
-    throw Object.assign(
-      new Error("La cantidad debe estar entre 1 y 99"),
-      { status: 400 }
-    );
-  }
-
-  const [detalleRows] = await db.query(
-    `
-      SELECT
-        id_pedido,
-        detalle_pedido_precio_unitario
-      FROM detalle_pedido
-      WHERE id_detalle = ?
-    `,
-    [id_detalle]
-  );
-
-  if (detalleRows.length === 0) {
-    throw Object.assign(
-      new Error("Detalle no encontrado"),
-      { status: 404 }
-    );
-  }
-
-  const detalle = detalleRows[0];
-
-  const [pedidoRows] = await db.query(
-    `
-      SELECT pedido_estado
-      FROM pedidos
-      WHERE id_pedido = ?
-    `,
-    [detalle.id_pedido]
-  );
-
-  if (pedidoRows.length === 0) {
-    throw Object.assign(
-      new Error("Pedido no encontrado"),
-      { status: 404 }
-    );
-  }
-
-  if (
-    pedidoRows[0].pedido_estado !== "Pendiente"
-  ) {
-    throw Object.assign(
-      new Error("El pedido no se puede modificar"),
-      { status: 400 }
-    );
-  }
-
-  const subtotal =
-    detalle.detalle_pedido_precio_unitario
-    * cantidadNum;
-
-  await db.query(
-    `
-      UPDATE detalle_pedido
-      SET
-        detalle_pedido_cantidad = ?,
-        detalle_pedido_subtotal = ?
-      WHERE id_detalle = ?
-    `,
-    [
-      cantidadNum,
-      subtotal,
-      id_detalle
-    ]
-  );
-
-  // =====================================================
-  // RECALCULAR TOTAL
-  // =====================================================
-
-  const [totalRows] = await db.query(
-    `
-      SELECT
-        COALESCE(
-          SUM(detalle_pedido_subtotal),
-          0
-        ) AS total
-      FROM detalle_pedido
-      WHERE id_pedido = ?
-    `,
-    [detalle.id_pedido]
-  );
-
-  const total = Number(
-    totalRows[0].total
-  );
-
-  await db.query(
-    `
-      UPDATE pedidos
-      SET pedido_total = ?
-      WHERE id_pedido = ?
-    `,
-    [total, detalle.id_pedido]
-  );
-
-  return {
-    message: "Cantidad actualizada correctamente",
-    pedido_total: total
-  };
-};
-
-// =====================================================
-// PEDIDOS ACTIVOS MESERO
-// =====================================================
-
-export const obtenerPedidosActivosMesero = async (
-  id_mesero
-) => {
-
-  const [rows] = await db.query(
-    `
-      SELECT
-        p.id_pedido,
-        p.pedido_numero,
-        p.pedido_tipo,
-        p.pedido_estado,
-        p.pedido_total,
-        p.pedido_fecha_hora,
-        m.mesa_numero
-      FROM pedidos p
-      LEFT JOIN mesas m
-        ON p.id_mesa = m.id_mesa
-      WHERE p.id_mesero = ?
-      AND p.pedido_estado NOT IN (
-        'Cerrado',
-        'Cancelado'
-      )
-      ORDER BY p.pedido_fecha_hora DESC
-    `,
-    [id_mesero]
-  );
-
-  return rows;
-};
-
-// =====================================================
-// CANCELAR PEDIDO
-// =====================================================
-
-export const cancelarPedido = async (
-  id_pedido,
-  motivo,
-  userId
-) => {
-
-  const [pedidoRows] = await db.query(
-    `
-      SELECT
-        id_mesa,
-        pedido_tipo,
-        pedido_estado
-      FROM pedidos
-      WHERE id_pedido = ?
-    `,
-    [id_pedido]
-  );
-
-  if (pedidoRows.length === 0) {
-    throw Object.assign(
-      new Error("Pedido no encontrado"),
-      { status: 404 }
-    );
-  }
-
-  const pedido = pedidoRows[0];
-
-  if (pedido.pedido_estado === "Cerrado") {
-    throw Object.assign(
-      new Error("No se puede cancelar un pedido cerrado"),
-      { status: 400 }
-    );
-  }
-
-  if (pedido.pedido_estado === "Cancelado") {
-    throw Object.assign(
-      new Error("El pedido ya fue cancelado"),
-      { status: 400 }
-    );
-  }
-
-  const estadoAnterior =
-    pedido.pedido_estado;
-
-  await db.query(
-    `
-      UPDATE pedidos
-      SET
-        pedido_estado = 'Cancelado',
-        pedido_cancelado_motivo = ?,
-        pedido_cancelado_en = NOW(),
-        pedido_cancelado_por = ?,
-        pedido_estado_anterior = ?
-      WHERE id_pedido = ?
-    `,
-    [
-      motivo || null,
-      userId,
-      estadoAnterior,
-      id_pedido
-    ]
-  );
-
-  // =====================================================
-  // LIBERAR MESA
-  // =====================================================
-
-  if (
-    pedido.pedido_tipo === "Salon"
-    && pedido.id_mesa
-  ) {
-
-    await cambiarEstadoMesa(
-      pedido.id_mesa,
-      "Disponible",
-      userId
-    );
-  }
-
-  return {
-    message: "Pedido cancelado correctamente"
-  };
-};
-
-// =====================================================
-// PEDIDOS PENDIENTES COCINA
-// =====================================================
-
-export const obtenerPedidosPendientesCocina = async () => {
-
-  const [rows] = await db.query(
-    `
-      SELECT
-        p.id_pedido,
-        p.pedido_numero,
-        p.pedido_estado,
-        p.pedido_tipo,
-        p.pedido_fecha_hora,
-        p.pedido_total,
-
-        m.mesa_numero,
-
-        dp.id_detalle,
-        dp.detalle_pedido_cantidad,
-        dp.detalle_pedido_notas,
-
-        pl.platillo_nombre
-
-      FROM pedidos p
-
-      LEFT JOIN mesas m
-        ON p.id_mesa = m.id_mesa
-
-      INNER JOIN detalle_pedido dp
-        ON p.id_pedido = dp.id_pedido
-
-      INNER JOIN platillos pl
-        ON dp.id_platillo = pl.id_platillo
-
-      WHERE p.pedido_estado IN (
-        'Pendiente',
-        'EnPreparacion'
-      )
-
-      ORDER BY p.pedido_fecha_hora ASC
-    `
-  );
-
-  const pedidosMap = {};
-
-  rows.forEach((row) => {
-
-    if (!pedidosMap[row.id_pedido]) {
-
-      pedidosMap[row.id_pedido] = {
-        id_pedido: row.id_pedido,
-        pedido_numero: row.pedido_numero,
-        pedido_estado: row.pedido_estado,
-        pedido_tipo: row.pedido_tipo,
-        pedido_fecha_hora: row.pedido_fecha_hora,
-        pedido_total: row.pedido_total,
-
-        mesa:
-          row.pedido_tipo === "Llevar"
-            ? "Para llevar"
-            : row.mesa_numero,
-
-        platillos: []
-      };
-    }
-
-    pedidosMap[row.id_pedido].platillos.push({
-      id_detalle: row.id_detalle,
-      nombre: row.platillo_nombre,
-      cantidad: row.detalle_pedido_cantidad,
-      notas: row.detalle_pedido_notas
-    });
-  });
-
-  return Object.values(pedidosMap);
-};
-
-// =====================================================
-// CAMBIAR ESTADO PEDIDO COCINA
-// =====================================================
-
-export const cambiarEstadoPedidoCocina = async (
-  id_pedido,
-  nuevoEstado
-) => {
-
-  const estadosValidos = [
-    "EnPreparacion",
-    "Listo"
-  ];
-
-  if (!estadosValidos.includes(nuevoEstado)) {
-    throw Object.assign(
-      new Error("Estado invalido"),
-      { status: 400 }
-    );
-  }
-
-  // =====================================================
-  // BUSCAR PEDIDO
-  // =====================================================
-
-  const [pedidoRows] = await db.query(
-    `
-      SELECT
-        pedido_estado,
-        pedido_tipo,
-        id_mesa
-      FROM pedidos
-      WHERE id_pedido = ?
-    `,
-    [id_pedido]
-  );
-
-  if (pedidoRows.length === 0) {
-    throw Object.assign(
-      new Error("Pedido no encontrado"),
-      { status: 404 }
-    );
-  }
-
-  const pedido = pedidoRows[0];
-
-  // =====================================================
-  // VALIDACIONES
-  // =====================================================
-
-  if (pedido.pedido_estado === "Cancelado") {
-    throw Object.assign(
-      new Error("No se puede modificar un pedido cancelado"),
-      { status: 400 }
-    );
-  }
-
-  if (pedido.pedido_estado === "Cerrado") {
-    throw Object.assign(
-      new Error("No se puede modificar un pedido cerrado"),
-      { status: 400 }
-    );
-  }
-
-  // =====================================================
-  // FLUJO DE ESTADOS
-  // =====================================================
-
-  if (
-    nuevoEstado === "EnPreparacion"
-    && pedido.pedido_estado !== "Pendiente"
-  ) {
-    throw Object.assign(
-      new Error(
-        "Solo pedidos pendientes pueden pasar a preparacion"
-      ),
-      { status: 400 }
-    );
-  }
-
-  if (
-    nuevoEstado === "Listo"
-    && pedido.pedido_estado !== "EnPreparacion"
-  ) {
-    throw Object.assign(
-      new Error(
-        "Solo pedidos en preparacion pueden marcarse como listos"
-      ),
-      { status: 400 }
-    );
-  }
-
-  // =====================================================
-  // QUERY DINAMICA
-  // =====================================================
-
-  let sql = `
-    UPDATE pedidos
-    SET pedido_estado = ?
-  `;
-
-  const params = [nuevoEstado];
-
-  // =====================================================
-  // FECHAS
-  // =====================================================
-
-  if (nuevoEstado === "EnPreparacion") {
-
-    sql += `,
-      pedido_en_preparacion_en = NOW()
-    `;
-  }
-
-  if (nuevoEstado === "Listo") {
-
-    sql += `,
-      pedido_listo_en = NOW()
-    `;
-  }
-
-  sql += `
-    WHERE id_pedido = ?
-  `;
-
-  params.push(id_pedido);
-
-  await db.query(sql, params);
-
-  // =====================================================
-  // RESPUESTA
-  // =====================================================
-
-  return {
-    message:
-      nuevoEstado === "EnPreparacion"
-        ? "Pedido marcado en preparacion"
-        : "Pedido marcado como listo"
-  };
 };

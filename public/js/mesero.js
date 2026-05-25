@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   let platillosDisponibles = [];
   let mesasPedido = [];
   let pedidoActivo = null;
-  let pedidoEnviadoCocina = false;
+  let pedidoEnviado = false;
 
   const filtrosMesasPedido = {
     busqueda: "",
@@ -29,15 +29,10 @@ document.addEventListener("DOMContentLoaded", () => {
     await cargarPlatillos();
     await cargarMesasPedido();
 
-    const primerSelect = document.querySelector(".platillo-select");
-
-    if (primerSelect) {
-      poblarSelectPlatillos(primerSelect);
-    }
-
+    renderEstadoPedidoVacio();
+    syncPedidoActualGlobal();
+    actualizarEstadoBotonesMenu();
     aplicarTipoPedido("salon");
-
-    actualizarEstadoBotonCocina();
 
   }
 
@@ -71,17 +66,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const empty = document.getElementById("mesasPedidoEmpty");
     const list = document.getElementById("mesas-pedido-list");
 
-    if (loading) {
-      loading.style.display = "block";
-    }
-
-    if (empty) {
-      empty.textContent = "";
-    }
-
-    if (list) {
-      list.innerHTML = "";
-    }
+    if (loading) loading.style.display = "block";
+    if (empty) empty.textContent = "";
+    if (list) list.innerHTML = "";
 
     try {
 
@@ -115,27 +102,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
-  window.cargarMesasPedido = cargarMesasPedido;
-
   function normalizarEstadoMesa(estado) {
 
-    if (!estado) {
-      return "Libre";
-    }
+    if (!estado) return "Libre";
 
     if (estado.toString().trim().toLowerCase() === "disponible") {
       return "Libre";
     }
 
     return estado.toString().trim();
-
-  }
-
-  function mesaDisponible(mesa) {
-
-    return normalizarEstadoMesa(
-      mesa.mesa_estado ?? mesa.estado
-    ) === "Libre";
 
   }
 
@@ -191,282 +166,60 @@ document.addEventListener("DOMContentLoaded", () => {
 
     mesaContainer.insertBefore(filtros, loading);
 
-    document
-      .getElementById("mesaPedidoSearchInput")
-      .addEventListener("input", (event) => {
-
-        filtrosMesasPedido.busqueda = event.target.value;
-
-        renderMesasPedido();
-
-      });
-
-    document
-      .getElementById("mesaPedidoCapacidadFilter")
-      .addEventListener("change", (event) => {
-
-        filtrosMesasPedido.capacidad = event.target.value;
-
-        renderMesasPedido();
-
-      });
-
-    document
-      .getElementById("mesaPedidoEstadoFilter")
-      .addEventListener("change", (event) => {
-
-        filtrosMesasPedido.estado = event.target.value;
-
-        renderMesasPedido();
-
-      });
-
-    document
-      .getElementById("mesaPedidoUbicacionFilter")
-      .addEventListener("change", (event) => {
-
-        filtrosMesasPedido.ubicacion = event.target.value;
-
-        renderMesasPedido();
-
-      });
-
-  }
-
-  function actualizarOpcionesFiltrosMesasPedido() {
-
-    const capacidadSelect = document.getElementById("mesaPedidoCapacidadFilter");
-    const estadoSelect = document.getElementById("mesaPedidoEstadoFilter");
-    const ubicacionSelect = document.getElementById("mesaPedidoUbicacionFilter");
-
-    if (!capacidadSelect || !estadoSelect || !ubicacionSelect) {
-      return;
-    }
-
-    const mesas = mesasPedido.map(mesaPedidoViewModel);
-
-    const capacidades = [
-      ...new Set(
-        mesas
-          .map((mesa) => String(mesa.mesa_capacidad))
-          .filter(Boolean)
-      )
-    ].sort((a, b) => Number(a) - Number(b));
-
-    const estados = [
-      ...new Set(
-        mesas
-          .map((mesa) => mesa.mesa_estado)
-          .filter(Boolean)
-      )
-    ].sort(
-      (a, b) =>
-        (prioridadEstadosMesa[a] ?? 99) -
-        (prioridadEstadosMesa[b] ?? 99)
-    );
-
-    const ubicaciones = [
-      ...new Set(
-        mesas
-          .map((mesa) => mesa.mesa_ubicacion)
-          .filter(Boolean)
-      )
-    ].sort((a, b) =>
-      a.localeCompare(b, "es", { sensitivity: "base" })
-    );
-
-    capacidadSelect.innerHTML = `
-      <option value="">Todas las capacidades</option>
-
-      ${capacidades
-        .map(
-          (capacidad) =>
-            `<option value="${capacidad}">
-              ${capacidad} personas
-            </option>`
-        )
-        .join("")}
-    `;
-
-    estadoSelect.innerHTML = `
-      <option value="">Todos los estados</option>
-
-      ${estados
-        .map(
-          (estado) =>
-            `<option value="${estado}">
-              ${estado}
-            </option>`
-        )
-        .join("")}
-    `;
-
-    ubicacionSelect.innerHTML = `
-      <option value="">Todas las ubicaciones</option>
-
-      ${ubicaciones
-        .map(
-          (ubicacion) =>
-            `<option value="${ubicacion}">
-              ${ubicacion}
-            </option>`
-        )
-        .join("")}
-    `;
-
-    capacidadSelect.value = filtrosMesasPedido.capacidad;
-    estadoSelect.value = filtrosMesasPedido.estado;
-    ubicacionSelect.value = filtrosMesasPedido.ubicacion;
-
-  }
-
-  function obtenerMesasPedidoFiltradas() {
-
-    const busqueda = filtrosMesasPedido.busqueda
-      .trim()
-      .toLowerCase();
-
-    return mesasPedido
-      .map(mesaPedidoViewModel)
-      .filter((mesa) => {
-
-        const textoMesa = [
-          mesa.mesa_numero,
-          mesa.mesa_capacidad,
-          mesa.mesa_estado,
-          mesa.mesa_ubicacion
-        ]
-          .join(" ")
-          .toLowerCase();
-
-        return (
-          (!busqueda || textoMesa.includes(busqueda)) &&
-          (!filtrosMesasPedido.capacidad ||
-            String(mesa.mesa_capacidad) === filtrosMesasPedido.capacidad) &&
-          (!filtrosMesasPedido.estado ||
-            mesa.mesa_estado === filtrosMesasPedido.estado) &&
-          (!filtrosMesasPedido.ubicacion ||
-            mesa.mesa_ubicacion === filtrosMesasPedido.ubicacion)
-        );
-
-      })
-      .sort((a, b) => {
-
-        const prioridadA = prioridadEstadosMesa[a.mesa_estado] ?? 99;
-        const prioridadB = prioridadEstadosMesa[b.mesa_estado] ?? 99;
-
-        if (prioridadA !== prioridadB) {
-          return prioridadA - prioridadB;
-        }
-
-        return Number(a.mesa_numero) - Number(b.mesa_numero);
-
-      });
-
   }
 
   function renderMesasPedido() {
 
     const list = document.getElementById("mesas-pedido-list");
-    const empty = document.getElementById("mesasPedidoEmpty");
 
-    if (!list) {
-      return;
-    }
+    if (!list) return;
 
     list.innerHTML = "";
 
-    if (empty) {
-      empty.textContent = "";
-    }
+    mesasPedido
+      .map(mesaPedidoViewModel)
+      .forEach((mesa) => {
 
-    if (!Array.isArray(mesasPedido) || mesasPedido.length === 0) {
+        const estado = mesa.mesa_estado;
+        const disponible = estado === "Libre";
 
-      if (empty) {
-        empty.textContent = "No hay mesas registradas.";
-      }
+        const card = document.createElement("div");
 
-      return;
+        card.className = "mesa-pedido-card";
 
-    }
+        card.innerHTML = `
+          <div>
+            <h4>Mesa ${mesa.mesa_numero}</h4>
+            <p>${mesa.mesa_capacidad} personas</p>
+            <p>${mesa.mesa_ubicacion}</p>
 
-    actualizarOpcionesFiltrosMesasPedido();
+            <span class="mesa-pedido-status">
+              ${estado}
+            </span>
+          </div>
 
-    const mesasFiltradas = obtenerMesasPedidoFiltradas();
+          <button
+            type="button"
+            class="btn-elegir-mesa"
+            ${disponible ? "" : "disabled"}
+          >
+            Elegir mesa
+          </button>
+        `;
 
-    if (mesasFiltradas.length === 0) {
+        const boton = card.querySelector(".btn-elegir-mesa");
 
-      if (empty) {
-        empty.textContent = "No hay mesas que coincidan con los filtros.";
-      }
+        boton.addEventListener("click", () => {
+          confirmarInicioPedido(mesa.raw);
+        });
 
-      return;
+        list.appendChild(card);
 
-    }
-
-    mesasFiltradas.forEach((mesa) => {
-
-      const estado = mesa.mesa_estado;
-      const disponible = estado === "Libre";
-
-      const card = document.createElement("div");
-
-      card.className = "mesa-pedido-card";
-
-      card.innerHTML = `
-        <div>
-          <h4>Mesa ${mesa.mesa_numero ?? "--"}</h4>
-
-          <p>${mesa.mesa_capacidad ?? "--"} personas</p>
-
-          <p>${mesa.mesa_ubicacion || "Area General"}</p>
-
-          <span class="mesa-pedido-status ${estadoClassPedido(estado)}">
-            ${estado}
-          </span>
-        </div>
-
-        <button
-          type="button"
-          class="btn-elegir-mesa"
-          ${disponible ? "" : "disabled"}
-        >
-          <i class="fa-solid fa-chair"></i>
-          Elegir mesa
-        </button>
-      `;
-
-      const boton = card.querySelector(".btn-elegir-mesa");
-
-      boton.addEventListener("click", () => {
-        confirmarInicioPedido(mesa.raw);
       });
-
-      list.appendChild(card);
-
-    });
-
-  }
-
-  function estadoClassPedido(estado) {
-
-    const normalizado = normalizarEstadoMesa(estado).toLowerCase();
-
-    if (normalizado === "libre") {
-      return "status-disponible";
-    }
-
-    return `status-${normalizado.replace(/\s+/g, "-")}`;
 
   }
 
   async function confirmarInicioPedido(mesa) {
-
-    const confirmado = await confirmarInicioMesa(mesa);
-
-    if (!confirmado) {
-      return;
-    }
 
     try {
 
@@ -485,11 +238,9 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
 
       if (!res.ok) {
-
         throw new Error(
           data.error || "No se pudo iniciar el pedido"
         );
-
       }
 
       pedidoActivo = {
@@ -515,39 +266,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
-  async function confirmarInicioMesa(mesa) {
-
-    if (typeof Swal === "undefined") {
-      return confirm("Desea iniciar pedido?");
-    }
-
-    const result = await Swal.fire({
-      title: "Desea iniciar pedido?",
-      text: `Mesa ${mesa.mesa_numero}`,
-      icon: "question",
-      showCancelButton: true,
-      confirmButtonText: "Iniciar",
-      cancelButtonText: "Cancelar",
-      confirmButtonColor: "#7a1d1d"
-    });
-
-    return result.isConfirmed;
-
-  }
-
   function mostrarFormularioPedido() {
 
     const formCard = document.getElementById("pedido-form-card");
     const mesaContainer = document.getElementById("mesa-container");
+    const menuPanel = document.querySelector(".pedido-menu-panel");
     const info = document.getElementById("pedido-activo-info");
 
-    if (formCard) {
-      formCard.style.display = "block";
-    }
-
-    if (mesaContainer) {
-      mesaContainer.style.display = "none";
-    }
+    if (formCard) formCard.style.display = "block";
+    if (menuPanel) menuPanel.style.display = "block";
+    if (mesaContainer) mesaContainer.style.display = "none";
 
     if (info && pedidoActivo) {
 
@@ -573,59 +301,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
-  function poblarSelectPlatillos(select) {
-
-    select.innerHTML = `
-      <option value="">
-        Seleccione un platillo...
-      </option>
-    `;
-
-    platillosDisponibles.forEach((p) => {
-
-      const opt = document.createElement("option");
-
-      opt.value = p.id_platillo;
-
-      const estado = p.platillo_disponible
-        ? ""
-        : " [No disponible]";
-
-      opt.textContent =
-        `${p.platillo_nombre} - $${p.platillo_precio}${estado}`;
-
-      if (!p.platillo_disponible) {
-        opt.disabled = true;
-      }
-
-      select.appendChild(opt);
-
-    });
-
-    select.addEventListener("change", () => {
-
-      actualizarBloqueoTipoPedido();
-      actualizarEstadoBotonCocina();
-
-    });
-
-  }
-
   function actualizarBloqueoTipoPedido() {
 
-    const selects = document.querySelectorAll(".platillo-select");
+    const algunSeleccionado =
+      document.querySelectorAll(".platillo-row").length > 0;
 
-    let algunSeleccionado = false;
-
-    selects.forEach((s) => {
-
-      if (s.value !== "") {
-        algunSeleccionado = true;
-      }
-
-    });
-
-    const typeBtns = document.querySelectorAll(".pedido-type-btn");
+    const typeBtns =
+      document.querySelectorAll(".pedido-type-btn");
 
     typeBtns.forEach((btn) => {
 
@@ -651,40 +333,38 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function aplicarTipoPedido(type) {
 
-    const mesaContainer = document.getElementById("mesa-container");
-    const formCard = document.getElementById("pedido-form-card");
-    const info = document.getElementById("pedido-activo-info");
+    const mesaContainer =
+      document.getElementById("mesa-container");
+
+    const formCard =
+      document.getElementById("pedido-form-card");
+
+    const menuPanel =
+      document.querySelector(".pedido-menu-panel");
+
+    const info =
+      document.getElementById("pedido-activo-info");
 
     if (type === "llevar") {
 
       pedidoActivo = null;
 
-      if (mesaContainer) {
-        mesaContainer.style.display = "none";
-      }
-
-      if (formCard) {
-        formCard.style.display = "block";
-      }
+      if (mesaContainer) mesaContainer.style.display = "none";
+      if (formCard) formCard.style.display = "block";
+      if (menuPanel) menuPanel.style.display = "block";
 
       if (info) {
-
         info.style.display = "none";
         info.innerHTML = "";
-
       }
 
       return;
 
     }
 
-    if (mesaContainer) {
-      mesaContainer.style.display = "block";
-    }
-
-    if (formCard) {
-      formCard.style.display = pedidoActivo ? "block" : "none";
-    }
+    if (mesaContainer) mesaContainer.style.display = "block";
+    if (formCard) formCard.style.display = pedidoActivo ? "block" : "none";
+    if (menuPanel) menuPanel.style.display = pedidoActivo ? "block" : "none";
 
     cargarMesasPedido();
 
@@ -694,147 +374,150 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
-  function setupEventListeners() {
+  function platilloDisponible(platillo) {
 
-    document.querySelectorAll(".pedido-type-btn").forEach((btn) => {
+    return (
+      platillo?.platillo_disponible === true ||
+      platillo?.platillo_disponible === 1 ||
+      platillo?.platillo_disponible === "1"
+    );
 
-      btn.addEventListener("click", function () {
+  }
 
-        if (this.classList.contains("disabled-btn")) {
-          return;
-        }
+  function escapeHtml(value) {
 
-        document
-          .querySelectorAll(".pedido-type-btn")
-          .forEach((b) => b.classList.remove("active"));
+    return String(value ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
 
-        this.classList.add("active");
+  }
 
-        aplicarTipoPedido(this.dataset.type);
+  function obtenerPlatilloPorId(idPlatillo) {
 
-      });
+    return platillosDisponibles.find(
+      (p) => String(p.id_platillo) === String(idPlatillo)
+    );
 
-    });
+  }
 
-    document
-      .getElementById("btn-add-platillo")
-      .addEventListener("click", () => {
+  function renderEstadoPedidoVacio() {
 
-        if (pedidoEnviadoCocina) {
-          return;
-        }
+    const container =
+      document.getElementById("platillos-container");
 
-        const container = document.getElementById("platillos-container");
+    if (!container) return;
 
-        const newRow = document.createElement("div");
+    const tieneItems =
+      container.querySelectorAll(".platillo-row").length > 0;
 
-        newRow.className = "platillo-row";
+    container.classList.toggle(
+      "pedido-items-empty",
+      !tieneItems
+    );
 
-        newRow.style.cssText =
-          "display:flex;gap:10px;margin-bottom:10px;align-items:center;";
+    if (!tieneItems) {
 
-        newRow.innerHTML = `
-          <select class="platillo-select" style="flex:3;">
-            <option value="">
-              Seleccione un platillo...
-            </option>
-          </select>
+      container.innerHTML =
+        '<p class="pedido-empty-text">Agregue platillos desde el menú.</p>';
 
-          <input
-            type="number"
-            class="platillo-cantidad"
-            value="1"
-            min="1"
-            max="99"
-            style="flex:1;"
-          >
+    }
 
-          <input
-            type="text"
-            class="platillo-notas"
-            placeholder="Notas (opcional)"
-            style="flex:2;padding:12px 15px;border:1px solid #ddd;border-radius:6px;"
-          >
+  }
 
-          <button
-            type="button"
-            class="btn-eliminar-fila"
-            style="background:#dc3545;color:white;border:none;padding:10px;border-radius:5px;cursor:pointer;"
-          >
-            <i class="fas fa-trash"></i>
-          </button>
-        `;
+  function crearFilaPlatillo(platillo, cantidad = 1) {
 
-        container.appendChild(newRow);
+    const row = document.createElement("div");
 
-        poblarSelectPlatillos(
-          newRow.querySelector(".platillo-select")
-        );
+    row.className = "platillo-row";
 
-        actualizarBloqueoTipoPedido();
-        actualizarEstadoBotonCocina();
+    row.dataset.idPlatillo = platillo.id_platillo;
+    row.dataset.precio = Number(platillo.platillo_precio) || 0;
 
-      });
+    row.innerHTML = `
+      <div class="platillo-info-pedido">
 
-    document
-      .getElementById("platillos-container")
-      .addEventListener("click", (e) => {
+        <input
+          type="hidden"
+          class="platillo-id"
+          value="${platillo.id_platillo}"
+        >
 
-        if (e.target.closest(".btn-eliminar-fila")) {
+        <strong>
+          ${escapeHtml(platillo.platillo_nombre)}
+        </strong>
 
-          if (pedidoEnviadoCocina) {
-            return;
-          }
+        <span>
+          $${Number(platillo.platillo_precio).toFixed(2)}
+        </span>
 
-          const rows = document.querySelectorAll(".platillo-row");
+      </div>
 
-          if (rows.length <= 1) {
+      <div class="cantidad-control">
 
-            toast(
-              "warning",
-              "Debe haber al menos un platillo"
-            );
+        <button
+          type="button"
+          class="btn-disminuir-cantidad"
+        >
+          -
+        </button>
 
-            return;
+        <input
+          type="number"
+          class="platillo-cantidad"
+          value="${cantidad}"
+          min="1"
+          max="99"
+        >
 
-          }
+        <button
+          type="button"
+          class="btn-aumentar-cantidad"
+        >
+          +
+        </button>
 
-          e.target.closest(".platillo-row").remove();
+      </div>
 
-          actualizarBloqueoTipoPedido();
-          actualizarEstadoBotonCocina();
+      <button
+        type="button"
+        class="btn-eliminar-fila"
+      >
+        <i class="fas fa-trash"></i>
+      </button>
+    `;
 
-        }
-
-      });
-
-    document
-      .getElementById("btn-enviar-cocina")
-      .addEventListener("click", enviarPedidoCocina);
+    return row;
 
   }
 
   function obtenerItemsPedido() {
 
-    const rows = document.querySelectorAll(".platillo-row");
+    const rows =
+      document.querySelectorAll(".platillo-row");
 
     const items = [];
 
     rows.forEach((row) => {
 
-      const select = row.querySelector(".platillo-select");
-      const cantidad = row.querySelector(".platillo-cantidad");
-      const notas = row.querySelector(".platillo-notas");
+      const id_platillo =
+        row.querySelector(".platillo-id")?.value;
 
-      if (!select.value) {
-        return;
+      const cantidad =
+        parseInt(
+          row.querySelector(".platillo-cantidad")?.value
+        );
+
+      if (id_platillo && cantidad > 0) {
+
+        items.push({
+          id_platillo,
+          cantidad
+        });
+
       }
-
-      items.push({
-        id_platillo: parseInt(select.value),
-        cantidad: parseInt(cantidad.value) || 1,
-        notas: notas.value.trim()
-      });
 
     });
 
@@ -842,39 +525,210 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
-  function actualizarEstadoBotonCocina() {
+  function syncPedidoActualGlobal() {
 
-    const btn = document.getElementById("btn-enviar-cocina");
-
-    if (!btn) {
-      return;
-    }
-
-    const items = obtenerItemsPedido();
-
-    if (items.length > 0 && !pedidoEnviadoCocina) {
-
-      btn.disabled = false;
-
-      btn.style.opacity = "1";
-      btn.style.cursor = "pointer";
-      btn.title = "";
-
-    } else {
-
-      btn.disabled = true;
-
-      btn.style.opacity = "0.7";
-      btn.style.cursor = "not-allowed";
-      btn.title = "Agrega al menos un platillo";
-
-    }
+    window.pedidoActual = {
+      items: obtenerItemsPedido()
+    };
 
   }
 
-  async function enviarPedidoCocina() {
+  function actualizarEstadoBotonesMenu() {
 
-    const typeBtn = document.querySelector(".pedido-type-btn.active");
+    const botones =
+      document.querySelectorAll(".btn-agregar");
+
+    botones.forEach((button) => {
+
+      button.disabled = pedidoEnviado;
+
+    });
+
+  }
+
+  function agregarPlatilloDesdeMenu(idPlatillo) {
+
+    if (pedidoEnviado) {
+
+      toast(
+        "warning",
+        "Pedido ya enviado a cocina"
+      );
+
+      return;
+
+    }
+
+    const platillo =
+      obtenerPlatilloPorId(idPlatillo);
+
+    if (!platillo) {
+      return;
+    }
+
+    if (!platilloDisponible(platillo)) {
+
+      toast(
+        "warning",
+        "Este platillo no está disponible"
+      );
+
+      return;
+
+    }
+
+    const container =
+      document.getElementById("platillos-container");
+
+    if (!container) return;
+
+    const emptyText =
+      container.querySelector(".pedido-empty-text");
+
+    if (emptyText) {
+      emptyText.remove();
+    }
+
+    const existingRow =
+      [...container.querySelectorAll(".platillo-row")]
+        .find(
+          (row) =>
+            String(row.dataset.idPlatillo) ===
+            String(idPlatillo)
+        );
+
+    if (existingRow) {
+
+      const inputCantidad =
+        existingRow.querySelector(".platillo-cantidad");
+
+      const valor =
+        parseInt(inputCantidad.value) || 1;
+
+      inputCantidad.value =
+        Math.min(valor + 1, 99);
+
+    } else {
+
+      container.appendChild(
+        crearFilaPlatillo(platillo)
+      );
+
+    }
+
+    actualizarBloqueoTipoPedido();
+    actualizarSubtotal();
+    syncPedidoActualGlobal();
+    actualizarEstadoBotonesMenu();
+
+    toast("success", "Platillo agregado");
+
+  }
+
+  window.agregarAlPedidoDesdeMenu =
+    agregarPlatilloDesdeMenu;
+
+  function setupEventListeners() {
+
+    document
+      .querySelectorAll(".pedido-type-btn")
+      .forEach((btn) => {
+
+        btn.addEventListener("click", function () {
+
+          if (
+            this.classList.contains("disabled-btn")
+          ) {
+            return;
+          }
+
+          document
+            .querySelectorAll(".pedido-type-btn")
+            .forEach((b) =>
+              b.classList.remove("active")
+            );
+
+          this.classList.add("active");
+
+          aplicarTipoPedido(this.dataset.type);
+
+        });
+
+      });
+
+    const container =
+      document.getElementById("platillos-container");
+
+    container.addEventListener("click", (e) => {
+
+      if (
+        e.target.closest(".btn-eliminar-fila")
+      ) {
+
+        e.target
+          .closest(".platillo-row")
+          ?.remove();
+
+        renderEstadoPedidoVacio();
+        actualizarBloqueoTipoPedido();
+        actualizarSubtotal();
+        syncPedidoActualGlobal();
+        actualizarEstadoBotonesMenu();
+
+      }
+
+      if (
+        e.target.closest(".btn-aumentar-cantidad")
+      ) {
+
+        const inputCantidad =
+          e.target
+            .closest(".cantidad-control")
+            .querySelector(".platillo-cantidad");
+
+        const valor =
+          parseInt(inputCantidad.value) || 1;
+
+        if (valor < 99) {
+          inputCantidad.value = valor + 1;
+        }
+
+        actualizarSubtotal();
+
+      }
+
+      if (
+        e.target.closest(".btn-disminuir-cantidad")
+      ) {
+
+        const inputCantidad =
+          e.target
+            .closest(".cantidad-control")
+            .querySelector(".platillo-cantidad");
+
+        const valor =
+          parseInt(inputCantidad.value) || 1;
+
+        if (valor > 1) {
+          inputCantidad.value = valor - 1;
+        }
+
+        actualizarSubtotal();
+
+      }
+
+    });
+
+    document
+      .getElementById("btn-enviar-pedido")
+      .addEventListener("click", enviarPedido);
+
+  }
+
+  async function enviarPedido() {
+
+    const typeBtn =
+      document.querySelector(".pedido-type-btn.active");
 
     const tipo =
       typeBtn.dataset.type === "salon"
@@ -887,7 +741,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       toast(
         "warning",
-        "Seleccione una mesa para iniciar el pedido"
+        "Seleccione una mesa"
       );
 
       return;
@@ -898,36 +752,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       toast(
         "warning",
-        "Debe seleccionar al menos un platillo valido"
+        "Debe agregar al menos un platillo"
       );
 
       return;
 
     }
 
-    const numeroPedido =
-      pedidoActivo?.pedido_numero ||
-      `#${pedidoActivo?.id_pedido || ""}`;
-
-    const confirmacion = await Swal.fire({
-      title: `¿Enviar pedido ${numeroPedido} a cocina?`,
-      text: "Una vez enviado, cocina podrá prepararlo",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#7a1d1d",
-      cancelButtonColor: "#6c757d",
-      confirmButtonText: "Enviar",
-      cancelButtonText: "Cancelar"
-    });
-
-    if (!confirmacion.isConfirmed) {
-      return;
-    }
-
     try {
 
       let res;
-      let data;
 
       if (tipo === "Salon") {
 
@@ -958,7 +792,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       }
 
-      data = await res.json();
+      const data = await res.json();
 
       if (!res.ok) {
 
@@ -968,13 +802,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       }
 
-      pedidoEnviadoCocina = true;
+      pedidoEnviado = true;
 
-      bloquearEdicionPedido();
+      actualizarEstadoBotonesMenu();
 
       toast(
         "success",
-        "Pedido enviado correctamente a cocina"
+        "Pedido enviado correctamente"
       );
 
       setTimeout(() => {
@@ -991,119 +825,64 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
-  function bloquearEdicionPedido() {
+  function actualizarSubtotal() {
 
-    document
-      .querySelectorAll(
-        ".platillo-select, .platillo-cantidad, .platillo-notas"
-      )
-      .forEach((elemento) => {
+    let subtotal = 0;
 
-        elemento.disabled = true;
+    const rows =
+      document.querySelectorAll(".platillo-row");
 
-      });
+    rows.forEach((row) => {
 
-    document
-      .querySelectorAll(".btn-eliminar-fila")
-      .forEach((btn) => {
+      const precio =
+        Number(row.dataset.precio) || 0;
 
-        btn.disabled = true;
+      const cantidad =
+        parseInt(
+          row.querySelector(".platillo-cantidad")?.value
+        ) || 0;
 
-        btn.style.opacity = "0.5";
-        btn.style.cursor = "not-allowed";
+      subtotal += precio * cantidad;
 
-      });
+    });
 
-    const btnAgregar = document.getElementById("btn-add-platillo");
+    const subtotalSpan =
+      document.getElementById("subtotal-pedido");
 
-    if (btnAgregar) {
+    if (subtotalSpan) {
 
-      btnAgregar.disabled = true;
-
-      btnAgregar.style.opacity = "0.5";
-      btnAgregar.style.cursor = "not-allowed";
+      subtotalSpan.textContent =
+        `$${subtotal.toFixed(2)}`;
 
     }
-
-    actualizarEstadoBotonCocina();
 
   }
 
   function resetForm() {
 
     pedidoActivo = null;
-    pedidoEnviadoCocina = false;
+    pedidoEnviado = false;
 
-    const btnSalon = document.querySelector(
-      '.pedido-type-btn[data-type="salon"]'
+    const container =
+      document.getElementById("platillos-container");
+
+    container.innerHTML =
+      '<p class="pedido-empty-text">Agregue platillos desde el menú.</p>';
+
+    container.classList.add(
+      "pedido-items-empty"
     );
 
-    if (btnSalon) {
-      btnSalon.click();
-    }
+    document
+      .querySelector(
+        '.pedido-type-btn[data-type="salon"]'
+      )
+      .click();
 
-    const container = document.getElementById("platillos-container");
-
-    container.innerHTML = `
-      <div
-        class="platillo-row"
-        style="display:flex;gap:10px;margin-bottom:10px;align-items:center;"
-      >
-
-        <select class="platillo-select" style="flex:3;">
-          <option value="">
-            Seleccione un platillo...
-          </option>
-        </select>
-
-        <input
-          type="number"
-          class="platillo-cantidad"
-          value="1"
-          min="1"
-          max="99"
-          style="flex:1;"
-        >
-
-        <input
-          type="text"
-          class="platillo-notas"
-          placeholder="Notas (opcional)"
-          style="flex:2;padding:12px 15px;border:1px solid #ddd;border-radius:6px;"
-        >
-
-        <button
-          type="button"
-          class="btn-eliminar-fila"
-          style="background:#dc3545;color:white;border:none;padding:10px;border-radius:5px;cursor:pointer;"
-        >
-          <i class="fas fa-trash"></i>
-        </button>
-
-      </div>
-    `;
-
-    poblarSelectPlatillos(
-      container.querySelector(".platillo-select")
-    );
-
-    const formCard = document.getElementById("pedido-form-card");
-    const info = document.getElementById("pedido-activo-info");
-
-    if (formCard) {
-      formCard.style.display = "none";
-    }
-
-    if (info) {
-
-      info.style.display = "none";
-      info.innerHTML = "";
-
-    }
-
+    actualizarSubtotal();
     actualizarBloqueoTipoPedido();
-    actualizarEstadoBotonCocina();
-
+    syncPedidoActualGlobal();
+    actualizarEstadoBotonesMenu();
     cargarMesasPedido();
 
   }
