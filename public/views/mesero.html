@@ -82,7 +82,7 @@
         <div class="backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
 
         <!-- CONTENIDO -->
-        <div class="contenido">
+        <div class="contenido contenido-scroll">
 
             <div class="header-mobile">
 
@@ -103,7 +103,7 @@
                     <div class="pedido-left-column">
 
                         <!-- TIPO PEDIDO -->
-                        <div class="pedido-type-card">
+                        <div class="pedido-type-card glass-panel">
 
                             <h3>Tipo de Pedido</h3>
 
@@ -144,7 +144,7 @@
                         </div>
 
                         <!-- PEDIDO ACTUAL -->
-                        <div class="pedido-type-card" id="pedido-form-card">
+                        <div class="pedido-type-card glass-panel" id="pedido-form-card">
 
                             <!-- INFO -->
                             <div id="pedido-activo-info"
@@ -225,31 +225,37 @@
 
                             <!-- BOTON -->
                             <button
-                                id="btn-enviar-pedido"
-                                style="
-                                    width: 100%;
-                                    padding: 15px;
-                                    margin-bottom: 15px;
-                                    background: #7a1d1d;
-                                    color: white;
-                                    font-size: 1.1rem;
-                                    border: none;
-                                    border-radius: 8px;
-                                    cursor: pointer;
-                                    font-weight: bold;
-                                ">
+    id="btn-enviar-pedido"
+    type="button"
+    disabled
+    title="Agrega al menos un platillo"
+    style="
+        width: 100%;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: #7a1d1d;
+        color: white;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 8px;
+        cursor: not-allowed;
+        font-weight: bold;
+        opacity: 0.6;
+        transition: all 0.2s ease;
+    ">
 
-                                <i class="fas fa-paper-plane"></i>
-                                Guardar pedido
+    <i class="fas fa-paper-plane"></i>
 
-                            </button>
+    Enviar a cocina
+
+</button>
 
                         </div>
 
                     </div>
 
                     <!-- COLUMNA DERECHA -->
-                    <div class="pedido-menu-panel">
+                    <div class="pedido-menu-panel glass-panel">
 
                         <h3>Menú de Platillos</h3>
 
@@ -296,7 +302,7 @@
                         <div class="menu-empty"></div>
 
                         <!-- TABLA -->
-                        <table class="menu-table pedido-menu-table">
+                        <table class="menu-table pedido-menu-table modern-table">
 
                             <thead>
 
@@ -353,7 +359,7 @@
                     style="color: #555; margin-bottom: 0.75rem;">
                 </div>
 
-                <table class="menu-table">
+                <table class="menu-table modern-table">
 
                     <thead>
 
