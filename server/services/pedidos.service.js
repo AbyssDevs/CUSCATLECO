@@ -173,6 +173,12 @@ export const agregarItemsPedido = async ({ id_pedido, items }) => {
       );
     }
 
+    // Eliminar todos los detalles existentes para reemplazarlos
+    await connection.query(
+      "DELETE FROM detalle_pedido WHERE id_pedido = ?",
+      [id_pedido]
+    );
+
     for (const item of items) {
       const [platillo] = await connection.query(
         "SELECT platillo_precio, platillo_disponible FROM platillos WHERE id_platillo = ?",
