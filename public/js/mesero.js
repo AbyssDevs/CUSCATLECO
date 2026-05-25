@@ -11,6 +11,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnsEliminar = document.querySelectorAll(".btn-eliminar-fila");
     btnsEliminar.forEach(btn => {
+      
       btn.disabled = true;
       btn.title = "Pedido ya enviado a cocina";
       btn.style.opacity = "0.6";
@@ -34,6 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnsEliminar = document.querySelectorAll(".btn-eliminar-fila");
     btnsEliminar.forEach(btn => {
+      
       btn.disabled = false;
       btn.title = "";
       btn.style.opacity = "1";
@@ -770,7 +772,7 @@ document.addEventListener("DOMContentLoaded", () => {
           platillo_nombre: platilloObj.nombre,
           platillo_precio: pPrecio
         };
-        const fila = crearFilaPlatillo(p, platilloObj.cantidad);
+        const fila = crearFilaPlatillo(p, platilloObj.cantidad, platilloObj.id_detalle || null);
         container.appendChild(fila);
       });
     } else {
@@ -875,15 +877,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function crearFilaPlatillo(platillo, cantidad = 1) {
+  function crearFilaPlatillo(platillo, cantidad = 1, id_detalle = null) {
     const row = document.createElement("div");
     row.className = "platillo-row";
     row.dataset.idPlatillo = platillo.id_platillo;
     row.dataset.precio = Number(platillo.platillo_precio) || 0;
+    if (id_detalle) row.dataset.idDetalle = id_detalle;
 
     row.innerHTML = `
       <div class="platillo-info-pedido">
         <input type="hidden" class="platillo-id" value="${platillo.id_platillo}">
+        ${id_detalle ? `<input type="hidden" class="platillo-id-detalle" value="${id_detalle}">` : ""}
         <strong>${escapeHtml(platillo.platillo_nombre || "Sin nombre")}</strong>
         <span>${formatPrice(platillo.platillo_precio)}</span>
       </div>
@@ -1006,12 +1010,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
     container.addEventListener("click", (e) => {
       if (e.target.closest(".btn-eliminar-fila")) {
-        e.target.closest(".platillo-row")?.remove();
-        renderEstadoPedidoVacio();
-        actualizarBloqueoTipoPedido();
-        actualizarSubtotal();
-        syncPedidoActualGlobal();
-        actualizarEstadoBotonesMenu();
+        const row = e.target.closest(".platillo-row");
+        const nombre = row?.querySelector("strong")?.textContent?.trim() || "este platillo";
+
+        Swal.fire({
+          title: `¿Eliminar ${nombre} del pedido?`,
+          text: "Esta acción no se puede deshacer.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Eliminar",
+          cancelButtonText: "Cancelar"
+        }).then(async (result) => {
+          if (!result.isConfirmed) return;
+
+          const idDetalle = row.dataset.idDetalle || row.querySelector('.platillo-id-detalle')?.value;
+
+          if (idDetalle) {
+            try {
+              const res = await fetch(`/api/pedidos/platillos/${idDetalle}`, { method: "DELETE" });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error || "Error al eliminar platillo");
+              toast("success", data.message || "Platillo eliminado correctamente");
+              row.remove();
+              renderEstadoPedidoVacio();
+              actualizarBloqueoTipoPedido();
+              actualizarSubtotal();
+              syncPedidoActualGlobal();
+              actualizarEstadoBotonesMenu();
+            } catch (err) {
+              console.error(err);
+              toast("error", err.message || "No se pudo eliminar el platillo");
+            }
+          } else {
+            row.remove();
+            renderEstadoPedidoVacio();
+            actualizarBloqueoTipoPedido();
+            actualizarSubtotal();
+            syncPedidoActualGlobal();
+            actualizarEstadoBotonesMenu();
+            toast("success", "Platillo eliminado del pedido");
+          }
+        });
+
+        return;
       }
 
       if (e.target.closest(".btn-aumentar-cantidad")) {
