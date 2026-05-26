@@ -1,6 +1,11 @@
 //1
 let empleadoEditando = null;
 
+function setMenuLoading(show) {
+  const loading = document.getElementById("menuLoading");
+  if (loading) loading.style.display = show ? "flex" : "none";
+}
+
 function mostrar(seccion) {
   if (seccion !== "registrarEmpleado" && typeof empleadoEditando !== "undefined" && empleadoEditando !== null) {
     limpiarFormulario();
@@ -35,6 +40,7 @@ function mostrar(seccion) {
   }
 
   if (seccion === "menuPlatillos") {
+    setMenuLoading(true);
     loadMenu();
   }
 
