@@ -9,8 +9,12 @@ import {
     eliminarPlatilloPedido,
     modificarCantidadPlatillo,
     obtenerPedidosActivosMesero,
-    cancelarPedido
-
+    enviarPedidoACocina,
+    marcarPedidoEntregado,
+    cancelarPedido,
+    obtenerPedidosPendientesCocina,
+    cambiarEstadoPedidoCocina,
+    obtenerDetallePedido
 } from '../controllers/pedidos.controller.js';
 
 import {
@@ -20,7 +24,9 @@ import {
 
 
 router.post('/iniciar', auditoriaMiddleware, requirePermission('crear_pedido'), iniciarPedido);
+
 router.post('/crear', auditoriaMiddleware, requirePermission('crear_pedido'), crearPedido);
+
 router.patch('/:id/items', auditoriaMiddleware, requirePermission('crear_pedido'), agregarItemsPedido);
 
 router.post('/:id_pedido/platillos', auditoriaMiddleware, requirePermission('crear_pedido'), agregarPlatilloAPedido);
@@ -34,11 +40,10 @@ router.post('/:id_pedido/enviar',auditoriaMiddleware,requirePermission('crear_pe
 router.put('/:id_pedido/entregar',auditoriaMiddleware,requirePermission('crear_pedido'),marcarPedidoEntregado);
 
 router.get("/activos",requirePermission("crear_pedido"), obtenerPedidosActivosMesero);
+
 router.get("/mis-pedidos",requirePermission("crear_pedido"), obtenerPedidosActivosMesero);
 
 router.patch("/:id/cancelar",requirePermission("crear_pedido"), cancelarPedido);
-
-router.put('/:id_pedido/entregar',auditoriaMiddleware,requirePermission('crear_pedido'),marcarPedidoEntregado);
 
 router.get('/:id_pedido',requirePermission('crear_pedido'),obtenerDetallePedido);
 

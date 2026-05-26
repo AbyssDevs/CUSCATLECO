@@ -1,9 +1,6 @@
 import db from "../config/db.js";
 import { cambiarEstadoMesa } from "./mesas.service.js";
 
- 
-  // Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
-export const crearPedido = async ({ id_mesa, tipo, userId }) => {
 const generarNumeroPedido = async (connection) => {
   const [[{ anio }]] = await connection.query(
     "SELECT YEAR(CURRENT_DATE()) AS anio"
@@ -873,27 +870,9 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
 
 };
 
-// Marcar pedido como entregado
-export const marcarPedidoEntregado = async (id_pedido, userId) => {
 
-  const [rows] = await db.query(`
-    SELECT pedido_estado, id_mesa
-    FROM pedidos
-    WHERE id_pedido = ? AND id_mesero = ?
-  `, [id_pedido, userId]);
-
-  if (rows.length === 0) {
-    throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
-  }
-
-  const pedido = rows[0];
-
-  // VALIDACIÓN CLAVE
-  if (pedido.pedido_estado !== "Listo") {
-    throw Object.assign(
-      new Error("Solo pedidos en estado 'Listo' pueden entregarse"),
 // PEDIDOS PENDIENTES COCINA
- export const obtenerPedidosPendientesCocina = async () => {
+export const obtenerPedidosPendientesCocina = async () => {
 
   const [rows] = await db.query(
     `SELECT
@@ -977,26 +956,42 @@ export const cambiarEstadoPedidoCocina = async (
   if (!estadosValidos.includes(nuevoEstado)) {
     throw Object.assign(
       new Error("Estado inválido"),
+
       { status: 400 }
     );
   }
 
-  // CAMBIO DE ESTADO
-  await db.query(`
-    UPDATE pedidos
-    SET 
-      pedido_estado = 'Entregado',
-      pedido_entregado_en = NOW()
-    WHERE id_pedido = ?
-  `, [id_pedido]);
 
-  // liberar mesa si aplica
-  if (pedido.id_mesa) {
-    await cambiarEstadoMesa(pedido.id_mesa, "Disponible", userId);
+  // Cambiar estado de cocina
+  let sql = `
+    UPDATE pedidos
+    SET pedido_estado = ?
+  `;
+
+  const params = [nuevoEstado];
+
+  if (nuevoEstado === "EnPreparacion") {
+    sql += `,
+      pedido_en_preparacion_en = NOW()
+    `;
+  } else if (nuevoEstado === "Listo") {
+    sql += `,
+      pedido_listo_en = NOW()
+    `;
   }
 
+  sql += `
+    WHERE id_pedido = ?
+  `;
+  params.push(id_pedido);
+
+  await db.query(sql, params);
+
   return {
-    message: "Pedido entregado correctamente"
+    message:
+      nuevoEstado === "EnPreparacion"
+        ? "Pedido marcado en preparación"
+        : "Pedido marcado como listo"
   };
 };
 
@@ -1022,13 +1017,6 @@ export const obtenerDetallePedido = async (id_pedido) => {
     LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
     WHERE p.id_pedido = ?
   `, [id_pedido]);
-  // Buscar pedido
-  const [pedidoRows] = await db.query(
-    `SELECT pedido_estado
-     FROM pedidos
-     WHERE id_pedido = ?`,
-    [id_pedido]
-  );
 
   if (pedidoRows.length === 0) {
     throw Object.assign(
@@ -1038,6 +1026,7 @@ export const obtenerDetallePedido = async (id_pedido) => {
   }
 
   const pedido = pedidoRows[0];
+
 
   //  Platillos del pedido
   const [detalleRows] = await db.query(`
@@ -1059,81 +1048,4 @@ export const obtenerDetallePedido = async (id_pedido) => {
     platillos: detalleRows
   };
 };
-  // No permitir anulados
-  if (pedido.pedido_estado === "Cancelado") {
-    throw Object.assign(
-      new Error(
-        "No se puede modificar un pedido cancelado"
-      ),
-      { status: 400 }
-    );
-  }
 
-  // No permitir facturados
-  if (pedido.pedido_estado === "Cerrado") {
-    throw Object.assign(
-      new Error(
-        "No se puede modificar un pedido cerrado"
-      ),
-      { status: 400 }
-    );
-  }
-
-  // Validaciones de flujo
-  if (
-    nuevoEstado === "EnPreparacion"
-    && pedido.pedido_estado !== "Pendiente"
-  ) {
-    throw Object.assign(
-      new Error(
-        "Solo pedidos pendientes pueden pasar a preparación"
-      ),
-      { status: 400 }
-    );
-  }
-
-  if (
-    nuevoEstado === "Preparado"
-    && pedido.pedido_estado !== "EnPreparacion"
-  ) {
-    throw Object.assign(
-      new Error(
-        "Solo pedidos en preparación pueden marcarse como listos"
-      ),
-      { status: 400 }
-    );
-  }
-
-  // Query dinámica
-  let sql = `
-    UPDATE pedidos
-    SET pedido_estado = ?
-  `;
-
-  const params = [nuevoEstado];
-
-  // Registrar horas
-  if (nuevoEstado === "EnPreparacion") {
-
-    sql += `,
-      pedido_en_preparacion_en = NOW()
-    `;
-
-  }
-
-  if (nuevoEstado === "Listo")
-    sql += `
-    WHERE id_pedido = ?
-  `;
-
-  params.push(id_pedido);
-
-  await db.query(sql, params);
-
-  return {
-    message:
-      nuevoEstado === "EnPreparacion"
-        ? "Pedido marcado en preparación"
-        : "Pedido marcado como listo"
-  };
-};
