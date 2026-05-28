@@ -141,7 +141,9 @@ function renderizarPedidos(pedidos) {
 
   if (!contenedor) return;
 
-  const pedidosPendientes = pedidos.filter((pedido) => pedido.estado !== "Preparado");
+  const pedidosPendientes = pedidos.filter((pedido) => {
+    return pedido.estado !== "Preparado" && pedido.estado !== "Cancelado";
+  });
 
   if (pedidosPendientes.length === 0) {
     contenedor.innerHTML = "<p>No hay pedidos pendientes</p>";
@@ -155,13 +157,21 @@ function renderizarPedidos(pedidos) {
     .join("");
 }
 
+function actualizarVistaCocina() {
+  const pedidosActualizados = pedidosCocina.filter((pedido) => {
+    return pedido.estado !== "Preparado" && pedido.estado !== "Cancelado";
+  });
+
+  renderizarPedidos(pedidosActualizados);
+}
+
 function cambiarEstadoPedido(idPedido, nuevoEstado) {
   const pedido = pedidosCocina.find((pedido) => pedido.id === Number(idPedido));
 
   if (!pedido) return;
 
   pedido.estado = nuevoEstado;
-  renderizarPedidos(pedidosCocina);
+  actualizarVistaCocina();
 }
 
 function configurarBotonIniciarPreparacion() {
@@ -192,8 +202,26 @@ function configurarBotonMarcarPreparado() {
   });
 }
 
+function configurarBotonActualizarPedidos() {
+  const botonActualizar = document.getElementById("btnActualizarPedidos");
+
+  if (!botonActualizar) return;
+
+  botonActualizar.addEventListener("click", () => {
+    actualizarVistaCocina();
+  });
+}
+
+function iniciarPollingPedidos() {
+  setInterval(() => {
+    actualizarVistaCocina();
+  }, 10000);
+}
+
 document.addEventListener("DOMContentLoaded", () => {
-  renderizarPedidos(pedidosCocina);
+  actualizarVistaCocina();
   configurarBotonIniciarPreparacion();
   configurarBotonMarcarPreparado();
+  configurarBotonActualizarPedidos();
+  iniciarPollingPedidos();
 });
