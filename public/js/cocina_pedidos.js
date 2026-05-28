@@ -81,7 +81,6 @@ function ordenarPedidosPorHora(pedidos) {
     const horaA = a.horaEnvio;
     const horaB = b.horaEnvio;
 
-    // Si viene como "13:45"
     if (
       typeof horaA === "string" &&
       typeof horaB === "string" &&
@@ -93,7 +92,6 @@ function ordenarPedidosPorHora(pedidos) {
       return convertirHoraAMinutos(horaA) - convertirHoraAMinutos(horaB);
     }
 
-    // Si viene como Date, timestamp o "2026-05-27T14:35:00"
     return new Date(horaA).getTime() - new Date(horaB).getTime();
   });
 }
@@ -106,11 +104,13 @@ function crearTarjetaPedido(pedido) {
     })
     .join("");
 
+  const claseEstado = pedido.estado === "EnPreparación" ? "preparando" : "pendiente";
+
   return `
     <div class="card" data-id-pedido="${pedido.id}" style="width: 300px; text-align: left;">
       <div class="pedido-header">
         <h3>Pedido #${pedido.id}</h3>
-        <span class="pendiente">${pedido.estado}</span>
+        <span class="${claseEstado}">${pedido.estado}</span>
       </div>
 
       <p style="font-size: 16px; color: #333; margin-bottom: 8px;">
@@ -124,6 +124,10 @@ function crearTarjetaPedido(pedido) {
       <ul style="padding-left: 20px; color: #555;">
         ${platillosHtml}
       </ul>
+
+      <button class="btn-editar btn-iniciar-preparacion" data-id="${pedido.id}">
+        Iniciar preparación
+      </button>
     </div>
   `;
 }
@@ -145,6 +149,30 @@ function renderizarPedidos(pedidos) {
     .join("");
 }
 
+function cambiarEstadoPedido(idPedido, nuevoEstado) {
+  const pedido = pedidosCocina.find((pedido) => pedido.id === Number(idPedido));
+
+  if (!pedido) return;
+
+  pedido.estado = nuevoEstado;
+  renderizarPedidos(pedidosCocina);
+}
+
+function configurarBotonIniciarPreparacion() {
+  const contenedor = document.getElementById("listaPedidosCocina");
+
+  if (!contenedor) return;
+
+  contenedor.addEventListener("click", (event) => {
+    const boton = event.target.closest(".btn-iniciar-preparacion");
+
+    if (!boton) return;
+
+    cambiarEstadoPedido(boton.dataset.id, "EnPreparación");
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   renderizarPedidos(pedidosCocina);
+  configurarBotonIniciarPreparacion();
 });
