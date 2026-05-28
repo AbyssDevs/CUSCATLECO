@@ -68,6 +68,36 @@ function formatearHoraEnvio(fechaHora) {
   });
 }
 
+function convertirHoraAMinutos(hora) {
+  const partes = String(hora).split(":");
+  const horas = Number(partes[0]);
+  const minutos = Number(partes[1]);
+
+  return horas * 60 + minutos;
+}
+
+function ordenarPedidosPorHora(pedidos) {
+  return [...pedidos].sort((a, b) => {
+    const horaA = a.horaEnvio;
+    const horaB = b.horaEnvio;
+
+    // Si viene como "13:45"
+    if (
+      typeof horaA === "string" &&
+      typeof horaB === "string" &&
+      horaA.includes(":") &&
+      horaB.includes(":") &&
+      !horaA.includes("T") &&
+      !horaB.includes("T")
+    ) {
+      return convertirHoraAMinutos(horaA) - convertirHoraAMinutos(horaB);
+    }
+
+    // Si viene como Date, timestamp o "2026-05-27T14:35:00"
+    return new Date(horaA).getTime() - new Date(horaB).getTime();
+  });
+}
+
 function crearTarjetaPedido(pedido) {
   const platillosHtml = pedido.platillos
     .map((platillo) => {
@@ -108,7 +138,9 @@ function renderizarPedidos(pedidos) {
     return;
   }
 
-  contenedor.innerHTML = pedidos
+  const pedidosOrdenados = ordenarPedidosPorHora(pedidos);
+
+  contenedor.innerHTML = pedidosOrdenados
     .map((pedido) => crearTarjetaPedido(pedido))
     .join("");
 }
