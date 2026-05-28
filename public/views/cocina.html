@@ -123,5 +123,58 @@
             
         </div>
     </div>
+
+    <script>
+        const pedidosCocina = [
+            { id: 1, mesa: 'Mesa 1', platillo: 'Pupusas Revueltas', cantidad: 3, pedido_estado: 'Pendiente' },
+            { id: 2, mesa: 'Mesa 2', platillo: 'Tamales de Elote', cantidad: 2, pedido_estado: 'En preparación' },
+            { id: 3, mesa: 'Mesa 3', platillo: 'Yuca Frita', cantidad: 1, pedido_estado: 'Pendiente' }
+        ];
+
+        const tablaOrdenesCocina = document.getElementById('tablaOrdenesCocina');
+
+        function obtenerClaseEstado(estado) {
+            if (estado === 'Pendiente') return 'pendiente';
+            if (estado === 'En preparación') return 'preparando';
+            return 'completado';
+        }
+
+        function renderOrdenesCocina() {
+            tablaOrdenesCocina.innerHTML = pedidosCocina.map(pedido => {
+                return `
+                    <tr>
+                        <td>${pedido.mesa}</td>
+                        <td>${pedido.platillo}</td>
+                        <td>${pedido.cantidad}</td>
+                        <td><span class="${obtenerClaseEstado(pedido.pedido_estado)}">${pedido.pedido_estado}</span></td>
+                        <td>
+                            ${pedido.pedido_estado === 'Pendiente'
+                                ? `<button class="btn-editar iniciar-preparacion" data-id="${pedido.id}">Iniciar preparación</button>`
+                                : ''}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function obtenerHoraActual() {
+            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        tablaOrdenesCocina.addEventListener('click', event => {
+            const boton = event.target.closest('button.iniciar-preparacion');
+            if (!boton) return;
+
+            const pedidoId = Number(boton.dataset.id);
+            const pedido = pedidosCocina.find(item => item.id === pedidoId);
+            if (!pedido || pedido.pedido_estado !== 'Pendiente') return;
+
+            pedido.pedido_estado = 'En preparación';
+            pedido.horaInicioPreparacion = obtenerHoraActual();
+            renderOrdenesCocina();
+        });
+
+        renderOrdenesCocina();
+    </script>
 </body>
 </html>
