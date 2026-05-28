@@ -128,6 +128,10 @@ function crearTarjetaPedido(pedido) {
       <button class="btn-editar btn-iniciar-preparacion" data-id="${pedido.id}">
         Iniciar preparación
       </button>
+
+      <button class="btn-completar btn-marcar-preparado" data-id="${pedido.id}">
+        Marcar como preparado
+      </button>
     </div>
   `;
 }
@@ -137,12 +141,14 @@ function renderizarPedidos(pedidos) {
 
   if (!contenedor) return;
 
-  if (!pedidos || pedidos.length === 0) {
+  const pedidosPendientes = pedidos.filter((pedido) => pedido.estado !== "Preparado");
+
+  if (pedidosPendientes.length === 0) {
     contenedor.innerHTML = "<p>No hay pedidos pendientes</p>";
     return;
   }
 
-  const pedidosOrdenados = ordenarPedidosPorHora(pedidos);
+  const pedidosOrdenados = ordenarPedidosPorHora(pedidosPendientes);
 
   contenedor.innerHTML = pedidosOrdenados
     .map((pedido) => crearTarjetaPedido(pedido))
@@ -172,7 +178,22 @@ function configurarBotonIniciarPreparacion() {
   });
 }
 
+function configurarBotonMarcarPreparado() {
+  const contenedor = document.getElementById("listaPedidosCocina");
+
+  if (!contenedor) return;
+
+  contenedor.addEventListener("click", (event) => {
+    const boton = event.target.closest(".btn-marcar-preparado");
+
+    if (!boton) return;
+
+    cambiarEstadoPedido(boton.dataset.id, "Preparado");
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
   renderizarPedidos(pedidosCocina);
   configurarBotonIniciarPreparacion();
+  configurarBotonMarcarPreparado();
 });
