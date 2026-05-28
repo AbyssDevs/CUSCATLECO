@@ -144,18 +144,6 @@
             return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
         }
 
-        function crearBotonAccion(pedido) {
-            if (pedido.pedido_estado === 'Pendiente') {
-                return `<button class="btn-editar iniciar-preparacion" data-id="${pedido.id}">Iniciar preparación</button>`;
-            }
-
-            if (pedido.pedido_estado === 'En preparación') {
-                return `<button class="btn-completar marcar-preparado" data-id="${pedido.id}">Marcar como preparado</button>`;
-            }
-
-            return '';
-        }
-
         function handleMarcarPreparado(event) {
             const botonMarcar = event.target.closest('button.marcar-preparado');
             if (!botonMarcar) return false;
@@ -201,7 +189,7 @@
                         <td>${pedido.platillo}</td>
                         <td>${pedido.cantidad}</td>
                         <td><span class="${obtenerClaseEstado(pedido.pedido_estado)}">${pedido.pedido_estado}</span></td>
-                        <td>${crearBotonAccion(pedido)}</td>
+                        <td>${pedido.pedido_estado === 'Pendiente' ? `<button class="btn-editar iniciar-preparacion" data-id="${pedido.id}">Iniciar preparación</button>` : ''}</td>
                     </tr>
                 `)
                 .join('');
