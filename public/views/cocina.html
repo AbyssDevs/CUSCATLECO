@@ -156,6 +156,23 @@
             return '';
         }
 
+        function handleMarcarPreparado(event) {
+            const botonMarcar = event.target.closest('button.marcar-preparado');
+            if (!botonMarcar) return false;
+
+            const pedidoId = Number(botonMarcar.dataset.id);
+            if (Number.isNaN(pedidoId)) return false;
+
+            const pedido = pedidosCocina.find(item => item.id === pedidoId);
+            if (!pedido || pedido.pedido_estado !== 'En preparación') return false;
+
+            pedido.pedido_estado = 'Preparado';
+            pedido.horaFinPreparacion = obtenerHoraActual();
+            renderOrdenesCocina();
+
+            return true;
+        }
+
         function obtenerPedidosVisibles() {
             const estadoFiltro = filtroEstadoPlatillos.value;
 
@@ -192,25 +209,20 @@
 
         tablaOrdenesCocina.addEventListener('click', event => {
             const botonIniciar = event.target.closest('button.iniciar-preparacion');
-            const botonMarcar = event.target.closest('button.marcar-preparado');
-            const boton = botonIniciar || botonMarcar;
-            if (!boton) return;
-
-            const pedidoId = Number(boton.dataset.id);
-            const pedido = pedidosCocina.find(item => item.id === pedidoId);
-            if (!pedido) return;
-
-            if (botonIniciar && pedido.pedido_estado === 'Pendiente') {
-                pedido.pedido_estado = 'En preparación';
-                pedido.horaInicioPreparacion = obtenerHoraActual();
+            if (botonIniciar) {
+                const pedidoId = Number(botonIniciar.dataset.id);
+                const pedido = pedidosCocina.find(item => item.id === pedidoId);
+                if (pedido && pedido.pedido_estado === 'Pendiente') {
+                    pedido.pedido_estado = 'En preparación';
+                    pedido.horaInicioPreparacion = obtenerHoraActual();
+                    renderOrdenesCocina();
+                }
+                return;
             }
 
-            if (botonMarcar && pedido.pedido_estado === 'En preparación') {
-                pedido.pedido_estado = 'Preparado';
-                pedido.horaFinPreparacion = obtenerHoraActual();
+            if (handleMarcarPreparado(event)) {
+                return;
             }
-
-            renderOrdenesCocina();
         });
 
         filtroEstadoPlatillos.addEventListener('change', renderOrdenesCocina);
