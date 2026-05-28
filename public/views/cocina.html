@@ -189,7 +189,11 @@
                         <td>${pedido.platillo}</td>
                         <td>${pedido.cantidad}</td>
                         <td><span class="${obtenerClaseEstado(pedido.pedido_estado)}">${pedido.pedido_estado}</span></td>
-                        <td>${pedido.pedido_estado === 'Pendiente' ? `<button class="btn-editar iniciar-preparacion" data-id="${pedido.id}">Iniciar preparación</button>` : ''}</td>
+                        <td>${pedido.pedido_estado === 'Pendiente'
+                            ? `<button class="btn-editar iniciar-preparacion" data-id="${pedido.id}">Iniciar preparación</button>`
+                            : pedido.pedido_estado === 'En preparación'
+                                ? `<button class="btn-completar marcar-preparado" data-id="${pedido.id}">Marcar como preparado</button>`
+                                : ''}</td>
                     </tr>
                 `)
                 .join('');
