@@ -439,3 +439,58 @@ window.addEventListener("DOMContentLoaded", () => {
     loadMenu();
   }
 });
+
+/* =========================================================
+   UX MEJORADA
+========================================================= */
+
+document.addEventListener("DOMContentLoaded", () => {
+
+  // EFECTO LOADING BOTON ENVIAR PEDIDO
+  const btnEnviar = document.getElementById("btn-enviar-pedido");
+
+  if (btnEnviar) {
+
+    btnEnviar.addEventListener("click", () => {
+
+      if (btnEnviar.disabled) return;
+
+      btnEnviar.innerHTML = `
+        <i class="fas fa-spinner fa-spin"></i>
+        Enviando...
+      `;
+
+      btnEnviar.style.opacity = "0.8";
+
+      setTimeout(() => {
+
+        btnEnviar.innerHTML = `
+          <i class="fas fa-paper-plane"></i>
+          Enviar a cocina
+        `;
+
+        btnEnviar.style.opacity = "1";
+
+      }, 2500);
+
+    });
+
+  }
+
+  // SCROLL SUAVE ENTRE VISTAS
+  const sidebarItems = document.querySelectorAll(".sidebar li");
+
+  sidebarItems.forEach(item => {
+
+    item.addEventListener("click", () => {
+
+      window.scrollTo({
+        top: 0,
+        behavior: "smooth"
+      });
+
+    });
+
+  });
+
+});
