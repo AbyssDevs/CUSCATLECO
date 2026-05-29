@@ -138,35 +138,46 @@
             <!-- TOMAR PEDIDO -->
             <div id="tomar-pedido" style="display: none;">
                 <h1>Tomar Pedido Nuevo</h1>
-                
-                <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px;">
-                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                        <div style="flex: 1;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Número de Mesa</label>
-                            <input type="number" id="mesa_num" placeholder="Ej. 10" style="width: 100%; box-sizing: border-box;">
-                        </div>
+
+                <form id="formPedidoCajero" style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px;">
+                    <div class="tipo-pedido-selector">
+                        <button type="button" class="pedido-type-btn active" data-tipo="llevar">
+                            <i class="fas fa-bag-shopping"></i>
+                            Para llevar
+                        </button>
+                        <button type="button" class="pedido-type-btn" data-tipo="salon">
+                            <i class="fas fa-chair"></i>
+                            Comer aquí
+                        </button>
                     </div>
-                    
-                    <h3 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seleccionar Platillos</h3>
-                    
-                    <div id="lista-platillos-pedido">
-                        <!-- Ejemplo de items a agregar -->
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <select style="flex: 2;">
-                                <option value="">Seleccione un platillo...</option>
-                                <option value="1">Pupusas Revueltas</option>
-                                <option value="2">Pupusas de Queso</option>
-                                <option value="3">Sopa de Gallina</option>
-                            </select>
-                            <input type="number" placeholder="Cant." min="1" value="1" style="flex: 1;">
-                            <button type="button" class="btn-eliminar" title="Eliminar platillo"><i class="fa-solid fa-trash"></i></button>
-                        </div>
+
+                    <div class="form-group" style="margin-top: 20px;">
+                        <label for="nombreClienteCajero">Nombre</label>
+                        <input type="text" id="nombreClienteCajero" placeholder="Nombre del cliente">
                     </div>
-                    
-                    <button class="btn-agregar" style="margin-top: 10px; margin-bottom: 20px;"><i class="fa-solid fa-plus"></i> Añadir otro platillo</button>
-                    
-                    <button style="width: 100%; padding: 15px; font-size: 16px;">Enviar Pedido a Cocina</button>
-                </div>
+
+                    <div class="form-group">
+                        <label for="telefonoClienteCajero">Teléfono</label>
+                        <input type="tel" id="telefonoClienteCajero" placeholder="Teléfono del cliente">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="mesaPedidoCajero">Mesa</label>
+                        <select id="mesaPedidoCajero" disabled>
+                            <option value="">Sin mesa (Para llevar)</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="observacionesPedidoCajero">Observaciones</label>
+                        <textarea id="observacionesPedidoCajero" rows="4" placeholder="Observaciones para el pedido"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn-enviar-pedido">
+                        <i class="fas fa-paper-plane"></i>
+                        Iniciar pedido
+                    </button>
+                </form>
             </div>
 
         </div>
