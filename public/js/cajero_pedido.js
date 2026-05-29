@@ -127,10 +127,9 @@ function renderCobrosTabla(pedidos = []) {
 
   tablaCobros.innerHTML = pedidos
     .map((pedido) => {
-      const tieneFactura = Boolean(pedido.factura_id || pedido.tieneFactura);
-      const estado = (pedido.estado || "").toString().toLowerCase();
-      const puedeFacturar = !tieneFactura && (estado === "entregado" || estado === "cerrado");
-      const disabled = puedeFacturar ? "" : "disabled";
+      const tieneFactura = Boolean(pedido.factura_id || pedido.tieneFactura || pedido.id_factura);
+      const estadoPedido = pedido.estado || "";
+      const disabled = (estadoPedido === "Pendiente" || estadoPedido === "En preparación" || estadoPedido === "En preparacion" || estadoPedido === "Listo" || estadoPedido === "Preparado" || tieneFactura) ? "disabled" : "";
 
       return `
         <tr>
@@ -150,6 +149,33 @@ function renderCobrosTabla(pedidos = []) {
     .join("");
 }
 
+function inicializarDelegacionAgregarPlatillo() {
+  const contenedorMenu = document.querySelector(".menu-table-body") || document.getElementById("menuTableBody") || document;
+
+  contenedorMenu.addEventListener("click", (event) => {
+    const button = event.target.closest(".btn-agregar");
+    if (!button) return;
+    event.preventDefault();
+
+    if (button.disabled) return;
+
+    const idPlatillo = button.getAttribute("data-id") || button.getAttribute("data-id-platillo");
+    const nombrePlatillo = button.getAttribute("data-nombre") || button.getAttribute("data-platillo-nombre") || "";
+    const precioPlatillo = parseFloat(button.getAttribute("data-precio"));
+
+    if (!idPlatillo) return;
+
+    if (typeof window.agregarAlPedidoDesdeMenu === "function") {
+      window.agregarAlPedidoDesdeMenu(idPlatillo);
+      return;
+    }
+
+    if (typeof window.agregarPlatilloAlPedido === "function") {
+      window.agregarPlatilloAlPedido(idPlatillo, nombrePlatillo, Number.isNaN(precioPlatillo) ? null : precioPlatillo);
+    }
+  });
+}
+
 function configurarCajeroPedido() {
   const tipoButtons = document.querySelectorAll(".pedido-type-btn");
   tipoButtons.forEach((button) => {
@@ -162,6 +188,7 @@ function configurarCajeroPedido() {
 
   actualizarTipoPedidoCajero();
   configurarFormularioPedidoCajero();
+  inicializarDelegacionAgregarPlatillo();
 }
 
 window.addEventListener("DOMContentLoaded", () => {
