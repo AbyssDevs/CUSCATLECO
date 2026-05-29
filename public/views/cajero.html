@@ -19,6 +19,21 @@
     <!-- CSS Específico de Cajero -->
     <link rel="stylesheet" href="../css/cajero.css">
     <link rel="stylesheet" href="../css/menu.css">
+    <style>
+      .btn-imprimir {
+        margin-left: 10px;
+        background: #8b2f2f;
+        border: 1px solid #7a2929;
+        color: #ffffff;
+        padding: 0.85rem 1rem;
+        border-radius: 8px;
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+      .btn-imprimir:hover {
+        background: #732525;
+        transform: translateY(-1px);
+      }
+    </style>
 
 </head>
 
@@ -317,6 +332,9 @@
                 <button type="button" id="btnDescargarPDF" class="btn btn-secondary" data-id="${pedidoId || ''}">
                   <i class="fas fa-file-pdf"></i> Descargar PDF
                 </button>
+                <button type="button" id="btnImprimirTicket" class="btn btn-imprimir" data-id="${pedidoId || ''}">
+                  <i class="fas fa-print"></i> Imprimir ticket
+                </button>
               </div>
             `,
             showConfirmButton: false,
@@ -343,6 +361,14 @@
       }
 
       document.addEventListener('click', async (event) => {
+        const botonImprimir = event.target.closest('#btnImprimirTicket');
+        if (botonImprimir) {
+          event.preventDefault();
+          const pedidoId = botonImprimir.dataset.id || '';
+          console.log('Imprimiendo ticket del pedido:', pedidoId);
+          return;
+        }
+
         const botonPdf = event.target.closest('#btnDescargarPDF');
         if (botonPdf) {
           event.preventDefault();
