@@ -46,7 +46,7 @@
                 <li onclick="mostrarViews('tomar-pedido')"><i class="fa-solid fa-plus"></i> Nuevo Pedido</li><br>
                 <li onclick="mostrarViews('menu-restaurante')"><i class="fa-solid fa-book-open"></i> Ver el Menú</li><br>
                 <li onclick="mostrarViews('verMesas')"><i class="fas fa-border-all"></i> Ver Mesas</li><br>
-                <li onclick="mostrarViews('pedidos-pendientes')"><i class="fa-solid fa-clipboard-list"></i> Entregar Pedidos</li><br>
+                <li onclick="mostrarViews('pedidos-pendientes')"><i class="fa-solid fa-clipboard-list"></i> Mis pedidos</li><br>
                 <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li>
             </ul>
 
@@ -84,13 +84,14 @@
                 </div>
 
                 <div class="pedido-type-card" id="mesa-container">
-                    <h3>Número de Mesa</h3>
-                    <select id="mesa-select" style="width: 100%;">
-                        <option value="">Seleccione una mesa...</option>
-                    </select>
+                    <h3>Mesas disponibles</h3>
+                    <div id="mesasPedidoLoading" style="display: none; color: #555; margin-bottom: 0.75rem;">Cargando mesas...</div>
+                    <div id="mesasPedidoEmpty" style="color: #555; margin-bottom: 0.75rem;"></div>
+                    <div id="mesas-pedido-list" class="mesas-pedido-list"></div>
                 </div>
 
-                <div class="pedido-type-card">
+                <div class="pedido-type-card" id="pedido-form-card">
+                    <div id="pedido-activo-info" class="pedido-activo-info" style="display: none;"></div>
                     <h3>Seleccionar Platillos</h3>
                     <div id="platillos-container">
                         <!-- La primera fila se carga por defecto -->
@@ -105,14 +106,16 @@
                             </button>
                         </div>
                     </div>
-                    <button type="button" id="btn-add-platillo" style="background: #007bff; color: white; margin-top: 10px; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">
+                    <button type="button" id="btn-add-platillo" style="background: #007bff; color: white; margin-top: 10px; margin-bottom: 15px; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer;">
                         <i class="fas fa-plus"></i> Añadir otro platillo
                     </button>
+
+                    <button id="btn-enviar-pedido" style="width: 100%; padding: 15px; margin-bottom: 15px; background: #7a1d1d; color: white; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                    Guardar pedido
+                </button>
                 </div>
 
-                <button id="btn-enviar-pedido" style="width: 100%; padding: 15px; background: #7a1d1d; color: white; font-size: 1.1rem; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
-                    Enviar Pedido a Cocina
-                </button>
+                
             </div>
 
 

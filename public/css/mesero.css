@@ -601,3 +601,61 @@ tr:hover {
     padding: 14px;
     font-size: 15px;
 }
+
+.mesas-pedido-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.mesa-pedido-card {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    padding: 16px;
+}
+
+.mesa-pedido-card h4 {
+    margin: 0 0 8px;
+    color: #222;
+}
+
+.mesa-pedido-card p {
+    margin: 4px 0;
+    color: #555;
+    font-size: 0.9rem;
+}
+
+.mesa-pedido-status {
+    display: inline-flex;
+    margin-top: 8px;
+    font-weight: 700;
+}
+
+.btn-elegir-mesa {
+    white-space: nowrap;
+}
+
+.btn-elegir-mesa:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
+.pedido-activo-info {
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 16px;
+    color: #334155;
+}
+
+.pedido-activo-info span {
+    border: 1px solid #e5e7eb;
+    border-radius: 999px;
+    background: #f8fafc;
+    padding: 7px 12px;
+    font-size: 0.9rem;
+}
