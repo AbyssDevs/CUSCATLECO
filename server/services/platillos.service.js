@@ -77,10 +77,6 @@ export const obtenerPlatillos = async (query, rol) => {
 
   const params = [];
 
-  if (!isAdmin) {
-    sql += " AND p.platillo_disponible = TRUE";
-  }
-
   if (categoria_id) {
     sql += " AND p.id_categoria = ?";
     params.push(categoria_id);
@@ -124,7 +120,6 @@ export const obtenerPlatillo = async (id, rol) => {
     FROM platillos p
     JOIN categorias c ON p.id_categoria = c.id_categoria
     WHERE p.id_platillo = ?
-    ${isAdmin ? "" : "AND p.platillo_disponible = TRUE"}
     `,
     [id]
   );
