@@ -91,6 +91,65 @@ function configurarFormularioPedidoCajero() {
   });
 }
 
+async function manejarRespuestaFactura(response) {
+  if (!response.ok) {
+    const errorBody = await response.json().catch(() => null);
+    const errorMessage =
+      (errorBody && (errorBody.message || errorBody.error || JSON.stringify(errorBody))) ||
+      "No se pudo generar la factura.";
+    throw new Error(errorMessage);
+  }
+
+  const resultado = await response.json();
+
+  await Swal.fire({
+    icon: "success",
+    title: "Factura generada exitosamente",
+    text: `Factura ${resultado.numeroFactura} emitida correctamente.`,
+    timer: 2000,
+    showConfirmButton: false,
+  });
+
+  if (typeof limpiarModalFactura === "function") {
+    limpiarModalFactura();
+  }
+
+  if (typeof refrescarListaPedidos === "function") {
+    refrescarListaPedidos();
+  }
+
+  return resultado;
+}
+
+function renderCobrosTabla(pedidos = []) {
+  const tablaCobros = document.getElementById("tablaCobros");
+  if (!tablaCobros) return;
+
+  tablaCobros.innerHTML = pedidos
+    .map((pedido) => {
+      const tieneFactura = Boolean(pedido.factura_id || pedido.tieneFactura);
+      const estado = (pedido.estado || "").toString().toLowerCase();
+      const puedeFacturar = !tieneFactura && (estado === "entregado" || estado === "cerrado");
+      const disabled = puedeFacturar ? "" : "disabled";
+
+      return `
+        <tr>
+          <td>${pedido.id_pedido || pedido.id || "--"}</td>
+          <td>${pedido.mesa || "Sin mesa"}</td>
+          <td>${pedido.mesero || pedido.usuario || "--"}</td>
+          <td>${pedido.total != null ? pedido.total : "--"}</td>
+          <td>${pedido.estado || "--"}</td>
+          <td>
+            <button class="btn-completar" ${disabled}>
+              Facturar y Cobrar
+            </button>
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+}
+
 function configurarCajeroPedido() {
   const tipoButtons = document.querySelectorAll(".pedido-type-btn");
   tipoButtons.forEach((button) => {
