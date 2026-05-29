@@ -312,8 +312,15 @@
           await Swal.fire({
             icon: 'success',
             title: 'Factura generada exitosamente',
-            timer: 2000,
+            html: `
+              <div style="display: flex; gap: 10px; justify-content: center; margin-top: 12px;">
+                <button type="button" id="btnDescargarPDF" class="btn btn-secondary" data-id="${pedidoId || ''}">
+                  <i class="fas fa-file-pdf"></i> Descargar PDF
+                </button>
+              </div>
+            `,
             showConfirmButton: false,
+            showCloseButton: true,
           });
 
           if (typeof cerrarModalFactura === 'function') {
@@ -336,6 +343,41 @@
       }
 
       document.addEventListener('click', async (event) => {
+        const botonPdf = event.target.closest('#btnDescargarPDF');
+        if (botonPdf) {
+          event.preventDefault();
+          const pedidoId = botonPdf.dataset.id || '';
+          console.log('Descargar PDF pedido:', pedidoId);
+          if (pedidoId) {
+            fetch(`/api/facturas/pdf/${encodeURIComponent(pedidoId)}`)
+              .then((response) => {
+                if (!response.ok) {
+                  throw new Error('No se pudo iniciar la descarga del PDF.');
+                }
+                return response.blob();
+              })
+              .then((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `factura_${pedidoId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+              })
+              .catch((error) => {
+                console.error('Error descargando PDF:', error);
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error al descargar PDF',
+                  text: error?.message || 'No se pudo descargar el PDF de la factura.',
+                });
+              });
+          }
+          return;
+        }
+
         const boton = event.target.closest('#btn-confirmar-factura, .btn-confirmar-factura, [data-action="confirmar-factura"]');
         if (!boton) return;
         event.preventDefault();
