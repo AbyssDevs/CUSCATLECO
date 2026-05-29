@@ -142,28 +142,28 @@
                 <div class="tomar-pedido-layout">
 
                     <!-- COLUMNA IZQUIERDA -->
-                    <form id="formPedidoCajero" class="pedido-left-column">
+                    <form id="formPedidoCajero" class="pedido-left-column card">
 
-                        <div class="pedido-type-card glass-panel">
+                        <div class="pedido-type-card glass-panel card">
                             <h3>Datos del Cliente</h3>
 
                             <div class="form-group">
                                 <label for="nombreClienteCajero">Nombre del Cliente *</label>
-                                <input type="text" id="nombreClienteCajero" placeholder="Nombre del cliente">
+                                <input type="text" id="nombreClienteCajero" class="menu-search-input" placeholder="Nombre del cliente">
                             </div>
 
                             <div class="form-group">
-                                <label for="telefonoClienteCajero">Teléfono (Opcional)</label>
-                                <input type="tel" id="telefonoClienteCajero" placeholder="Teléfono del cliente (Opcional)">
+                                <label for="telefonoClienteCajero">Teléfono <small>Opcional</small></label>
+                                <input type="tel" id="telefonoClienteCajero" class="menu-search-input" placeholder="Teléfono del cliente (Opcional)">
                             </div>
 
                             <div class="form-group">
-                                <label for="observacionesPedidoCajero">Observaciones (Opcional)</label>
-                                <textarea id="observacionesPedidoCajero" rows="4" placeholder="Notas especiales - Opcional"></textarea>
+                                <label for="observacionesPedidoCajero">Observaciones <small>Opcional</small></label>
+                                <textarea id="observacionesPedidoCajero" class="menu-search-input" rows="4" placeholder="Notas especiales - Opcional"></textarea>
                             </div>
                         </div>
 
-                        <div class="pedido-type-card glass-panel" id="pedido-form-card">
+                        <div class="pedido-type-card glass-panel card" id="pedido-form-card">
                             <h3>Pedido Actual</h3>
 
                             <div id="platillos-container" class="pedido-items-empty">
@@ -178,6 +178,7 @@
                                 </label>
                                 <textarea
                                     id="pedido-notas-generales"
+                                    class="menu-search-input"
                                     rows="3"
                                     placeholder="Escribe aquí notas generales para el pedido..."></textarea>
                             </div>
@@ -202,7 +203,8 @@
                                 type="submit"
                                 disabled
                                 title="Agrega al menos un platillo"
-                                style="width: 100%; padding: 15px; margin-bottom: 15px; background: #7a1d1d; color: white; font-size: 1.1rem; border: none; border-radius: 8px; cursor: not-allowed; font-weight: bold; opacity: 0.6; transition: all 0.2s ease;">
+                                class="btn-enviar-pedido"
+                                style="width: 100%; padding: 15px; margin-bottom: 15px; font-size: 1.1rem; border: none; border-radius: 8px; cursor: not-allowed; font-weight: bold; opacity: 0.6; transition: all 0.2s ease;">
 
                                 <i class="fas fa-paper-plane"></i>
                                 Iniciar pedido
@@ -212,7 +214,7 @@
                     </form>
 
                     <!-- COLUMNA DERECHA -->
-                    <div class="pedido-menu-panel glass-panel">
+                    <div class="pedido-menu-panel glass-panel card">
 
                         <h3>Menú de Platillos</h3>
 
@@ -270,7 +272,76 @@
     <script src="/js/alerts.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/cajero_pedido.js"></script>
-    
-</body>
+    <script>
+      async function confirmarFacturaPedido() {
+        const pedidoId = window.pedidoIdSeleccionado || document.getElementById('idPedidoFactura')?.value || document.getElementById('pedidoIdFactura')?.value;
+        const nombreCliente = document.getElementById('nombreFacturaCliente')?.value?.trim() || null;
+        const nitCliente = document.getElementById('nitFacturaCliente')?.value?.trim() || null;
+
+        if (!pedidoId) {
+          await Swal.fire({
+            icon: 'error',
+            title: 'No se encontró el pedido',
+            text: 'No se pudo identificar el pedido a facturar.',
+          });
+          return;
+        }
+
+        const payload = {
+          pedido_id: pedidoId,
+          nombre_cliente: nombreCliente || null,
+          nit: nitCliente || null,
+          tipo: 'ConsumidorFinal',
+        };
+
+        try {
+          const response = await fetch('/api/facturas/generar', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const errorBody = await response.json().catch(() => null);
+            const errorMessage = (errorBody && (errorBody.message || errorBody.error || JSON.stringify(errorBody))) || 'No se pudo generar la factura.';
+            throw new Error(errorMessage);
+          }
+
+          await Swal.fire({
+            icon: 'success',
+            title: 'Factura generada exitosamente',
+            timer: 2000,
+            showConfirmButton: false,
+          });
+
+          if (typeof cerrarModalFactura === 'function') {
+            cerrarModalFactura();
+          }
+          if (typeof limpiarModalFactura === 'function') {
+            limpiarModalFactura();
+          }
+          if (typeof refrescarListaPedidos === 'function') {
+            refrescarListaPedidos();
+          }
+        } catch (error) {
+          console.error('Error generando factura:', error);
+          await Swal.fire({
+            icon: 'error',
+            title: 'Error al generar factura',
+            text: error?.message || 'Ocurrió un error al generar la factura.',
+          });
+        }
+      }
+
+      document.addEventListener('click', async (event) => {
+        const boton = event.target.closest('#btn-confirmar-factura, .btn-confirmar-factura, [data-action="confirmar-factura"]');
+        if (!boton) return;
+        event.preventDefault();
+        await confirmarFacturaPedido();
+      });
+    </script>
+  </body>
 
 </html>
