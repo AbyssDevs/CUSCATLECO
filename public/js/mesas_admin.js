@@ -522,9 +522,58 @@ async function crearMesa() {
     toast("error", "Error de conexion. Intente nuevamente.");
   }
 }
-
 window.addEventListener("DOMContentLoaded", () => {
   if (document.getElementById("mesas")) {
     actualizarFormularioModo();
   }
+
+
+  cargarMesasDisponiblesMesero();
+});
+
+// ============================================
+// CARGAR MESAS DISPONIBLES EN PANEL MESERO
+// ============================================
+async function cargarMesasDisponiblesMesero() {
+  const selectMesa = document.getElementById("mesa_num");
+  if (!selectMesa) return;
+
+  try {
+    const respuesta = await fetch("/api/mesas");
+
+    if (!respuesta.ok) {
+      throw new Error("No se pudieron cargar las mesas.");
+    }
+
+    const mesas = await respuesta.json();
+
+    const mesasDisponibles = mesas.filter((mesa) => {
+      const estado = normalizarEstadoMesa(mesa.mesa_estado || mesa.estado);
+      return estado.toLowerCase() === "disponible";
+    });
+
+    selectMesa.innerHTML = `<option value="">Seleccione una mesa</option>`;
+
+    mesasDisponibles.forEach((mesa) => {
+      const numeroMesa = mesa.mesa_numero || mesa.numero;
+      selectMesa.innerHTML += `
+        <option value="${mesa.id_mesa}">Mesa ${numeroMesa}</option>
+      `;
+    });
+
+  } catch (error) {
+    console.error(error);
+    toast("error", "Error cargando mesas disponibles.");
+  }
+}
+
+// ============================================
+// CUANDO CARGA LA PÁGINA
+// ============================================
+window.addEventListener("DOMContentLoaded", () => {
+  if (document.getElementById("mesas")) {
+    actualizarFormularioModo();
+  }
+
+  cargarMesasDisponiblesMesero();
 });
