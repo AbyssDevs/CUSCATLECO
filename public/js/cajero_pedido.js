@@ -127,16 +127,36 @@ function renderCobrosTabla(pedidos = []) {
 
   tablaCobros.innerHTML = pedidos
     .map((pedido) => {
+      // CUS-301: Validamos si tiene factura amarrada
       const tieneFactura = Boolean(pedido.factura_id || pedido.tieneFactura || pedido.id_factura);
-      const estadoPedido = pedido.estado || "";
-      const disabled = (estadoPedido === "Pendiente" || estadoPedido === "En preparación" || estadoPedido === "En preparacion" || estadoPedido === "Listo" || estadoPedido === "Preparado" || tieneFactura) ? "disabled" : "";
+      
+      // Pasamos el estado a minúsculas y limpiamos espacios para evitar fallos del backend
+      const estadoPedido = (pedido.estado || "").toLowerCase().trim();
+      
+      // CUS-302: Bloqueo por estados de cocina exactos de Jira
+      const disabled = (
+        estadoPedido === "pendiente" || 
+        estadoPedido === "en preparación" || 
+        estadoPedido === "en preparacion" || 
+        estadoPedido === "preparado" ||
+        estadoPedido === "listo" || 
+        estadoPedido === "listo para entregar" || 
+        tieneFactura
+      ) ? "disabled" : "";
+
+      // Guardamos en memoria global para controlar la delegación del botón agregar platillo
+      window.estadoPedidoActualCajero = estadoPedido;
+      window.pedidoTieneFacturaActual = tieneFactura;
+
+      // Corrección del formato de moneda para que el cero (0) pinte bien como dinero
+      const totalMostrar = (pedido.total !== undefined && pedido.total !== null) ? `$${parseFloat(pedido.total).toFixed(2)}` : "--";
 
       return `
         <tr>
           <td>${pedido.id_pedido || pedido.id || "--"}</td>
           <td>${pedido.mesa || "Sin mesa"}</td>
           <td>${pedido.mesero || pedido.usuario || "--"}</td>
-          <td>${pedido.total != null ? pedido.total : "--"}</td>
+          <td>${totalMostrar}</td>
           <td>${pedido.estado || "--"}</td>
           <td>
             <button class="btn-completar" ${disabled}>
@@ -152,10 +172,26 @@ function renderCobrosTabla(pedidos = []) {
 function inicializarDelegacionAgregarPlatillo() {
   const contenedorMenu = document.querySelector(".menu-table-body") || document.getElementById("menuTableBody") || document;
 
-  contenedorMenu.addEventListener("click", (event) => {
+  contenedorMenu.addEventListener("click", async (event) => {
     const button = event.target.closest(".btn-agregar");
     if (!button) return;
     event.preventDefault();
+
+    // BLOQUEO REGLA DE JIRA: Evita agregar comida a órdenes en cocina o ya cobradas
+    if (
+      window.estadoPedidoActualCajero === "pendiente" || 
+      window.estadoPedidoActualCajero === "en preparación" || 
+      window.estadoPedidoActualCajero === "en preparacion" || 
+      window.estadoPedidoActualCajero === "listo para entregar" ||
+      window.pedidoTieneFacturaActual === true
+    ) {
+      await Swal.fire({
+        icon: "error",
+        title: "Acción no permitida",
+        text: "No se pueden añadir platillos a un pedido en proceso o que ya fue facturado.",
+      });
+      return;
+    }
 
     if (button.disabled) return;
 
