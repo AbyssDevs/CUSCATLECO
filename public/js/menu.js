@@ -432,6 +432,7 @@ window.addEventListener("DOMContentLoaded", () => {
   attachMenuControls();
 
   const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
+
   if (menuSection && menuSection.style.display !== "none") {
     loadMenu();
   } else if (document.getElementById('tomar-pedido') && document.getElementById('tomar-pedido').style.display !== "none") {
@@ -477,6 +478,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   }
 
+
+  // Pedido nuevo = editable
+  validarEstadoBotonesEliminarPlatillos("Pendiente");
+
   // SCROLL SUAVE ENTRE VISTAS
   const sidebarItems = document.querySelectorAll(".sidebar li");
 
@@ -493,4 +498,54 @@ document.addEventListener("DOMContentLoaded", () => {
 
   });
 
+
 });
+
+/**
+ * Deshabilita los botones de eliminar platillos
+ * cuando el pedido ya fue enviado a cocina.
+ *
+ * Estados permitidos para eliminar:
+ * - Pendiente
+ */
+function validarEstadoBotonesEliminarPlatillos(estadoPedido) {
+  const container = document.getElementById("lista-platillos-pedido");
+
+  if (!container) return;
+
+  const botonesEliminar = container.querySelectorAll(".btn-eliminar");
+
+  const esPendiente =
+    estadoPedido &&
+    estadoPedido.trim().toLowerCase() === "pendiente";
+
+  botonesEliminar.forEach((btn) => {
+    // Deshabilitar botón
+    btn.disabled = !esPendiente;
+
+    // Estilo visual
+    if (!esPendiente) {
+      btn.style.opacity = "0.5";
+      btn.style.cursor = "not-allowed";
+      btn.title = "No se puede eliminar, pedido enviado a cocina";
+    } else {
+      btn.style.opacity = "1";
+      btn.style.cursor = "pointer";
+      btn.removeAttribute("title");
+    }
+
+    // Protección extra
+    btn.onclick = (event) => {
+      if (!esPendiente) {
+        event.preventDefault();
+
+        if (typeof toast === "function") {
+          toast("error", "No puedes eliminar un pedido enviado a cocina.");
+        }
+
+        return false;
+      }
+    };
+  });
+}
+
