@@ -69,7 +69,9 @@ function configurarFormularioPedidoCajero() {
       await Swal.fire({
         icon: "success",
         title: "Pedido creado",
-        text: "El pedido se creó correctamente.",
+        text: `Pedido para ${nombreCliente} creado correctamente.`,
+        timer: 2000,
+        showConfirmButton: false,
       });
 
       form.reset();
