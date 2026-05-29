@@ -2,40 +2,7 @@ import db from "../config/db.js";
 import { cambiarEstadoMesa } from "./mesas.service.js";
 
  
-// Crear pedido  (Numero correlativo , Fecha y hora actual, y estado "Pnediente")
-export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
-    
-    if (!items || !Array.isArray(items) || items.length === 0) {
-      throw new Error("El pedido debe contener al menos un platillo");
-    }
 
-  const lockName = `pedidos_correlativo_${anio}`;
-  const [[lockResult]] = await connection.query(
-    "SELECT GET_LOCK(?, 10) AS lock_obtenido",
-    [lockName]
-  );
-
-  if (lockResult.lock_obtenido !== 1) {
-    throw Object.assign(
-      new Error("No se pudo generar el correlativo del pedido"),
-      { status: 500 }
-    );
-  }
-
-  const [[{ ultimo }]] = await connection.query(
-    `
-      SELECT COALESCE(MAX(CAST(SUBSTRING(pedido_numero, 10) AS UNSIGNED)), 0) AS ultimo
-      FROM pedidos
-      WHERE pedido_numero LIKE ?
-    `,
-    [`PED-${anio}-%`]
-  );
-
-  return {
-    lockName,
-    pedidoNumero: `PED-${anio}-${String(Number(ultimo) + 1).padStart(4, "0")}`
-  };
-};
 
 // Crear pedido (numero correlativo, fecha y hora actual, estado "Pendiente")
 export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
