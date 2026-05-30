@@ -824,14 +824,7 @@ tr:hover {
 .btn-editar:hover { background-color: #e67e22; }
 
 .btn-eliminar { background-color: #e74c3c; }
-.btn-eliminar:hover:not(:disabled) { background-color: #c0392b; }
-.btn-eliminar:disabled {
-    background-color: #cccccc;
-    color: #666666;
-    cursor: not-allowed;
-    opacity: 0.5;
-    pointer-events: none;
-}
+.btn-eliminar:hover { background-color: #c0392b; }
 
 .btn-completar { background-color: #27ae60; }
 .btn-completar:hover { background-color: #219653; }
@@ -1502,7 +1495,6 @@ tr:hover {
 }
 
 /* ==========================================================
-
    MIS PEDIDOS ACTIVOS — Modern Card View
    ========================================================== */
 
@@ -1982,149 +1974,179 @@ tr:hover {
     .pedido-card-actions {
         flex-direction: column;
     }
+}
 
+.detalle-pedido-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
 
-.btn-enviar-cocina {
-    width: 100%;
+.detalle-modal {
+    background-color: #1a1a1a;
+    color: #f3f4f6;
+    font-family: 'Courier New', Courier, monospace; /* Tipografía estilo terminal */
+    width: 90%;
+    max-width: 450px;
+    max-height: 85vh;
+    border: 2px solid #555;
+    border-radius: 4px;
     padding: 15px;
-    margin-bottom: 15px;
-    background: #7a1d1d;
-    color: white;
-    font-size: 1.05rem;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Encabezado del Modal */
+.detalle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #555;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.detalle-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.detalle-cerrar {
+    background: none;
     border: none;
-    border-radius: 8px;
+    color: #ff5555;
+    font-family: inherit;
+    font-size: 1rem;
     cursor: pointer;
     font-weight: bold;
-    transition:
-        background 0.2s ease,
-        transform 0.2s ease,
-        opacity 0.2s ease;
 }
 
-.btn-enviar-cocina:hover:not(:disabled) {
-    background: #661515;
-    transform: translateY(-1px);
+.detalle-cerrar:hover {
+    color: #ff3333;
 }
 
-.btn-enviar-cocina:disabled {
-    background: #9ca3af;
-    cursor: not-allowed;
-    opacity: 0.8;
+/* Secciones divisorias discontinuas (igual al boceto) */
+.detalle-seccion {
+    border-bottom: 1px dashed #555;
+    padding: 12px 0;
 }
 
-/* TOOLTIP */
-.tooltip-wrapper {
-    position: relative;
-    width: 100%;
-}
-
-.tooltip-wrapper .tooltip-text {
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    background: #222;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 6px;
-    font-size: 0.85rem;
-    white-space: nowrap;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-    z-index: 100;
-}
-
-.tooltip-wrapper .tooltip-text::after {
-    content: "";
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    border-width: 6px;
-    border-style: solid;
-    border-color: #222 transparent transparent transparent;
-}
-
-.tooltip-wrapper:hover .tooltip-text {
-    opacity: 1;
-}
-
-/* ==========================================================
-   BLOQUEO DE PEDIDO ENVIADO
-   ========================================================== */
-
-.pedido-bloqueado {
-    opacity: 0.75;
-    user-select: none;
-}
-
-.pedido-bloqueado .btn-eliminar-fila,
-.pedido-bloqueado .btn-aumentar-cantidad,
-.pedido-bloqueado .btn-disminuir-cantidad,
-.pedido-bloqueado .platillo-cantidad {
-    cursor: not-allowed;
-}
-
-/* ==========================================================
-   BOTONES DESHABILITADOS DE MENU
-   ========================================================== */
-
-.btn-agregar:disabled {
-    background: #9ca3af !important;
-    cursor: not-allowed;
-    opacity: 0.8;
-}
-
-/* ==========================================================
-   MODAL SWEETALERT PERSONALIZADO
-   ========================================================== */
-
-.swal2-popup {
-    border-radius: 14px;
-    font-family: 'Roboto', Arial, sans-serif;
-}
-
-.swal2-confirm {
-    background: #7a1d1d !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-.swal2-cancel {
-    background: #6b7280 !important;
-    border: none !important;
-    box-shadow: none !important;
-}
-
-/* ==========================================================
-   ESTADO EN PREPARACION
-   ========================================================== */
-
-.estado-en-preparacion {
-    color: #2563eb;
-    background: rgba(37, 99, 235, 0.12);
-    padding: 5px 12px;
-    border-radius: 20px;
+.detalle-seccion h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: #ffffff;
     font-weight: bold;
-    display: inline-block;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-/* ==========================================================
-   RESPONSIVE BOTON ENVIAR
-   ========================================================== */
+/* Información General */
+.detalle-info-general div {
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+}
 
-@media (max-width: 700px) {
+/* Lista de Platillos */
+.detalle-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
 
-    .btn-enviar-cocina {
-        font-size: 0.95rem;
-        padding: 13px;
-    }
+.detalle-item-top {
+    font-size: 1rem;
+    color: #ffffff;
+}
 
-    .tooltip-wrapper .tooltip-text {
-        white-space: normal;
-        width: 220px;
-        text-align: center;
-    }
+.detalle-item-bottom {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #cccccc;
+    margin-top: 3px;
+    padding-left: 10px;
+}
 
-}}
+/* Bloque de Notas individuales */
+.detalle-nota {
+    background-color: #262626;
+    border-left: 3px solid #ffb86c;
+    padding: 6px 10px;
+    margin-top: 6px;
+    margin-left: 10px;
+    font-size: 0.85rem;
+    color: #ffb86c;
+}
+
+/* Historial de Estados */
+.detalle-historial {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.historial-linea {
+    font-size: 0.95rem;
+    color: #e2e8f0;
+}
+
+.historial-hora {
+    color: #8be9fd;
+}
+
+/* Contenedor de Botones Inferiores */
+.detalle-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 5px;
+}
+
+/* Estilo para los botones en formato [Texto] */
+.detalle-actions button {
+    background: none;
+    border: none;
+    color: #50fa7b; /* Verde por defecto para acciones */
+    font-family: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 5px 8px;
+    transition: background-color 0.2s;
+}
+
+.detalle-actions button:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Botón cancelar específico */
+.detalle-actions .btn-cancelar-pedido {
+    color: #ff5555;
+}
+
+/* Botón cerrar específico */
+.detalle-actions .btn-cerrar-modal-directo {
+    color: #f1fa8c;
+    margin-left: auto; /* Empuja el botón cerrar al extremo derecho */
+}
+
+/* Scrollbar personalizado para no romper la estética */
+.detalle-modal::-webkit-scrollbar {
+    width: 6px;
+}
+.detalle-modal::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+.detalle-modal::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+}

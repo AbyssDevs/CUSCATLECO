@@ -281,6 +281,178 @@ export const iniciarPedido = async ({ id_mesa, tipo, userId, items }) => {
   return pedido;
 };
 
+  const pedido = await crearPedido({ tipo, id_mesa, userId, items });
+
+  if (tipo === "Salon") {
+    await cambiarEstadoMesa(id_mesa, "Ocupada", userId);
+  }
+
+  return pedido;
+};
+
+
+export const agregarPlatilloAPedido = async ({
+  id_pedido,
+  id_platillo,
+  cantidad,
+  detalle_pedido_notas
+}) => {
+
+  // Validar la cantidad
+  if (!cantidad || cantidad < 1 || cantidad > 99) {
+    throw Object.assign(
+      new Error("La cantidad debe estar entre 1 y 99"),
+      { status: 400 }
+    );
+  }
+
+// Validar notas del pedido
+if (detalle_pedido_notas) {
+  if (typeof detalle_pedido_notas !== "string") {
+    throw Object.assign(
+      new Error("Las notas deben ser texto"),
+      { status: 400 }
+    );
+  }
+
+  if (detalle_pedido_notas.length > 200) {
+    throw Object.assign(
+      new Error("Las notas no pueden superar 200 caracteres"),
+      { status: 400 }
+    );
+  }
+}
+
+
+  // Validar el pedido
+  const [pedidoRows] = await db.query(
+    `SELECT pedido_estado
+     FROM pedidos
+     WHERE id_pedido = ?`,
+    [id_pedido]
+  );
+
+  if (pedidoRows.length === 0) {
+    throw Object.assign(
+      new Error("Pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const pedido = pedidoRows[0];
+
+  // Validar que el pedido aún permita agregar platillos
+  const estadosBloqueados = [
+    "EnPreparacion",
+    "Listo",
+    "Entregado",
+    "Cerrado",
+    "Cancelado"
+  ];
+
+  if (estadosBloqueados.includes(pedido.pedido_estado)) {
+    throw Object.assign(
+      new Error("El pedido ya no permite agregar platillos"),
+      { status: 400 }
+    );
+  }
+
+  // Validar platillo
+  const [platilloRows] = await db.query(
+    `SELECT 
+        platillo_precio,
+        platillo_disponible
+     FROM platillos
+     WHERE id_platillo = ?`,
+    [id_platillo]
+  );
+
+  if (platilloRows.length === 0) {
+    throw Object.assign(
+      new Error("Platillo no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const platillo = platilloRows[0];
+
+  if (platillo.platillo_disponible === 0 || platillo.platillo_disponible === false) {
+    throw Object.assign(
+      new Error("El platillo no está disponible"),
+      { status: 400 }
+    );
+  }
+
+  // Verificar si ya existe el platillo en el pedido
+const [detalleRows] = await db.query(
+  `SELECT 
+      id_detalle,
+      detalle_pedido_cantidad
+   FROM detalle_pedido
+   WHERE id_pedido = ?
+   AND id_platillo = ?
+   AND (detalle_pedido_notas = ? OR (detalle_pedido_notas IS NULL AND ? IS NULL))`,
+  [id_pedido, id_platillo, detalle_pedido_notas || null, detalle_pedido_notas || null]
+);
+
+  const precio = Number(platillo.platillo_precio);
+
+  // En caso de ya existir el platillo, actualizar cantidad y subtotal
+  if (detalleRows.length > 0) {
+    const detalle = detalleRows[0];
+
+    const nuevaCantidad = detalle.detalle_pedido_cantidad + cantidad;
+
+    if (nuevaCantidad > 99) {
+      throw Object.assign(new Error("La cantidad máxima permitida es 99"), {
+        status: 400,
+      });
+    }
+
+    const nuevoSubtotal = nuevaCantidad * precio;
+
+    await db.query(
+      `UPDATE detalle_pedido
+       SET detalle_pedido_cantidad = ?,
+           detalle_pedido_subtotal = ?
+       WHERE id_detalle = ?`,
+      [nuevaCantidad, nuevoSubtotal, detalle.id_detalle],
+    );
+  } else {
+    // En caso de no existir, insertar nuevo detalle
+    const subtotal = cantidad * precio;
+
+    await db.query(
+      `INSERT INTO detalle_pedido (
+    id_pedido,
+    id_platillo,
+    detalle_pedido_cantidad,
+    detalle_pedido_precio_unitario,
+    detalle_pedido_subtotal,
+    detalle_pedido_notas
+  )
+  VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        id_pedido,
+        id_platillo,
+        cantidad,
+        precio,
+        subtotal,
+        detalle_pedido_notas || null,
+      ],
+    );
+  }
+
+  // Recalcular total del pedido
+  const [totalRows] = await db.query(
+    `SELECT 
+        SUM(detalle_pedido_subtotal) AS total
+     FROM detalle_pedido
+     WHERE id_pedido = ?`,
+    [id_pedido]
+  );
+
+  const total = totalRows[0].total || 0;
 
 export const agregarPlatilloAPedido = async ({
   id_pedido,
@@ -986,16 +1158,6 @@ export const cambiarEstadoPedidoCocina = async (
     );
   }
 
-  // No permitir facturados
-  if (pedido.pedido_estado === "Cerrado") {
-    throw Object.assign(
-      new Error(
-        "No se puede modificar un pedido cerrado"
-      ),
-      { status: 400 }
-    );
-  }
-
   // Validaciones de flujo
   if (
     nuevoEstado === "EnPreparacion"
@@ -1052,5 +1214,59 @@ export const cambiarEstadoPedidoCocina = async (
       nuevoEstado === "EnPreparacion"
         ? "Pedido marcado en preparación"
         : "Pedido marcado como listo"
+  };
+};
+
+
+// Obtener detalle completo de un pedido
+export const obtenerDetallePedido = async (id_pedido) => {
+
+  // Datos generales del pedido
+  const [pedidoRows] = await db.query(`
+    SELECT 
+      p.id_pedido,
+      p.pedido_estado,
+      p.pedido_tipo,
+      p.pedido_total,
+      p.pedido_fecha_hora,
+      p.pedido_enviado_cocina_en,
+      p.pedido_listo_en,
+      p.pedido_entregado_en,
+      p.pedido_cancelado_en,
+      p.pedido_cancelado_motivo,
+      m.mesa_numero
+    FROM pedidos p
+    LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
+    WHERE p.id_pedido = ?
+  `, [id_pedido]);
+
+  if (pedidoRows.length === 0) {
+    throw Object.assign(
+      new Error("Pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const pedido = pedidoRows[0];
+
+
+  //  Platillos del pedido
+  const [detalleRows] = await db.query(`
+    SELECT 
+      dp.id_detalle,
+      dp.detalle_pedido_cantidad,
+      dp.detalle_pedido_precio_unitario,
+      dp.detalle_pedido_subtotal,
+      dp.detalle_pedido_notas,
+      pl.platillo_nombre
+    FROM detalle_pedido dp
+    JOIN platillos pl ON dp.id_platillo = pl.id_platillo
+    WHERE dp.id_pedido = ?
+  `, [id_pedido]);
+
+  // Armar respuesta completa
+  return {
+    ...pedido,
+    platillos: detalleRows
   };
 };
