@@ -1,22 +1,38 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
     <title>Panel Cocina</title>
 
     <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link
+        rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    >
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap"
-        rel="stylesheet">
+        rel="stylesheet"
+    >
 
-    <!-- CSS Específico de Cocina -->
+    <!-- CSS -->
     <link rel="stylesheet" href="../css/cocina.css">
 
 </head>
@@ -25,103 +41,283 @@
 
     <div class="dashboard">
 
-        <!-- BARRA LATERAL -->
+        <!-- SIDEBAR -->
         <div class="sidebar" id="sidebar">
 
             <h2>RESTAURANTE CUSCATLECO</h2>
 
             <div class="user-info" id="userInfo">
+
                 <div class="user-avatar">
                     <i class="fa-solid fa-fire-burner"></i>
                 </div>
+
                 <div class="user-details">
-                    <span class="user-name" id="userName">Cargando...</span>
-                    <span class="user-role" id="userRole">Cocina</span>
+
+                    <span
+                        class="user-name"
+                        id="userName"
+                    >
+                        Cargando...
+                    </span>
+
+                    <span
+                        class="user-role"
+                        id="userRole"
+                    >
+                        Cocina
+                    </span>
+
                 </div>
+
             </div>
 
             <ul>
-                <li onclick="mostrarMenu('resumen')">Vista General</li>
-                <li onclick="mostrarMenu('ordenes')">Preparar Pedidos</li>
-                <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li>
+
+                <li onclick="mostrarMenu('resumen')">
+                    <i class="fa-solid fa-chart-line"></i>
+                    Vista General
+                </li>
+
+                <li onclick="mostrarMenu('ordenes')">
+                    <i class="fa-solid fa-utensils"></i>
+                    Preparar Pedidos
+                </li>
+
+                <li onclick="cerrarSesion()">
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    Cerrar sesión
+                </li>
+
             </ul>
 
         </div>
 
-        <div class="backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
+        <!-- BACKDROP -->
+        <div
+            class="backdrop"
+            id="menuBackdrop"
+            onclick="toggleMenu()"
+        ></div>
 
-        <!-- CONTENIDO PRINCIPAL -->
+        <!-- CONTENIDO -->
         <div class="contenido">
 
+            <!-- HEADER MOBILE -->
             <div class="header-mobile">
-                <button class="hamburger" onclick="toggleMenu()">
+
+                <button
+                    class="hamburger"
+                    onclick="toggleMenu()"
+                >
                     <i class="fa-solid fa-bars"></i>
                 </button>
+
             </div>
 
             <!-- RESUMEN -->
             <div id="resumen">
 
                 <h1>Panel de Cocina</h1>
+
                 <p id="bienvenidaUsuario"></p>
 
                 <h2>Estadísticas</h2>
+
                 <div class="cards">
+
                     <div class="card">
+
                         <h3>En Preparación</h3>
-                        <p id="ordenesPreparando">0</p>
+
+                        <p id="ordenesPreparando">
+                            0
+                        </p>
+
                     </div>
+
                     <div class="card">
+
                         <h3>Listos</h3>
-                        <p id="ordenesListos">0</p>
+
+                        <p id="ordenesListos">
+                            0
+                        </p>
+
                     </div>
+
+                    <div class="card">
+
+                        <h3>Pendientes</h3>
+
+                        <p id="ordenesPendientes">
+                            0
+                        </p>
+
+                    </div>
+
                 </div>
 
             </div>
 
+            <!-- PEDIDOS -->
+            <div
+                id="ordenes"
+                style="display: none;"
+            >
 
-            <!-- ÓRDENES -->
-            <div id="ordenes" style="display: none;">
+                <div
+                    style="
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        margin-bottom: 20px;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                    "
+                >
 
-                <h1>Gestión de Platillos</h1>
-                <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                    <select id="filtroEstadoPlatillos" style="width: 200px;">
-                        <option value="todos">Todos</option>
-                        <option value="pendiente">Pendientes</option>
-                        <option value="preparando">Preparando</option>
+                    <h1>
+                        Gestión de Pedidos
+                    </h1>
+
+                    <button
+                        id="btnActualizarPedidos"
+                        style="
+                            background: #7a1d1d;
+                            color: white;
+                            border: none;
+                            padding: 10px 15px;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-weight: bold;
+                        "
+                    >
+
+                        <i class="fa-solid fa-rotate-right"></i>
+
+                        Actualizar
+
+                    </button>
+
+                </div>
+
+                <!-- FILTRO -->
+                <div
+                    style="
+                        display: flex;
+                        gap: 15px;
+                        margin-bottom: 20px;
+                        flex-wrap: wrap;
+                    "
+                >
+
+                    <select
+                        id="filtroEstadoPlatillos"
+                        style="
+                            width: 220px;
+                            padding: 10px;
+                            border-radius: 8px;
+                        "
+                    >
+
+                        <option value="todos">
+                            Todos
+                        </option>
+
+                        <option value="Pendiente">
+                            Pendientes
+                        </option>
+
+                        <option value="EnPreparacion">
+                            En preparación
+                        </option>
+
+                        <option value="Listo">
+                            Listos
+                        </option>
+
                     </select>
+
                 </div>
 
-                <table border="1">
-                    <thead>
-                        <tr>
-                            <th>Mesa</th>
-                            <th>Platillo</th>
-                            <th>Cantidad</th>
-                            <th>Estado</th>
-                            <th>Acción</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tablaOrdenesCocina">
-                        <!-- TR de ejemplo a generar mediante JS -->
-                        <!--
-                        <tr>
-                            <td>Mesa 4</td>
-                            <td>Pupusas Revueltas</td>
-                            <td>3</td>
-                            <td><span class="pendiente">Pendiente</span></td>
-                            <td>
-                                <button class="btn-editar">Preparar</button>
-                                <button class="btn-completar">Listo</button>
-                            </td>
-                        </tr>
-                        -->
-                    </tbody>
-                </table>
+                <!-- LOADING -->
+                <div
+                    id="loadingPedidosCocina"
+                    style="
+                        display: none;
+                        margin-bottom: 15px;
+                        color: #555;
+                    "
+                >
+
+                    <i class="fa-solid fa-spinner fa-spin"></i>
+
+                    Cargando pedidos...
+
+                </div>
+
+                <!-- MENSAJE -->
+                <div
+                    id="mensajePedidosCocina"
+                    style="
+                        margin-bottom: 15px;
+                        color: #555;
+                    "
+                ></div>
+
+                <!-- TABLA -->
+                <div style="overflow-x: auto;">
+
+                    <table border="1">
+
+                        <thead>
+
+                            <tr>
+
+                                <th>Pedido</th>
+
+                                <th>Mesa</th>
+
+                                <th>Platillo</th>
+
+                                <th>Cantidad</th>
+
+                                <th>Notas</th>
+
+                                <th>Estado</th>
+
+                                <th>Acción</th>
+
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="tablaOrdenesCocina">
+
+                            <!-- GENERADO DESDE JS -->
+
+                        </tbody>
+
+                    </table>
+
+                </div>
 
             </div>
-            
+
         </div>
+
     </div>
+
+    <!-- SWEET ALERT -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <!-- ALERTAS -->
+    <script src="/js/alerts.js"></script>
+
+    <!-- COCINA -->
+    <script src="../js/cocina.js"></script>
+
 </body>
+
 </html>
