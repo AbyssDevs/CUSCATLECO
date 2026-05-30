@@ -65,6 +65,12 @@ Si no funciona:
 
 node server/server.js  
 
+## Credenciales para probar el sistema
+correo: admin@saborcuscatleco.com
+
+contraseña: 123
+
+NOTA: si desea probar las funcionalidades de los otros roles debera crear desde el modulo de administrador las cuentas segun el rol que desea testear.
 ---
 
 ---
