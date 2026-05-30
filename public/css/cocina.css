@@ -368,3 +368,34 @@ tr:hover {
         font-size: 0.7rem;
     }
 }
+
+.nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 15px;
+  background: transparent;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 1rem;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s ease;
+  font-family: 'Roboto', Arial, sans-serif;
+}
+
+.nav-btn:hover {
+  background: #661515;
+}
+
+.nav-btn:focus-visible {
+  outline: 2px solid #c1a257;
+  outline-offset: 2px;
+}
+
+.nav-btn--danger:hover {
+  background: #4a1515;
+}
