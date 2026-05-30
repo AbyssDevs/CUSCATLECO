@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 
 <head>
@@ -12,6 +12,7 @@
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap"
         rel="stylesheet">
@@ -19,7 +20,6 @@
     <!-- CSS -->
     <link rel="stylesheet" href="../css/mesero.css">
     <link rel="stylesheet" href="../css/menu.css">
-
 </head>
 
 <body>
@@ -32,19 +32,16 @@
             <h2>RESTAURANTE CUSCATLECO</h2>
 
             <div class="user-info" id="userInfo">
+
                 <div class="user-avatar">
                     <i class="fa-solid fa-user-tie"></i>
                 </div>
 
                 <div class="user-details">
-                    <span class="user-name" id="userName">
-                        Cargando...
-                    </span>
-
-                    <span class="user-role" id="userRole">
-                        Mesero
-                    </span>
+                    <span class="user-name" id="userName">Cargando...</span>
+                    <span class="user-role" id="userRole">Mesero</span>
                 </div>
+
             </div>
 
             <ul>
@@ -53,28 +50,24 @@
                     <i class="fa-solid fa-plus"></i>
                     Nuevo Pedido
                 </li>
-
                 <br>
 
                 <li onclick="mostrarViews('menu-restaurante')">
                     <i class="fa-solid fa-book-open"></i>
                     Ver el Menú
                 </li>
-
                 <br>
 
                 <li onclick="mostrarViews('verMesas')">
                     <i class="fas fa-border-all"></i>
                     Ver Mesas
                 </li>
-
                 <br>
 
                 <li onclick="mostrarViews('pedidos-pendientes')">
                     <i class="fa-solid fa-clipboard-list"></i>
-                    Entregar Pedidos
+                    Mis pedidos
                 </li>
-
                 <br>
 
                 <li onclick="cerrarSesion()">
@@ -86,213 +79,290 @@
 
         </div>
 
-        <div
-            class="backdrop"
-            id="menuBackdrop"
-            onclick="toggleMenu()"
-        ></div>
+        <div class="backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
 
         <!-- CONTENIDO -->
-        <div class="contenido">
+        <div class="contenido contenido-scroll">
 
-            <!-- HEADER MOBILE -->
             <div class="header-mobile">
 
-                <button
-                    class="hamburger"
-                    onclick="toggleMenu()"
-                >
+                <button class="hamburger" onclick="toggleMenu()">
                     <i class="fa-solid fa-bars"></i>
                 </button>
 
             </div>
 
-            <!-- ================================= -->
-            <!-- NUEVO PEDIDO -->
-            <!-- ================================= -->
-
+            <!-- TOMAR PEDIDO -->
             <div id="tomar-pedido">
 
                 <h1>Tomar Pedido Nuevo</h1>
 
-                <div style="
-                    background: white;
-                    padding: 25px;
-                    border-radius: 8px;
-                    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-                    max-width: 700px;
-                ">
+                <div class="tomar-pedido-layout">
 
-                    <!-- MESA -->
-                    <div style="
-                        display: flex;
-                        gap: 15px;
-                        margin-bottom: 20px;
-                    ">
+                    <!-- COLUMNA IZQUIERDA -->
+                    <div class="pedido-left-column">
 
-                        <div style="flex: 1;">
+                        <!-- TIPO PEDIDO -->
+                        <div class="pedido-type-card glass-panel">
 
-                            <label style="
-                                display: block;
-                                margin-bottom: 5px;
-                                font-weight: 500;
-                            ">
-                                Número de Mesa
-                            </label>
+                            <h3>Tipo de Pedido</h3>
 
-                            <input
-                                type="number"
-                                id="mesa_num"
-                                placeholder="Ej. 10"
+                            <div class="tipo-pedido-selector">
+
+                                <button class="pedido-type-btn active" data-type="salon">
+                                    <i class="fas fa-chair"></i>
+                                    En Salón
+                                </button>
+
+                                <button class="pedido-type-btn" data-type="llevar">
+                                    <i class="fas fa-bag-shopping"></i>
+                                    Para Llevar
+                                </button>
+
+                            </div>
+
+                        </div>
+
+                        <!-- MESAS -->
+                        <div class="pedido-type-card" id="mesa-container">
+
+                            <h3>Mesas disponibles</h3>
+
+                            <div id="mesasPedidoLoading"
+                                style="display: none; color: #555; margin-bottom: 0.75rem;">
+
+                                Cargando mesas...
+
+                            </div>
+
+                            <div id="mesasPedidoEmpty"
+                                style="color: #555; margin-bottom: 0.75rem;">
+                            </div>
+
+                            <div id="mesas-pedido-list" class="mesas-pedido-list"></div>
+
+                        </div>
+
+                        <!-- PEDIDO ACTUAL -->
+                        <div class="pedido-type-card glass-panel" id="pedido-form-card">
+
+                            <!-- INFO -->
+                            <div id="pedido-activo-info"
+                                class="pedido-activo-info"
+                                style="display: none;">
+                            </div>
+
+                            <h3>Pedido Actual</h3>
+
+                            <!-- CONTENEDOR -->
+                            <div id="platillos-container" class="pedido-items-empty">
+
+                                <p class="pedido-empty-text">
+                                    Agregue platillos desde el menú.
+                                </p>
+
+                            </div>
+
+                            <!-- NOTAS -->
+                            <div class="form-group notas-generales-group">
+
+                                <label for="pedido-notas-generales">
+                                    Notas generales
+                                </label>
+
+                                <textarea
+                                    id="pedido-notas-generales"
+                                    rows="3"
+                                    placeholder="Escribe aquí notas generales para el pedido..."></textarea>
+
+                            </div>
+
+                            <!-- RESUMEN -->
+                            <div id="resumen-pedido"
                                 style="
-                                    width: 100%;
-                                    box-sizing: border-box;
-                                "
-                            >
+                                    background: #f9f9f9;
+                                    border: 1px solid #eee;
+                                    border-radius: 8px;
+                                    padding: 15px;
+                                    margin: 15px 0;
+                                ">
+
+                                <h4
+                                    style="
+                                        margin: 0 0 10px 0;
+                                        color: #555;
+                                    ">
+
+                                    Resumen del Pedido
+
+                                </h4>
+
+                                <div
+                                    style="
+                                        display: flex;
+                                        justify-content: space-between;
+                                        align-items: center;
+                                    ">
+
+                                    <span style="font-weight: 600;">
+                                        Subtotal:
+                                    </span>
+
+                                    <span id="subtotal-pedido"
+                                        style="
+                                            font-weight: 700;
+                                            font-size: 1.2rem;
+                                            color: #2e7d32;
+                                        ">
+
+                                        $0.00
+
+                                    </span>
+
+                                </div>
+
+                            </div>
+
+                            <!-- BOTON -->
+                            <button
+    id="btn-enviar-pedido"
+    type="button"
+    disabled
+    title="Agrega al menos un platillo"
+    style="
+        width: 100%;
+        padding: 15px;
+        margin-bottom: 15px;
+        background: #7a1d1d;
+        color: white;
+        font-size: 1.1rem;
+        border: none;
+        border-radius: 8px;
+        cursor: not-allowed;
+        font-weight: bold;
+        opacity: 0.6;
+        transition: all 0.2s ease;
+    ">
+
+    <i class="fas fa-paper-plane"></i>
+
+    Enviar a cocina
+
+</button>
 
                         </div>
 
                     </div>
 
-                    <!-- PEDIDO -->
-                    <h3 style="
-                        margin-top: 20px;
-                        border-bottom: 2px solid #eee;
-                        padding-bottom: 10px;
-                    ">
-                        Seleccionar Platillos
-                    </h3>
+                    <!-- COLUMNA DERECHA -->
+                    <div class="pedido-menu-panel glass-panel">
 
-                    <!-- LISTA -->
-                    <div id="lista-platillos-pedido">
+                        <h3>Menú de Platillos</h3>
 
-                        <!-- ITEM -->
-                        <div style="
-                            display: flex;
-                            align-items: center;
-                            gap: 10px;
-                            margin-bottom: 10px;
-                        ">
+                        <!-- FILTROS -->
+                        <div class="menu-page-header pedido-menu-filters">
 
-                            <select style="flex: 2;">
+                            <select class="menu-category-filter">
 
                                 <option value="">
-                                    Seleccione un platillo...
-                                </option>
-
-                                <option value="1">
-                                    Pupusas Revueltas
-                                </option>
-
-                                <option value="2">
-                                    Pupusas de Queso
-                                </option>
-
-                                <option value="3">
-                                    Sopa de Gallina
+                                    Todas las categorías
                                 </option>
 
                             </select>
 
-                            <input
-                                type="number"
-                                placeholder="Cant."
-                                min="1"
-                                value="1"
-                                style="flex: 1;"
-                            >
+                            
 
-                            <button class="btn-eliminar">
-                                <i class="fa-solid fa-trash"></i>
+                            <input
+                                class="menu-search-input"
+                                type="text"
+                                placeholder="Buscar platillo..."
+                                autocomplete="off">
+
+                            <!-- BOTON REFRESH -->
+                            <button
+                                type="button"
+                                id="btn-actualizar-menu"
+                                class="btn-refresh"
+                                title="Actualizar lista de platillos">
+
+                                <i class="fa-solid fa-rotate"></i>
+                                Actualizar
+
                             </button>
 
                         </div>
 
+                        <!-- LOADING -->
+                        <div class="menu-loading">
+
+                            <span class="spinner"></span>
+                            <span>Cargando menú...</span>
+
+
+                        </div>
+
+                        <!-- VACIO -->
+                        <div class="menu-empty"></div>
+
+                        <!-- TABLA -->
+                        <table class="menu-table pedido-menu-table modern-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <th>Imagen</th>
+
+                                    <th data-sort="nombre" class="sortable">
+                                        Nombre
+                                        <span class="sort-indicator"></span>
+                                    </th>
+
+                                    <th>Categoría</th>
+
+                                    <th>Descripción</th>
+
+                                    <th data-sort="precio" class="sortable">
+                                        Precio
+                                        <span class="sort-indicator"></span>
+                                    </th>
+
+                                    <th>Acción</th>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody class="menu-table-body"></tbody>
+
+                        </table>
+
+                        <!-- CARDS -->
+                        <div class="menu-card-list"></div>
+
                     </div>
-
-                    <!-- BOTONES -->
-                    <button
-                        class="btn-agregar"
-                        style="
-                            margin-top: 10px;
-                            margin-bottom: 20px;
-                        "
-                    >
-                        <i class="fa-solid fa-plus"></i>
-                        Añadir otro platillo
-                    </button>
-
-                    <!-- ENVIAR A COCINA -->
-                    <button
-                        id="btnEnviarCocina"
-                        disabled
-                        title="Agrega al menos un platillo"
-                        style="
-                            width: 100%;
-                            padding: 15px;
-                            font-size: 16px;
-                            background: #ccc;
-                            border: none;
-                            color: white;
-                            cursor: not-allowed;
-                            border-radius: 6px;
-                            margin-bottom: 10px;
-                        "
-                    >
-                        <i class="fa-solid fa-paper-plane"></i>
-                        Enviar Pedido a Cocina
-                    </button>
-
-                    <!-- ANULAR PEDIDO -->
-                    <button
-                        id="btnCancelarPedido"
-                        style="
-                            width: 100%;
-                            padding: 15px;
-                            font-size: 16px;
-                            background: #dc3545;
-                            border: none;
-                            color: white;
-                            border-radius: 6px;
-                            cursor: pointer;
-                        "
-                    >
-                        <i class="fa-solid fa-ban"></i>
-                        Cancelar Pedido
-                    </button>
 
                 </div>
 
             </div>
 
-            <!-- ================================= -->
             <!-- VER MESAS -->
-            <!-- ================================= -->
-
             <div id="verMesas" style="display: none;">
 
                 <h1>Ver Mesas</h1>
 
-                <div
-                    id="verMesasLoading"
-                    style="
-                        display: none;
-                        color: #555;
-                        margin-bottom: 0.75rem;
-                    "
-                >
+                <div id="verMesasLoading"
+                    style="display: none; color: #555; margin-bottom: 0.75rem;">
+
                     Cargando mesas...
+
                 </div>
 
-                <div
-                    id="verMesasEmpty"
-                    style="
-                        color: #555;
-                        margin-bottom: 0.75rem;
-                    "
-                ></div>
+                <div id="verMesasEmpty"
+                    style="color: #555; margin-bottom: 0.75rem;">
+                </div>
 
-                <table class="menu-table">
+                <table class="menu-table modern-table">
 
                     <thead>
 
@@ -312,25 +382,15 @@
 
                 </table>
 
-                <div
-                    id="verMesasCardList"
-                    class="menu-card-list"
-                ></div>
+                <div id="verMesasCardList" class="menu-card-list"></div>
 
-                <div
-                    id="mesasMensaje"
-                    style="
-                        margin-top: 1rem;
-                        color: #1f7a1f;
-                    "
-                ></div>
+                <div id="mesasMensaje"
+                    style="margin-top: 1rem; color: #1f7a1f;">
+                </div>
 
             </div>
 
-            <!-- ================================= -->
-            <!-- MENÚ -->
-            <!-- ================================= -->
-
+            <!-- MENU -->
             <div id="menu-restaurante" style="display: none;">
 
                 <h1>Menú del Restaurante</h1>
@@ -338,17 +398,18 @@
                 <div class="menu-page-header">
 
                     <select id="menuCategoryFilter">
+
                         <option value="">
                             Todas las categorías
                         </option>
+
                     </select>
 
                     <input
                         id="menuSearchInput"
                         type="text"
                         placeholder="Buscar platillo..."
-                        autocomplete="off"
-                    >
+                        autocomplete="off">
 
                 </div>
 
@@ -369,10 +430,7 @@
 
                             <th>Imagen</th>
 
-                            <th
-                                data-sort="nombre"
-                                class="sortable"
-                            >
+                            <th data-sort="nombre" class="sortable">
                                 Nombre
                                 <span class="sort-indicator"></span>
                             </th>
@@ -381,10 +439,7 @@
 
                             <th>Descripción</th>
 
-                            <th
-                                data-sort="precio"
-                                class="sortable"
-                            >
+                            <th data-sort="precio" class="sortable">
                                 Precio
                                 <span class="sort-indicator"></span>
                             </th>
@@ -397,27 +452,75 @@
 
                 </table>
 
-                <div
-                    id="menuCardList"
-                    class="menu-card-list"
-                ></div>
+                <div id="menuCardList" class="menu-card-list"></div>
 
             </div>
 
-            <!-- ================================= -->
-            <!-- PEDIDOS PENDIENTES -->
-            <!-- ================================= -->
+            <!-- MIS PEDIDOS ACTIVOS -->
+            <div id="pedidos-pendientes" style="display: none;">
+                <div class="mis-pedidos-header">
+                    <div class="mis-pedidos-title-group">
+                        <h1>Mis Pedidos Activos</h1>
+                        <span class="mis-pedidos-count" id="pedidosCount"></span>
+                    </div>
+                    <button type="button" class="btn-actualizar-pedidos" id="btnActualizarPedidos" title="Actualizar pedidos">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Actualizar</span>
+                    </button>
+                </div>
 
+                <div class="mis-pedidos-loading" id="misPedidosLoading" style="display: none;">
+                    <div class="mis-pedidos-spinner"></div>
+                    <span>Cargando pedidos...</span>
+                </div>
+
+                <div class="mis-pedidos-empty" id="misPedidosEmpty" style="display: none;">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    <p>No tienes pedidos activos actualmente</p>
+                    <span>Los pedidos que inicies aparecerán aquí</span>
+                </div>
+
+                <div class="grid-pedidos" id="gridPedidosActivos"></div>
+
+                <div class="mis-pedidos-pagination" id="pedidosPagination" style="display: none;">
+                    <button type="button" class="btn-pag" id="btnPagAnterior" disabled>
+                        <i class="fa-solid fa-chevron-left"></i> Anterior
+                    </button>
+                    <span class="pag-info" id="pagInfo">Página 1 de 1</span>
+                    <button type="button" class="btn-pag" id="btnPagSiguiente">
+                        Siguiente <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+
+            <!-- PEDIDOS -->
             <div id="pedidos-pendientes" style="display: none;">
 
-                <h1>Mis Pedidos Pendientes</h1>
+                <h1>Mis Pedidos</h1>
 
-                <div
-                    class="grid-pedidos"
-                    id="contenedorPedidosPendientes"
-                >
+                <!-- LOADING -->
+                <div id="pedidosMeseroLoading"
+                    style="
+                        display: none;
+                        margin-bottom: 15px;
+                        color: #555;
+                    ">
 
-                    <!-- Los pedidos se cargan dinámicamente -->
+                    Cargando pedidos...
+
+                </div>
+
+                <!-- VACIO -->
+                <div id="pedidosMeseroEmpty"
+                    style="
+                        margin-bottom: 15px;
+                        color: #777;
+                    ">
+                </div>
+
+                <!-- GRID -->
+                <div id="grid-pedidos-mesero" class="grid-pedidos">
+
+                    <!-- JS -->
+
 
                 </div>
 
@@ -430,170 +533,17 @@
     <!-- SWEET ALERT -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- JS -->
+    <!-- ALERTAS -->
     <script src="/js/alerts.js"></script>
+
+    <!-- MENU -->
     <script src="../js/menu.js"></script>
+
+    <!-- MESAS -->
     <script src="../js/mesas_admin.js"></script>
 
-    <!-- ================================= -->
-    <!-- SCRIPT CANCELAR PEDIDO -->
-    <!-- ================================= -->
-
-    <script>
-
-        let pedidoActual = null;
-
-        const btnEnviarCocina =
-            document.getElementById(
-                "btnEnviarCocina"
-            );
-
-        const btnCancelarPedido =
-            document.getElementById(
-                "btnCancelarPedido"
-            );
-
-        // ================================
-        // ACTIVAR BOTÓN ENVIAR
-        // ================================
-
-        function verificarPlatillos() {
-
-            const select =
-                document.querySelector(
-                    "#lista-platillos-pedido select"
-                );
-
-            if (select && select.value !== "") {
-
-                btnEnviarCocina.disabled = false;
-
-                btnEnviarCocina.style.background =
-                    "#d4a017";
-
-                btnEnviarCocina.style.cursor =
-                    "pointer";
-
-                btnEnviarCocina.title = "";
-
-            } else {
-
-                btnEnviarCocina.disabled = true;
-
-                btnEnviarCocina.style.background =
-                    "#ccc";
-
-                btnEnviarCocina.style.cursor =
-                    "not-allowed";
-
-                btnEnviarCocina.title =
-                    "Agrega al menos un platillo";
-
-            }
-
-        }
-
-        document.addEventListener(
-            "change",
-            verificarPlatillos
-        );
-
-        // ================================
-        // ENVIAR A COCINA
-        // ================================
-
-        btnEnviarCocina.addEventListener(
-            "click",
-            async () => {
-
-                const confirmar =
-                    confirm(
-                        "¿Enviar pedido a cocina? No podrás modificar los platillos si cocina cambia el estado."
-                    );
-
-                if (!confirmar) return;
-
-                try {
-
-                    alert(
-                        "Pedido enviado correctamente a cocina"
-                    );
-
-                } catch (error) {
-
-                    console.error(error);
-
-                    alert(
-                        "Error enviando pedido"
-                    );
-
-                }
-
-            }
-        );
-
-        // ================================
-        // CANCELAR PEDIDO
-        // ================================
-
-        btnCancelarPedido.addEventListener(
-            "click",
-            async () => {
-
-                const confirmar =
-                    confirm(
-                        "¿Deseas cancelar este pedido?"
-                    );
-
-                if (!confirmar) return;
-
-                try {
-
-                    // EJEMPLO
-                    // await fetch("/api/pedidos/1/cancelar", {
-                    //     method: "PATCH"
-                    // });
-
-                    alert(
-                        "Pedido cancelado correctamente"
-                    );
-
-                    // Remover de pedidos activos
-                    const contenedor =
-                        document.getElementById(
-                            "contenedorPedidosPendientes"
-                        );
-
-                    if (contenedor) {
-
-                        contenedor.innerHTML = `
-                            <div style="
-                                background: white;
-                                padding: 20px;
-                                border-radius: 8px;
-                                text-align: center;
-                                width: 100%;
-                            ">
-                                No hay pedidos activos
-                            </div>
-                        `;
-
-                    }
-
-                } catch (error) {
-
-                    console.error(error);
-
-                    alert(
-                        "Error cancelando pedido"
-                    );
-
-                }
-
-            }
-        );
-
-    </script>
+    <!-- MESERO -->
+    <script src="../js/mesero.js"></script>
 
 </body>
 
