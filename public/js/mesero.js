@@ -781,24 +781,22 @@ else if (esPreparacion) {
     backdrop.className = "detalle-pedido-backdrop";
     backdrop.id = "modal-detalle-pedido";
 
-    // Generar la lista de platillos
+    // 1. Generar la lista de platillos con el formato del boceto
     const itemsHtml = (pedido.platillos || [])
         .map(item => {
             const subtotal = (item.cantidad || 0) * (item.precio || 0);
             return `
                 <div class="detalle-item">
                     <div class="detalle-item-top">
-                        <strong>${item.nombre}</strong>
-                        <span>x${item.cantidad}</span>
+                        <strong>${item.cantidad}x ${item.nombre}</strong>
                     </div>
                     <div class="detalle-item-bottom">
-                        <span>Unitario: $${Number(item.precio).toFixed(2)}</span>
+                        <span>Precio unitario: $${Number(item.precio).toFixed(2)}</span>
                         <span>Subtotal: $${subtotal.toFixed(2)}</span>
                     </div>
                     ${item.notas ? `
                         <div class="detalle-nota">
-                            <i class="fa-solid fa-note-sticky"></i>
-                            ${item.notas}
+                            📝 <strong>Nota:</strong> ${item.notas}
                         </div>
                     ` : ""}
                 </div>
@@ -806,35 +804,81 @@ else if (esPreparacion) {
         })
         .join("");
 
-    // Construir estructura del modal
+    // 2. Generar el Historial de Estados (Línea de tiempo)
+    const horaBase = new Date(pedido.pedido_fecha_hora);
+    const formatearHoraRelativa = (minutosExtra) => {
+        const d = new Date(horaBase.getTime() + minutosExtra * 60000);
+        return d.toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit", hour12: false });
+    };
+
+    const historialHtml = pedido.historial_estados ? 
+        pedido.historial_estados.map(h => `
+            <div class="historial-linea">
+                <span class="historial-hora">${new Date(h.fecha).toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit", hour12: false })}</span> - 
+                <span class="historial-texto">${h.descripcion}</span>
+            </div>
+        `).join("") 
+        : `
+            <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(0)}</span> - Pedido creado</div>
+            <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(1)}</span> - Enviado a cocina</div>
+            ${pedido.pedido_estado === "EnPreparacion" || pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" ? `
+                <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(5)}</span> - En preparación</div>
+            ` : ""}
+            ${pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" ? `
+                <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(15)}</span> - Listo para entregar</div>
+            ` : ""}
+        `;
+
+    // 3. Indicador visual del estado actual (Círculo de color)
+    let estadoEmoji = "🟡"; // Pendiente
+    if (pedido.pedido_estado === "EnPreparacion") estadoEmoji = "🟠";
+    if (pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado") estadoEmoji = "🟢";
+
+    // 4. Construir la estructura semántica y limpia del modal
     backdrop.innerHTML = `
         <div class="detalle-modal">
             <div class="detalle-header">
                 <h2>Pedido #${pedido.id_pedido}</h2>
                 <button class="detalle-cerrar">
-                    <i class="fa-solid fa-xmark"></i>
+                    [ X ]
                 </button>
             </div>
 
-            <div class="detalle-info-general">
-                <div><strong>Mesa:</strong> ${pedido.mesa_numero || "Para llevar"}</div>
-                <div><strong>Tipo:</strong> ${pedido.pedido_tipo}</div>
-                <div><strong>Estado:</strong> ${pedido.pedido_estado}</div>
-                <div><strong>Hora:</strong> ${new Date(pedido.pedido_fecha_hora).toLocaleString()}</div>
-                <div><strong>Subtotal:</strong> $${Number(pedido.pedido_total || 0).toFixed(2)}</div>
+            <div class="detalle-seccion">
+                <h3>Información General</h3>
+                <div class="detalle-info-general">
+                    <div><strong>Mesa:</strong> ${pedido.mesa_numero || "Para llevar"}</div>
+                    <div><strong>Tipo:</strong> ${pedido.pedido_tipo || "Salón"}</div>
+                    <div><strong>Estado:</strong> ${estadoEmoji} ${pedido.pedido_estado}</div>
+                    <div><strong>Hora inicio:</strong> ${new Date(pedido.pedido_fecha_hora).toLocaleDateString()} ${new Date(pedido.pedido_fecha_hora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12:false})}</div>
+                    <div><strong>Subtotal:</strong> $${Number(pedido.pedido_total || 0).toFixed(2)}</div>
+                </div>
             </div>
 
-            <div class="detalle-items">
-                ${itemsHtml}
+            <div class="detalle-seccion">
+                <h3>Platillos</h3>
+                <div class="detalle-items">
+                    ${itemsHtml}
+                </div>
             </div>
 
-            ${// Renderizado de botones dinámicos en un solo contenedor semántico
+            <div class="detalle-seccion">
+                <h3>Historial de Estados</h3>
+                <div class="detalle-historial">
+                    ${historialHtml}
+                </div>
+            </div>
+
+            ${// Renderizado de botones de acción inferiores agrupados de manera coherente
                 (pedido.pedido_estado === "Pendiente" || pedido.pedido_estado === "EnPreparacion" || pedido.factura_id || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado")
                 ? `
                 <div class="detalle-actions">
                     ${(pedido.pedido_estado === "Pendiente" || pedido.pedido_estado === "EnPreparacion") ? `
+                        <button class="btn-editar-pedido-modal" data-id="${pedido.id_pedido}">
+                            <i class="fa-solid fa-pen"></i> [Editar]
+                        </button>
                         <button class="btn-cancelar-pedido" data-pedido="${pedido.id_pedido}">
-                            <i class="fa-solid fa-ban"></i> Cancelar Pedido
+                            <i class="fa-solid fa-ban"></i> [Cancelar]
                         </button>
                     ` : ""}
 
@@ -849,6 +893,8 @@ else if (esPreparacion) {
                             <i class="fa-solid fa-file-invoice-dollar"></i> Generar Factura
                         </button>
                     ` : ""}
+                    
+                    <button class="btn-cerrar-modal-directo">[Cerrar]</button>
                 </div>
                 `
                 : ""
@@ -861,7 +907,16 @@ else if (esPreparacion) {
 
     // --- EVENT LISTENERS ---
 
-    // Botón Cancelar Pedido
+    // Botón Editar Pedido (Invoca la función nativa que ya posees en mesero.js)
+    const btnEditarModal = backdrop.querySelector(".btn-editar-pedido-modal");
+    if (btnEditarModal) {
+        btnEditarModal.addEventListener("click", () => {
+            backdrop.remove();
+            if (typeof editarPedido === "function") editarPedido(pedido.id_pedido);
+        });
+    }
+
+    // Botón Cancelar Pedido con SweetAlert2
     const btnCancelar = backdrop.querySelector(".btn-cancelar-pedido");
     if (btnCancelar) {
         btnCancelar.addEventListener("click", async () => {
@@ -878,7 +933,7 @@ else if (esPreparacion) {
 
             try {
                 const res = await fetch(`/api/pedidos/${pedido.id_pedido}/cancelar`, {
-                    method: "DELETE"
+                    method: "DELETE" // Mantiene el método DELETE que tenías configurado
                 });
                 const data = await res.json();
 
@@ -903,27 +958,26 @@ else if (esPreparacion) {
         });
     }
 
-    // Botón Generar Factura (Si necesitas su lógica luego)
+    // Botón Generar Factura
     const btnGenerarFactura = backdrop.querySelector(".btn-generar-factura");
     if (btnGenerarFactura) {
         btnGenerarFactura.addEventListener("click", () => {
             console.log("Generar factura para pedido:", pedido.id_pedido);
-            // Tu lógica para facturar aquí...
         });
     }
 
-    // Cerrar desde la 'X'
-    backdrop.querySelector(".detalle-cerrar").addEventListener("click", () => {
-        backdrop.remove();
-    });
+    // Lógica unificada para cerrar el modal
+    const cerrarModal = () => backdrop.remove();
 
-    // Cerrar al hacer click en el fondo (Backdrop)
+    backdrop.querySelector(".detalle-cerrar").addEventListener("click", cerrarModal);
+    
+    const btnCerrarDirecto = backdrop.querySelector(".btn-cerrar-modal-directo");
+    if (btnCerrarDirecto) btnCerrarDirecto.addEventListener("click", cerrarModal);
+
     backdrop.addEventListener("click", (e) => {
-        if (e.target === backdrop) {
-            backdrop.remove();
-        }
+        if (e.target === backdrop) cerrarModal();
     });
-} // <-- Fin de la función mostrarModalDetallePedido
+}
 
   // --- Render all cards with pagination -------------------------------
   function renderizarPedidos(pedidos) {
@@ -1478,7 +1532,7 @@ else if (esPreparacion) {
 
     toast(
       "success",
-      "Pedido cancelado correctamente"
+      data.message || "Pedido cancelado correctamente"
     );
 
     cargarMisPedidos();
@@ -1489,6 +1543,7 @@ else if (esPreparacion) {
       "error",
       error.message
     );
+
   }
 }
 
