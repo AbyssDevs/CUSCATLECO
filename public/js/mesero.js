@@ -1,4 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
+
+  const esVistaCajero =
+    window.location.pathname.includes("cajero");
+
   let platillosDisponibles = [];
   let mesasPedido = [];
   let pedidoActivo = null;
@@ -442,10 +446,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function estadoClasePedido(estado) {
-    if (estado === "EnPreparacion") return "preparando";
-    if (estado === "Listo") return "completado";
+
+    const e = (estado || "").toLowerCase();
+
+    if (e === "enpreparacion") return "preparando";
+
+    if (e === "listo") return "completado";
+
+    if (e === "pendiente") return "pendiente";
+
     return "pendiente";
-  }
+}
 
   function estadoTextoPedido(estado) {
     if (estado === "EnPreparacion") return "EnPreparacion";
@@ -512,16 +523,39 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function obtenerStatusTexto(estado) {
-    if (estado === "EnPreparacion") return "En Preparación";
+
+    const e = (estado || "").toLowerCase();
+
+    if (e === "enpreparacion") {
+        return "En Preparación";
+    }
+
+    if (e === "listo") {
+        return "Listo";
+    }
+
+    if (e === "pendiente") {
+        return "Pendiente";
+    }
+
     return estado || "Pendiente";
-  }
+}
 
   // --- Mesa helper ---------------------------------------------------
   function obtenerTextoMesa(pedido) {
+
     const tipo = (pedido.pedido_tipo || "").toLowerCase();
-    if (tipo === "llevar" || !pedido.mesa_numero) return "N/A";
+
+    if (tipo === "llevar") {
+        return "Para llevar";
+    }
+
+    if (!pedido.mesa_numero) {
+        return "Sin mesa";
+    }
+
     return `Mesa ${pedido.mesa_numero}`;
-  }
+}
 
   // --- Hora de inicio ------------------------------------------------
   function formatHoraInicio(fecha) {
@@ -554,10 +588,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- Render single card --------------------------------------------
   function crearCardPedido(pedido) {
-    const estado = pedido.pedido_estado || "Pendiente";
-    const esPendiente = estado === "Pendiente";
-    const esListo = estado === "Listo";
-    const esLlevar = (pedido.pedido_tipo || "").toLowerCase() === "llevar";
+
+    const estado = (pedido.pedido_estado || "Pendiente").trim();
+
+    const esPendiente =
+        estado.toLowerCase() === "pendiente";
+
+    const esListo =
+        estado.toLowerCase() === "listo";
+
+    const esPreparacion =
+        estado.toLowerCase() === "enpreparacion";
+
+    const esLlevar =
+        (pedido.pedido_tipo || "").toLowerCase() === "llevar";
+
     const mesaTexto = obtenerTextoMesa(pedido);
 
     const card = document.createElement("div");
@@ -594,28 +639,69 @@ document.addEventListener("DOMContentLoaded", () => {
     let readonlyHtml = "";
 
     if (esPendiente) {
-      actionsHtml = `
+
+    actionsHtml = `
+<div class="pedido-card-actions">
+
+  <button
+      type="button"
+      class="btn-editar-pedido"
+      data-action="editar"
+      data-id="${pedido.id_pedido}">
+      <i class="fa-solid fa-pen-to-square"></i>
+      Editar Pedido
+  </button>
+
+  <button
+    type="button"
+    class="btn-cancelar-pedido"
+    data-action="cancelar"
+    data-id="${pedido.id_pedido}">
+    <i class="fa-solid fa-ban"></i>
+    Cancelar Pedido
+</button>
+
+</div>
+`;
+
+}
+else if (esListo) {
+
+    actionsHtml = `
         <div class="pedido-card-actions">
-          <button type="button" class="btn-editar-pedido" data-action="editar" data-id="${pedido.id_pedido}">
-            <i class="fa-solid fa-pen-to-square"></i> Editar Pedido
-          </button>
-          <button type="button" class="btn-eliminar-pedido" data-action="eliminar" data-id="${pedido.id_pedido}" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5 !important;">
-            <i class="fa-solid fa-trash"></i> Eliminar
-          </button>
-        </div>
-      `;
-    } else if (esListo) {
-      actionsHtml = `
-        <div class="pedido-card-actions">
+
           <button type="button" class="btn-entregado" data-action="entregado" data-id="${pedido.id_pedido}">
             <i class="fa-solid fa-check-double"></i> Marcar Entregado
           </button>
+
           <button type="button" class="btn-ver-detalle" data-action="detalle" data-id="${pedido.id_pedido}">
             <i class="fa-solid fa-eye"></i> Ver Detalle
           </button>
+
         </div>
-      `;
-    } else {
+    `;
+
+}
+else if (esPreparacion) {
+
+    readonlyHtml = `
+        <div class="pedido-card-readonly">
+          <i class="fa-solid fa-lock"></i>
+          Solo lectura — pedido en preparación
+        </div>
+    `;
+
+    actionsHtml = `
+        <div class="pedido-card-actions">
+
+          <button type="button" class="btn-ver-detalle" data-action="detalle" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-eye"></i> Ver Detalle
+          </button>
+
+        </div>
+    `;
+
+} else {
       readonlyHtml = `
         <div class="pedido-card-readonly">
           <i class="fa-solid fa-lock"></i> Solo lectura — pedido en preparación
@@ -663,13 +749,178 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- Placeholder detalle -------------------------------------------
-  function abrirDetallePedido(idPedido) {
-    // CUS-94 — placeholder for future detail view
-    console.log(`[CUS-94] abrirDetallePedido(${idPedido}) — pendiente de implementación`);
-    toast("info", `Detalle del pedido #${idPedido} próximamente disponible`);
+  async function abrirDetallePedido(idPedido) {
+  try {
+
+    const res = await fetch(`/api/pedidos/${idPedido}`);
+
+    const pedido = await res.json();
+
+    console.log(pedido);
+
+    alert(JSON.stringify(pedido, null, 2));
+
+
+    if (!res.ok) {
+      throw new Error(pedido.error || "No se pudo cargar el detalle");
+    }
+
+    mostrarModalDetallePedido(pedido);
+
+  } catch (error) {
+    console.error(error);
+    toast("error", error.message);
   }
+}
 
   window.abrirDetallePedido = abrirDetallePedido;
+
+  function mostrarModalDetallePedido(pedido) {
+    let modalExistente = document.getElementById("modal-detalle-pedido");
+
+    if (modalExistente) {
+        modalExistente.remove();
+    }
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "detalle-pedido-backdrop";
+    backdrop.id = "modal-detalle-pedido";
+
+    // Generar la lista de platillos
+    const itemsHtml = (pedido.platillos || [])
+        .map(item => {
+            const subtotal = (item.cantidad || 0) * (item.precio || 0);
+            return `
+                <div class="detalle-item">
+                    <div class="detalle-item-top">
+                        <strong>${item.nombre}</strong>
+                        <span>x${item.cantidad}</span>
+                    </div>
+                    <div class="detalle-item-bottom">
+                        <span>Unitario: $${Number(item.precio).toFixed(2)}</span>
+                        <span>Subtotal: $${subtotal.toFixed(2)}</span>
+                    </div>
+                    ${item.notas ? `
+                        <div class="detalle-nota">
+                            <i class="fa-solid fa-note-sticky"></i>
+                            ${item.notas}
+                        </div>
+                    ` : ""}
+                </div>
+            `;
+        })
+        .join("");
+
+    // Construir estructura del modal
+    backdrop.innerHTML = `
+        <div class="detalle-modal">
+            <div class="detalle-header">
+                <h2>Pedido #${pedido.id_pedido}</h2>
+                <button class="detalle-cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="detalle-info-general">
+                <div><strong>Mesa:</strong> ${pedido.mesa_numero || "Para llevar"}</div>
+                <div><strong>Tipo:</strong> ${pedido.pedido_tipo}</div>
+                <div><strong>Estado:</strong> ${pedido.pedido_estado}</div>
+                <div><strong>Hora:</strong> ${new Date(pedido.pedido_fecha_hora).toLocaleString()}</div>
+                <div><strong>Subtotal:</strong> $${Number(pedido.pedido_total || 0).toFixed(2)}</div>
+            </div>
+
+            <div class="detalle-items">
+                ${itemsHtml}
+            </div>
+
+            ${// Renderizado de botones dinámicos en un solo contenedor semántico
+                (pedido.pedido_estado === "Pendiente" || pedido.pedido_estado === "EnPreparacion" || pedido.factura_id || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado")
+                ? `
+                <div class="detalle-actions">
+                    ${(pedido.pedido_estado === "Pendiente" || pedido.pedido_estado === "EnPreparacion") ? `
+                        <button class="btn-cancelar-pedido" data-pedido="${pedido.id_pedido}">
+                            <i class="fa-solid fa-ban"></i> Cancelar Pedido
+                        </button>
+                    ` : ""}
+
+                    ${pedido.factura_id ? `
+                        <button class="btn-ver-factura" data-factura="${pedido.factura_id}">
+                            <i class="fa-solid fa-file-invoice"></i> Ver Factura
+                        </button>
+                    ` : ""}
+
+                    ${(pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado") ? `
+                        <button class="btn-generar-factura" data-pedido="${pedido.id_pedido}">
+                            <i class="fa-solid fa-file-invoice-dollar"></i> Generar Factura
+                        </button>
+                    ` : ""}
+                </div>
+                `
+                : ""
+            }
+        </div>
+    `;
+
+    // Inyectar en el DOM
+    document.body.appendChild(backdrop);
+
+    // --- EVENT LISTENERS ---
+
+    // Botón Cancelar Pedido
+    const btnCancelar = backdrop.querySelector(".btn-cancelar-pedido");
+    if (btnCancelar) {
+        btnCancelar.addEventListener("click", async () => {
+            const confirmado = confirm("¿Está seguro de que desea cancelar este pedido?");
+            if (!confirmado) return;
+
+            try {
+                const res = await fetch(`/api/pedidos/${pedido.id_pedido}/cancelar`, {
+                    method: "PUT"
+                });
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.error || "No se pudo cancelar el pedido");
+
+                toast("success", "Pedido cancelado correctamente");
+                backdrop.remove();
+                if (typeof cargarMisPedidos === "function") cargarMisPedidos();
+            } catch (error) {
+                toast("error", error.message);
+            }
+        });
+    }
+
+    // Botón Ver Factura
+    const btnFactura = backdrop.querySelector(".btn-ver-factura");
+    if (btnFactura) {
+        btnFactura.addEventListener("click", () => {
+            const facturaId = btnFactura.dataset.factura;
+            console.log("Ver factura:", facturaId);
+            toast("info", `Factura #${facturaId}`);
+        });
+    }
+
+    // Botón Generar Factura (Si necesitas su lógica luego)
+    const btnGenerarFactura = backdrop.querySelector(".btn-generar-factura");
+    if (btnGenerarFactura) {
+        btnGenerarFactura.addEventListener("click", () => {
+            console.log("Generar factura para pedido:", pedido.id_pedido);
+            // Tu lógica para facturar aquí...
+        });
+    }
+
+    // Cerrar desde la 'X'
+    backdrop.querySelector(".detalle-cerrar").addEventListener("click", () => {
+        backdrop.remove();
+    });
+
+    // Cerrar al hacer click en el fondo (Backdrop)
+    backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) {
+            backdrop.remove();
+        }
+    });
+} // <-- Fin de la función mostrarModalDetallePedido
 
   // --- Render all cards with pagination -------------------------------
   function renderizarPedidos(pedidos) {
@@ -1191,6 +1442,47 @@ document.addEventListener("DOMContentLoaded", () => {
           abrirDetallePedido(Number(idPedido));
         }
 
+        if (action === "cancelar") {
+
+  const confirmar = confirm(
+    "¿Desea cancelar este pedido?"
+  );
+
+  if (!confirmar) return;
+
+  try {
+
+    const res = await fetch(
+      `/api/pedidos/${idPedido}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(
+        data.error || "No se pudo cancelar el pedido"
+      );
+    }
+
+    toast(
+      "success",
+      "Pedido cancelado correctamente"
+    );
+
+    cargarMisPedidos();
+
+  } catch (error) {
+
+    toast(
+      "error",
+      error.message
+    );
+  }
+}
+
         if (action === "eliminar") {
           modal("info", "Aún no disponible", "La función de eliminar pedidos estará disponible pronto.");
         }
@@ -1263,48 +1555,81 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function enviarPedido() {
-    const typeBtn = document.querySelector(".pedido-type-btn.active");
-    const tipo = typeBtn.dataset.type === "salon" ? "Salon" : "Llevar";
-    const items = obtenerItemsPedido();
-    const notasGenerales = document.getElementById("pedido-notas-generales")?.value.trim() || "";
+  const typeBtn = document.querySelector(".pedido-type-btn.active");
+  const tipo = typeBtn.dataset.type === "salon" ? "Salon" : "Llevar";
+  const items = obtenerItemsPedido();
+  const notasGenerales = document.getElementById("pedido-notas-generales")?.value.trim() || "";
 
-    if (tipo === "Salon" && !pedidoActivo) {
-      toast("warning", "Seleccione una mesa para iniciar el pedido");
-      return;
-    }
-
-    if (items.length === 0) {
-      toast("warning", "Debe seleccionar al menos un platillo válido");
-      return;
-    }
-
-    try {
-      const isEditing = !!pedidoActivo;
-      
-      const url = isEditing
-        ? `/api/pedidos/${pedidoActivo.id_pedido}/items`
-        : "/api/pedidos/crear";
-
-      const body = isEditing
-        ? { items, notas: notasGenerales }
-        : { tipo, id_mesa: null, items, notas: notasGenerales };
-
-      const res = await fetch(url, {
-        method: isEditing ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al enviar pedido");
-
-      toast("success", "Pedido guardado correctamente");
-      resetForm();
-    } catch (error) {
-      console.error(error);
-      toast("error", error.message);
-    }
+  if (tipo === "Salon" && !pedidoActivo) {
+    toast("warning", "Seleccione una mesa para iniciar el pedido");
+    return;
   }
+
+  if (items.length === 0) {
+    toast("warning", "Debe seleccionar al menos un platillo válido");
+    return;
+  }
+
+  try {
+
+    // ==================================================
+    // VALIDAR STOCK ANTES DE ENVIAR
+    // ==================================================
+    for (const item of items) {
+
+      const resStock = await fetch(`/api/platillos/${item.id_platillo}`);
+
+      if (!resStock.ok) {
+        throw new Error("No se pudo validar inventario");
+      }
+
+      const platillo = await resStock.json();
+
+      if (platillo.stock < item.cantidad) {
+
+        toast(
+          "warning",
+          `Stock insuficiente para ${platillo.nombre}. Disponible: ${platillo.stock}`
+        );
+
+        return;
+      }
+    }
+
+    const isEditing = !!window.pedidoEditandoId;
+
+    const url = isEditing
+      ? `/api/pedidos/${pedidoActivo.id_pedido}/items`
+      : "/api/pedidos/crear";
+
+    const body = isEditing
+      ? { items, notas: notasGenerales }
+      : { tipo, id_mesa: null, items, notas: notasGenerales };
+
+    const res = await fetch(url, {
+      method: isEditing ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Error al enviar pedido");
+    }
+
+    toast("success", "Pedido guardado correctamente");
+
+    resetForm();
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast("error", error.message);
+
+  }
+}
 
   function actualizarSubtotal() {
     let subtotal = 0;
