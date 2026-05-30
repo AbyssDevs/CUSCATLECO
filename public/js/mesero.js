@@ -784,21 +784,23 @@ else if (esPreparacion) {
     // 1. Generar la lista de platillos con soporte para múltiples esquemas de nombres (Corrige undefined y NaN)
     // 2. Generar la lista de platillos con soporte para múltiples esquemas de nombres y notas por defecto
     // 3. Generar la lista de platillos con soporte extendido para propiedades de BD y notas por defecto
+    // 1. Generar la lista de platillos mapeando con las propiedades exactas de la Base de Datos
     const itemsHtml = (pedido.platillos || [])
         .map(item => {
-            // 1. Identificar el nombre del platillo
-            const nombrePlatillo = item.nombre || item.platillo_nombre || item.nombre_platillo || "Platillo";
+            // 1. Nombre real mapeado desde pl.platillo_nombre
+            const nombrePlatillo = item.platillo_nombre || "Platillo";
             
-            // 2. Identificar la cantidad (Añadidas variantes comunes de tablas de detalle)
-            const cantidad = item.cantidad || item.det_cantidad || item.ped_cantidad || item.cantidad_platillo || item.cant || 0;
+            // 2. Cantidad real mapeada desde dp.detalle_pedido_cantidad
+            const cantidad = item.detalle_pedido_cantidad || 0;
             
-            // 3. Identificar el precio (Añadidas variantes comunes como det_precio o precio_unitario)
-            const precio = item.precio || item.precio_unitario || item.det_precio || item.ped_precio || item.precio_platillo || item.precio_venta || 0;
+            // 3. Precio unitario real mapeado desde dp.detalle_pedido_precio_unitario
+            const precio = item.detalle_pedido_precio_unitario || 0;
             
-            const subtotal = cantidad * precio;
+            // 4. Subtotal real mapeado desde dp.detalle_pedido_subtotal
+            const subtotal = item.detalle_pedido_subtotal || (cantidad * precio);
 
-            // 4. Evaluar el texto de la nota, comentario u observación
-            const notaReal = item.notas || item.nota || item.observaciones || item.comentarios || "";
+            // 5. Notas reales mapeadas desde dp.detalle_pedido_notas
+            const notaReal = item.detalle_pedido_notas;
             const textoNota = (notaReal && notaReal.trim() !== "") 
                 ? `📝 <strong>Nota:</strong> ${notaReal}` 
                 : "📝 <strong>Nota:</strong> Sin notas u observaciones";
@@ -810,7 +812,7 @@ else if (esPreparacion) {
                     </div>
                     <div class="detalle-item-bottom">
                         <span>Precio unitario: $${Number(precio).toFixed(2)}</span>
-                        <span>Subtotal: $${subtotal.toFixed(2)}</span>
+                        <span>Subtotal: $${Number(subtotal).toFixed(2)}</span>
                     </div>
                     <div class="detalle-nota">
                         ${textoNota}
