@@ -124,6 +124,15 @@ function renderPedidoActualCajero() {
 
   actualizarSubtotalCajero();
   actualizarEstadoBotonesMenuCajero();
+  actualizarBotonEnviarPedido();
+}
+
+// Habilita o deshabilita el botón de envío según si hay platillos en el pedido.
+function actualizarBotonEnviarPedido() {
+  const boton = document.getElementById("btn-enviar-pedido");
+  if (!boton) return;
+  const hayItems = window.pedidoActual.items.length > 0;
+  boton.disabled = !hayItems;
 }
 
 // Controles +/-/eliminar dentro del contenedor del pedido (delegación).
