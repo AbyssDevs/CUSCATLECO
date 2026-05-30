@@ -42,10 +42,179 @@
         padding: 6px 0;
         border-bottom: 1px solid #eee;
       }
-      .fila-platillo select, 
-      .fila-platillo input, 
+      .fila-platillo select,
+      .fila-platillo input,
       .fila-platillo button {
         box-sizing: border-box !important;
+      }
+
+      /* =========================================================
+         LAYOUT FORMULARIO "TOMAR PEDIDO" DEL CAJERO
+         Paleta vino/guinda: #7a1d1d  ·  dorado: #c1a257
+         ========================================================= */
+
+      /* La clase global .card (cajero.css) fuerza width:220px y
+         text-align:center, lo que deforma el formulario. La
+         neutralizamos únicamente dentro de esta vista. */
+      #tomar-pedido .card {
+        width: 100%;
+        max-width: none;
+        text-align: left;
+        border-top: none;
+      }
+
+      /* Rejilla principal: columna de datos + panel del menú */
+      #tomar-pedido .tomar-pedido-layout {
+        display: grid;
+        grid-template-columns: minmax(340px, 480px) minmax(0, 1fr);
+        gap: 24px;
+        align-items: flex-start;
+        margin-top: 0;
+      }
+
+      /* Columna izquierda: contiene las dos tarjetas apiladas */
+      #tomar-pedido .pedido-left-column {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
+
+      /* Tarjetas (Datos del Cliente / Pedido Actual / Menú) */
+      #tomar-pedido .pedido-type-card,
+      #tomar-pedido .pedido-menu-panel {
+        background: #ffffff;
+        padding: 22px;
+        border-radius: 12px;
+        border: 1px solid #f0e6e6;
+        border-top: 3px solid #7a1d1d;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-sizing: border-box;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+      }
+
+      #tomar-pedido .pedido-type-card h3,
+      #tomar-pedido .pedido-menu-panel h3 {
+        margin: 0 0 16px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #7a1d1d;
+        text-align: left;
+      }
+
+      /* Grupos de campo: label arriba del input, filas ordenadas */
+      #tomar-pedido .form-group {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 18px;
+      }
+
+      #tomar-pedido .form-group:last-child {
+        margin-bottom: 0;
+      }
+
+      #tomar-pedido .form-group label {
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #333;
+        text-align: left;
+      }
+
+      #tomar-pedido .form-group label small {
+        font-weight: 500;
+        font-size: 0.78rem;
+        color: #999;
+        margin-left: 4px;
+      }
+
+      /* Inputs y textarea con ancho controlado y bordes consistentes */
+      #tomar-pedido .form-group input,
+      #tomar-pedido .form-group textarea {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 11px 14px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: 'Roboto', Arial, sans-serif;
+        color: #333;
+        background: #ffffff;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      #tomar-pedido .form-group textarea {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      #tomar-pedido .form-group input:focus,
+      #tomar-pedido .form-group textarea:focus {
+        border-color: #7a1d1d;
+        box-shadow: 0 0 0 3px rgba(122, 29, 29, 0.12);
+      }
+
+      /* Estado vacío del pedido actual */
+      #tomar-pedido .pedido-items-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 90px;
+        border: 1px dashed #d9c9c9;
+        border-radius: 8px;
+        background: #fbf7f7;
+        margin-bottom: 16px;
+      }
+
+      #tomar-pedido .pedido-empty-text {
+        margin: 0;
+        color: #777;
+        text-align: center;
+      }
+
+      /* Filtros del panel del menú */
+      #tomar-pedido .pedido-menu-filters {
+        margin-bottom: 16px;
+      }
+
+      /* Botón "Iniciar pedido" (paleta vino) */
+      #tomar-pedido .btn-enviar-pedido {
+        width: 100%;
+        padding: 14px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #ffffff;
+        background: #7a1d1d;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        opacity: 1;
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+
+      #tomar-pedido .btn-enviar-pedido:hover:not(:disabled) {
+        background: #661515;
+        transform: translateY(-1px);
+      }
+
+      #tomar-pedido .btn-enviar-pedido:disabled {
+        background: #c9b3b3;
+        cursor: not-allowed;
+        opacity: 0.7;
+        transform: none;
+      }
+
+      /* Responsive: una sola columna en pantallas medianas/chicas */
+      @media (max-width: 1024px) {
+        #tomar-pedido .tomar-pedido-layout {
+          grid-template-columns: 1fr;
+        }
       }
     </style>
 </head>
@@ -187,7 +356,7 @@
                                 </div>
                             </div>
 
-                            <button id="btn-enviar-pedido" type="submit" disabled title="Agrega al menos un platillo" class="btn-enviar-pedido" style="width: 100%; padding: 15px; margin-bottom: 15px; font-size: 1.1rem; border: none; border-radius: 8px; cursor: not-allowed; font-weight: bold; opacity: 0.6; transition: all 0.2s ease;">
+                            <button id="btn-enviar-pedido" type="submit" title="Iniciar el pedido para llevar" class="btn-enviar-pedido">
                                 <i class="fas fa-paper-plane"></i> Iniciar pedido
                             </button>
                         </div>

@@ -17,9 +17,27 @@ function actualizarTipoPedidoCajero() {
   }
 }
 
+const ETIQUETA_BOTON_INICIAR = '<i class="fas fa-paper-plane"></i> Iniciar pedido';
+
+function obtenerBotonIniciarPedido(form) {
+  // menu.js engancha un efecto cosmético a #btn-enviar-pedido que lo
+  // renombra a "Enviar a cocina" (texto del flujo de mesero, ajeno al
+  // pedido "Para llevar" del cajero). Clonamos el botón para descartar
+  // ese listener externo y que la vista controle su propio estado.
+  const original = document.getElementById("btn-enviar-pedido");
+  if (!original) return null;
+
+  const boton = original.cloneNode(true);
+  original.replaceWith(boton);
+  boton.innerHTML = ETIQUETA_BOTON_INICIAR;
+  return boton;
+}
+
 function configurarFormularioPedidoCajero() {
   const form = document.getElementById("formPedidoCajero");
   if (!form) return;
+
+  const botonIniciar = obtenerBotonIniciarPedido(form);
 
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -36,6 +54,7 @@ function configurarFormularioPedidoCajero() {
         title: "Nombre requerido",
         text: "Ingresa el nombre del cliente para continuar.",
       });
+      document.getElementById("nombreClienteCajero")?.focus();
       return;
     }
 
@@ -43,11 +62,16 @@ function configurarFormularioPedidoCajero() {
       cliente: nombreCliente,
       telefono: telefonoCliente || "",
       observaciones: observacionesPedido || "",
-      tipo: window.tipoPedidoCajero,
+      tipo: window.tipoPedidoCajero, // "Para llevar" por defecto
       mesa: mesaPedido,
       estado: "Pendiente",
       productos: [],
     };
+
+    if (botonIniciar) {
+      botonIniciar.disabled = true;
+      botonIniciar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Procesando...';
+    }
 
     try {
       const response = await fetch("/api/pedidos/iniciar", {
@@ -68,8 +92,8 @@ function configurarFormularioPedidoCajero() {
 
       await Swal.fire({
         icon: "success",
-        title: "Pedido creado",
-        text: `Pedido para ${nombreCliente} creado correctamente.`,
+        title: "¡Pedido creado!",
+        text: `Pedido para llevar de ${nombreCliente} creado correctamente.`,
         timer: 2000,
         showConfirmButton: false,
       });
@@ -87,6 +111,11 @@ function configurarFormularioPedidoCajero() {
         title: "Error al crear pedido",
         text: error?.message || "No se pudo conectar con el servidor.",
       });
+    } finally {
+      if (botonIniciar) {
+        botonIniciar.disabled = false;
+        botonIniciar.innerHTML = ETIQUETA_BOTON_INICIAR;
+      }
     }
   });
 }
