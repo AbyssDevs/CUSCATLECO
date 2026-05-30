@@ -907,8 +907,106 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
 
   }
 
+  return {
+    message: "Pedido cancelado correctamente"
+  };
 
-  // Query dinámica
+};
+
+
+// PEDIDOS PENDIENTES COCINA
+export const obtenerPedidosPendientesCocina = async () => {
+
+  const [rows] = await db.query(
+    `SELECT
+        p.id_pedido,
+        p.pedido_estado,
+        p.pedido_tipo,
+        p.pedido_fecha_hora,
+        p.pedido_total,
+
+        m.mesa_numero,
+
+        dp.id_detalle,
+        dp.detalle_pedido_cantidad,
+        dp.detalle_pedido_notas,
+
+        pl.platillo_nombre
+
+     FROM pedidos p
+
+     LEFT JOIN mesas m
+        ON p.id_mesa = m.id_mesa
+
+     INNER JOIN detalle_pedido dp
+        ON p.id_pedido = dp.id_pedido
+
+     INNER JOIN platillos pl
+        ON dp.id_platillo = pl.id_platillo
+
+     WHERE p.pedido_estado IN ('Pendiente', 'EnPreparacion')
+
+     ORDER BY p.pedido_fecha_hora ASC`
+  );
+
+  // Agrupar pedidos
+  const pedidosMap = {};
+
+  rows.forEach(row => {
+
+    if (!pedidosMap[row.id_pedido]) {
+
+      pedidosMap[row.id_pedido] = {
+        id_pedido: row.id_pedido,
+        pedido_estado: row.pedido_estado,
+        pedido_tipo: row.pedido_tipo,
+        pedido_fecha_hora: row.pedido_fecha_hora,
+        pedido_total: row.pedido_total,
+
+        mesa:
+          row.pedido_tipo === "Llevar"
+            ? "Para llevar"
+            : row.mesa_numero,
+
+        platillos: []
+      };
+    }
+
+    pedidosMap[row.id_pedido].platillos.push({
+      id_detalle: row.id_detalle,
+      nombre: row.platillo_nombre,
+      cantidad: row.detalle_pedido_cantidad,
+      notas: row.detalle_pedido_notas
+    });
+
+  });
+
+  return Object.values(pedidosMap);
+};
+
+// CAMBIAR ESTADO PEDIDO COCINA
+export const cambiarEstadoPedidoCocina = async (
+  id_pedido,
+  nuevoEstado
+) => {
+
+  // Estados permitidos
+ const estadosValidos = [
+  "EnPreparacion",
+  "Listo"
+];
+
+  if (!estadosValidos.includes(nuevoEstado)) {
+    throw Object.assign(
+      new Error("Estado inválido"),
+
+      { status: 400 }
+    );
+
+  }
+
+
+  // Cambiar estado de cocina
   let sql = `
     UPDATE pedidos
     SET pedido_estado = ?
@@ -916,20 +1014,19 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
 
   const params = [nuevoEstado];
 
-  // Registrar horas
   if (nuevoEstado === "EnPreparacion") {
-
     sql += `,
       pedido_en_preparacion_en = NOW()
     `;
-
+  } else if (nuevoEstado === "Listo") {
+    sql += `,
+      pedido_listo_en = NOW()
+    `;
   }
 
-  if (nuevoEstado === "Listo")
-    sql += `
+  sql += `
     WHERE id_pedido = ?
   `;
-
   params.push(id_pedido);
 
   await db.query(sql, params);
@@ -942,7 +1039,62 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
   };
 };
 
+
+
+// Obtener detalle completo de un pedido
+export const obtenerDetallePedido = async (id_pedido) => {
+
+  // Datos generales del pedido
+  const [pedidoRows] = await db.query(`
+    SELECT 
+      p.id_pedido,
+      p.pedido_estado,
+      p.pedido_tipo,
+      p.pedido_total,
+      p.pedido_fecha_hora,
+      p.pedido_enviado_cocina_en,
+      p.pedido_listo_en,
+      p.pedido_entregado_en,
+      p.pedido_cancelado_en,
+      p.pedido_cancelado_motivo,
+      m.mesa_numero
+    FROM pedidos p
+    LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
+    WHERE p.id_pedido = ?
+  `, [id_pedido]);
+
+  if (pedidoRows.length === 0) {
+    throw Object.assign(
+      new Error("Pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const pedido = pedidoRows[0];
+
+
+  //  Platillos del pedido
+  const [detalleRows] = await db.query(`
+    SELECT 
+      dp.id_detalle,
+      dp.detalle_pedido_cantidad,
+      dp.detalle_pedido_precio_unitario,
+      dp.detalle_pedido_subtotal,
+      dp.detalle_pedido_notas,
+      pl.platillo_nombre
+    FROM detalle_pedido dp
+    JOIN platillos pl ON dp.id_platillo = pl.id_platillo
+    WHERE dp.id_pedido = ?
+  `, [id_pedido]);
+
+  // Armar respuesta completa
+  return {
+    ...pedido,
+    platillos: detalleRows
+  };
+
   return pedido;
+
 
 };
 
