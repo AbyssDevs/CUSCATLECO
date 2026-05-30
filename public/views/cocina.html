@@ -39,21 +39,38 @@
                 </div>
             </div>
 
-            <ul>
-                <li onclick="mostrarMenu('resumen')">Vista General</li>
-                <li onclick="mostrarMenu('ordenes')">Preparar Pedidos</li>
-                <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li>
-            </ul>
+            <nav aria-label="Navegación principal">
+              <ul>
+                <li>
+                  <button type="button" class="nav-btn" data-view="resumen">
+                    <i class="fa-solid fa-utensils" aria-hidden="true"></i>
+                    Vista General
+                  </button>
+                </li>
+                <li>
+                  <button type="button" class="nav-btn" data-view="ordenes">
+                    <i class="fa-solid fa-fire-burner" aria-hidden="true"></i>
+                    Preparar Pedidos
+                  </button>
+                </li>
+                <li>
+                  <button type="button" class="nav-btn nav-btn--danger" id="btn-cerrar-sesion">
+                    <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
+                    Cerrar sesión
+                  </button>
+                </li>
+              </ul>
+            </nav>
 
         </div>
 
-        <div class="backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
+        <div class="backdrop" id="menuBackdrop"></div>
 
         <!-- CONTENIDO PRINCIPAL -->
         <div class="contenido">
 
             <div class="header-mobile">
-                <button class="hamburger" onclick="toggleMenu()">
+                <button class="hamburger" id="btn-hamburger" aria-label="Abrir menú">
                     <i class="fa-solid fa-bars"></i>
                 </button>
             </div>

@@ -756,7 +756,7 @@ export const obtenerPedidosPendientesCocina = async () => {
      INNER JOIN platillos pl
         ON dp.id_platillo = pl.id_platillo
 
-     WHERE p.pedido_estado IN ('Pendiente', 'EnPreparacion')
+     WHERE p.pedido_estado IN ('Pendiente', 'EnPreparacion', 'Listo')
 
      ORDER BY p.pedido_fecha_hora ASC`
   );

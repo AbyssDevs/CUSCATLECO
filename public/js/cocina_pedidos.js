@@ -1,36 +1,19 @@
-const pedidosCocina = [
-  {
-    id: 105,
-    mesa: 4,
-    tipo: "Salon",
-    horaEnvio: "2026-05-27T14:35:00",
-    estado: "Pendiente",
-    platillos: [
-      { cantidad: 2, nombre: "Hamburguesa", notas: "sin cebolla" },
-      { cantidad: 1, nombre: "Pupusas Revueltas", notas: "con curtido aparte" }
-    ]
-  },
-  {
-    id: 106,
-    mesa: null,
-    tipo: "Llevar",
-    horaEnvio: "2026-05-27T14:42:00",
-    estado: "Pendiente",
-    platillos: [
-      { cantidad: 3, nombre: "Pupusas de Queso", notas: "bien tostadas" },
-      { cantidad: 2, nombre: "Horchata", notas: "sin hielo" }
-    ]
-  }
-];
+﻿// ============================================
+// CUS-74: Ver pedidos pendientes en cocina
+// ============================================
+
+let pollingInterval = null;
+
+function obtenerToken() {
+  return localStorage.getItem("token");
+}
 
 function mostrarMenu(seccion) {
   const secciones = ["resumen", "ordenes"];
-
-  secciones.forEach((id) => {
-    const elemento = document.getElementById(id);
-    if (elemento) elemento.style.display = "none";
+  secciones.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.style.display = "none";
   });
-
   const vista = document.getElementById(seccion);
   if (vista) vista.style.display = "block";
 }
@@ -38,190 +21,214 @@ function mostrarMenu(seccion) {
 function toggleMenu() {
   const sidebar = document.getElementById("sidebar");
   const backdrop = document.getElementById("menuBackdrop");
-
   if (sidebar) sidebar.classList.toggle("active");
   if (backdrop) backdrop.classList.toggle("active");
 }
 
 function cerrarSesion() {
-  window.location.href = "/logout";
+  localStorage.clear();
+  window.location.href = "/";
 }
 
 function obtenerUbicacionPedido(pedido) {
-  if (pedido.tipo === "Llevar" || pedido.mesa === null || pedido.mesa === undefined) {
-    return "Para llevar";
-  }
-
-  return `Mesa ${pedido.mesa}`;
+  if (pedido.pedido_tipo === "Llevar" || !pedido.mesa_numero) return "Para llevar";
+  return `Mesa ${pedido.mesa_numero}`;
 }
 
 function formatearHoraEnvio(fechaHora) {
   const fecha = new Date(fechaHora);
-
-  if (Number.isNaN(fecha.getTime())) {
-    return fechaHora || "Sin hora";
-  }
-
-  return fecha.toLocaleTimeString("es-SV", {
-    hour: "2-digit",
-    minute: "2-digit"
-  });
-}
-
-function convertirHoraAMinutos(hora) {
-  const partes = String(hora).split(":");
-  const horas = Number(partes[0]);
-  const minutos = Number(partes[1]);
-
-  return horas * 60 + minutos;
-}
-
-function ordenarPedidosPorHora(pedidos) {
-  return [...pedidos].sort((a, b) => {
-    const horaA = a.horaEnvio;
-    const horaB = b.horaEnvio;
-
-    if (
-      typeof horaA === "string" &&
-      typeof horaB === "string" &&
-      horaA.includes(":") &&
-      horaB.includes(":") &&
-      !horaA.includes("T") &&
-      !horaB.includes("T")
-    ) {
-      return convertirHoraAMinutos(horaA) - convertirHoraAMinutos(horaB);
-    }
-
-    return new Date(horaA).getTime() - new Date(horaB).getTime();
-  });
+  if (isNaN(fecha.getTime())) return "Sin hora";
+  return fecha.toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit" });
 }
 
 function crearTarjetaPedido(pedido) {
-  const platillosHtml = pedido.platillos
-    .map((platillo) => {
-      const notas = platillo.notas ? ` - ${platillo.notas}` : " - sin notas";
-      return `<li>${platillo.cantidad}x ${platillo.nombre}${notas}</li>`;
-    })
-    .join("");
+  const estado = pedido.pedido_estado;
+  const esPendiente = estado === "Pendiente";
+  const esEnPreparacion = estado === "EnPreparacion";
+  
+  const platillosHtml = (pedido.platillos || []).map(p => {
+    const notas = p.notas ? ` - ${p.notas}` : "";
+    return `<li>${p.cantidad}x ${p.nombre}${notas}</li>`;
+  }).join("") || "<li>Sin platillos</li>";
 
-  const claseEstado = pedido.estado === "EnPreparación" ? "preparando" : "pendiente";
+  let botonHtml = "";
+  if (esPendiente) {
+    botonHtml = `<button class="btn-iniciar-preparacion" data-id="${pedido.id_pedido}">Iniciar preparación</button>`;
+  } else if (esEnPreparacion) {
+    botonHtml = `<button class="btn-marcar-preparado" data-id="${pedido.id_pedido}">✓ Marcar como Listo</button>`;
+  }
 
   return `
-    <div class="card" data-id-pedido="${pedido.id}" style="width: 300px; text-align: left;">
+    <div class="card" data-id-pedido="${pedido.id_pedido}">
       <div class="pedido-header">
-        <h3>Pedido #${pedido.id}</h3>
-        <span class="${claseEstado}">${pedido.estado}</span>
+        <h3>Pedido #${pedido.id_pedido}</h3>
+        <span class="${estado === "EnPreparacion" ? "preparando" : "pendiente"}">${estado}</span>
       </div>
-
-      <p style="font-size: 16px; color: #333; margin-bottom: 8px;">
-        ${obtenerUbicacionPedido(pedido)}
-      </p>
-
-      <p style="font-size: 14px; color: #666; margin-bottom: 12px;">
-        <i class="fa-regular fa-clock"></i> ${formatearHoraEnvio(pedido.horaEnvio)}
-      </p>
-
-      <ul style="padding-left: 20px; color: #555;">
-        ${platillosHtml}
-      </ul>
-
-      <button class="btn-editar btn-iniciar-preparacion" data-id="${pedido.id}">
-        Iniciar preparación
-      </button>
-
-      <button class="btn-completar btn-marcar-preparado" data-id="${pedido.id}">
-        Marcar como preparado
-      </button>
+      <p>${obtenerUbicacionPedido(pedido)}</p>
+      <p><i class="fa-regular fa-clock"></i> ${formatearHoraEnvio(pedido.pedido_fecha_hora)}</p>
+      <ul>${platillosHtml}</ul>
+      <div class="botones-accion">${botonHtml}</div>
     </div>
   `;
 }
 
-function renderizarPedidos(pedidos) {
-  const contenedor = document.getElementById("listaPedidosCocina");
+async function cargarPedidosCocina() {
+  const container = document.getElementById("listaPedidosCocina");
+  if (!container) return;
 
-  if (!contenedor) return;
-
-  const pedidosPendientes = pedidos.filter((pedido) => {
-    return pedido.estado !== "Preparado" && pedido.estado !== "Cancelado";
-  });
-
-  if (pedidosPendientes.length === 0) {
-    contenedor.innerHTML = "<p>No hay pedidos pendientes</p>";
+  const token = obtenerToken();
+  if (!token) {
+    container.innerHTML = "<p>No hay sesión activa. Inicia sesión nuevamente.</p>";
     return;
   }
 
-  const pedidosOrdenados = ordenarPedidosPorHora(pedidosPendientes);
+  container.innerHTML = "<p>Cargando pedidos...</p>";
 
-  contenedor.innerHTML = pedidosOrdenados
-    .map((pedido) => crearTarjetaPedido(pedido))
-    .join("");
+  try {
+    const res = await fetch("/api/pedidos/cocina/pendientes", {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Error ${res.status}: ${res.statusText}`);
+    }
+    
+    const pedidos = await res.json();
+    
+    if (!pedidos.length) {
+      container.innerHTML = "<p>No hay pedidos pendientes</p>";
+      return;
+    }
+    
+    pedidos.sort((a, b) => new Date(a.pedido_fecha_hora) - new Date(b.pedido_fecha_hora));
+    container.innerHTML = pedidos.map(p => crearTarjetaPedido(p)).join("");
+    
+    // Asignar eventos a los botones
+    document.querySelectorAll(".btn-iniciar-preparacion").forEach(btn => {
+      btn.addEventListener("click", () => cambiarEstadoPedido(btn.dataset.id, "EnPreparacion"));
+    });
+    document.querySelectorAll(".btn-marcar-preparado").forEach(btn => {
+      btn.addEventListener("click", () => cambiarEstadoPedido(btn.dataset.id, "Listo"));
+    });
+    
+  } catch (error) {
+    console.error("Error cargando pedidos:", error);
+    container.innerHTML = "<p>Error al cargar pedidos. Intente nuevamente.</p>";
+  }
 }
 
-function actualizarVistaCocina() {
-  const pedidosActualizados = pedidosCocina.filter((pedido) => {
-    return pedido.estado !== "Preparado" && pedido.estado !== "Cancelado";
-  });
+async function cambiarEstadoPedido(idPedido, nuevoEstado) {
+  const token = obtenerToken();
+  if (!token) {
+    alert("No hay sesión activa");
+    return;
+  }
 
-  renderizarPedidos(pedidosActualizados);
+  try {
+    const res = await fetch(`/api/pedidos/${idPedido}/cocina/estado`, {
+      method: "PATCH",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ estado: nuevoEstado })
+    });
+    
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.error || "Error al cambiar estado");
+    }
+    
+    // Recargar la lista después del cambio
+    await cargarPedidosCocina();
+    actualizarResumen();
+    
+  } catch (error) {
+    console.error("Error cambiando estado:", error);
+    alert(error.message);
+  }
 }
 
-function cambiarEstadoPedido(idPedido, nuevoEstado) {
-  const pedido = pedidosCocina.find((pedido) => pedido.id === Number(idPedido));
+async function actualizarResumen() {
+  const token = obtenerToken();
+  if (!token) return;
 
-  if (!pedido) return;
-
-  pedido.estado = nuevoEstado;
-  actualizarVistaCocina();
+  try {
+    const res = await fetch("/api/pedidos/cocina/pendientes", {
+      headers: { "Authorization": `Bearer ${token}` }
+    });
+    if (!res.ok) throw new Error("Error al obtener resumen");
+    
+    const pedidos = await res.json();
+    const enPreparacion = pedidos.filter(p => p.pedido_estado === "EnPreparacion").length;
+    const listos = pedidos.filter(p => p.pedido_estado === "Listo").length;
+    
+    const preparandoEl = document.getElementById("ordenesPreparando");
+    const listosEl = document.getElementById("ordenesListos");
+    
+    if (preparandoEl) preparandoEl.textContent = enPreparacion;
+    if (listosEl) listosEl.textContent = listos;
+    
+  } catch (error) {
+    console.error("Error actualizando resumen:", error);
+  }
 }
 
-function configurarBotonIniciarPreparacion() {
-  const contenedor = document.getElementById("listaPedidosCocina");
-
-  if (!contenedor) return;
-
-  contenedor.addEventListener("click", (event) => {
-    const boton = event.target.closest(".btn-iniciar-preparacion");
-
-    if (!boton) return;
-
-    cambiarEstadoPedido(boton.dataset.id, "EnPreparación");
-  });
-}
-
-function configurarBotonMarcarPreparado() {
-  const contenedor = document.getElementById("listaPedidosCocina");
-
-  if (!contenedor) return;
-
-  contenedor.addEventListener("click", (event) => {
-    const boton = event.target.closest(".btn-marcar-preparado");
-
-    if (!boton) return;
-
-    cambiarEstadoPedido(boton.dataset.id, "Preparado");
-  });
-}
-
-function configurarBotonActualizarPedidos() {
-  const botonActualizar = document.getElementById("btnActualizarPedidos");
-
-  if (!botonActualizar) return;
-
-  botonActualizar.addEventListener("click", () => {
-    actualizarVistaCocina();
-  });
-}
-
-function iniciarPollingPedidos() {
-  setInterval(() => {
-    actualizarVistaCocina();
+function iniciarPolling() {
+  if (pollingInterval) clearInterval(pollingInterval);
+  pollingInterval = setInterval(() => {
+    const token = obtenerToken();
+    if (!token) {
+      clearInterval(pollingInterval);
+      pollingInterval = null;
+      return;
+    }
+    if (document.getElementById("ordenes")?.style.display !== "none") {
+      cargarPedidosCocina();
+    }
+    actualizarResumen();
   }, 10000);
 }
 
+function cargarUsuarioLogueado() {
+  const userName = localStorage.getItem("userName");
+  const userRole = localStorage.getItem("userRole");
+  if (userName) document.getElementById("userName").textContent = userName;
+  if (userRole) document.getElementById("userRole").textContent = userRole;
+}
+
+// Inicializar cuando la página cargue
 document.addEventListener("DOMContentLoaded", () => {
-  actualizarVistaCocina();
-  configurarBotonIniciarPreparacion();
-  configurarBotonMarcarPreparado();
-  configurarBotonActualizarPedidos();
-  iniciarPollingPedidos();
+  cargarUsuarioLogueado();
+  mostrarMenu("ordenes");
+  cargarPedidosCocina();
+  actualizarResumen();
+
+  // Navegación sidebar sin onclick inline
+  document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
+    btn.addEventListener("click", () => mostrarMenu(btn.dataset.view));
+  });
+
+  // Cerrar sesión
+  const btnCerrar = document.getElementById("btn-cerrar-sesion");
+  if (btnCerrar) btnCerrar.addEventListener("click", cerrarSesion);
+
+  // Hamburger menu móvil
+  const btnHamburger = document.getElementById("btn-hamburger");
+  if (btnHamburger) btnHamburger.addEventListener("click", toggleMenu);
+
+  // Backdrop
+  const backdrop = document.getElementById("menuBackdrop");
+  if (backdrop) backdrop.addEventListener("click", toggleMenu);
+
+  // Botón actualizar
+  const btnActualizar = document.getElementById("btnActualizarPedidos");
+  if (btnActualizar) {
+    btnActualizar.addEventListener("click", () => {
+      cargarPedidosCocina();
+      actualizarResumen();
+    });
+  }
+
+  iniciarPolling();
 });
