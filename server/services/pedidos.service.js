@@ -1048,4 +1048,3 @@ export const obtenerDetallePedido = async (id_pedido) => {
     platillos: detalleRows
   };
 };
-
