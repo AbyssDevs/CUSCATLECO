@@ -756,11 +756,6 @@ else if (esPreparacion) {
 
     const pedido = await res.json();
 
-    console.log(pedido);
-
-    alert(JSON.stringify(pedido, null, 2));
-
-
     if (!res.ok) {
       throw new Error(pedido.error || "No se pudo cargar el detalle");
     }
@@ -883,7 +878,7 @@ else if (esPreparacion) {
 
             try {
                 const res = await fetch(`/api/pedidos/${pedido.id_pedido}/cancelar`, {
-                    method: "PUT"
+                    method: "DELETE"
                 });
                 const data = await res.json();
 
