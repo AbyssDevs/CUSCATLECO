@@ -1975,3 +1975,178 @@ tr:hover {
         flex-direction: column;
     }
 }
+
+.detalle-pedido-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.detalle-modal {
+    background-color: #1a1a1a;
+    color: #f3f4f6;
+    font-family: 'Courier New', Courier, monospace; /* Tipografía estilo terminal */
+    width: 90%;
+    max-width: 450px;
+    max-height: 85vh;
+    border: 2px solid #555;
+    border-radius: 4px;
+    padding: 15px;
+    overflow-y: auto;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+/* Encabezado del Modal */
+.detalle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #555;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+}
+
+.detalle-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    font-weight: bold;
+}
+
+.detalle-cerrar {
+    background: none;
+    border: none;
+    color: #ff5555;
+    font-family: inherit;
+    font-size: 1rem;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.detalle-cerrar:hover {
+    color: #ff3333;
+}
+
+/* Secciones divisorias discontinuas (igual al boceto) */
+.detalle-seccion {
+    border-bottom: 1px dashed #555;
+    padding: 12px 0;
+}
+
+.detalle-seccion h3 {
+    margin: 0 0 10px 0;
+    font-size: 1.1rem;
+    color: #ffffff;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Información General */
+.detalle-info-general div {
+    margin-bottom: 6px;
+    font-size: 0.95rem;
+}
+
+/* Lista de Platillos */
+.detalle-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.detalle-item-top {
+    font-size: 1rem;
+    color: #ffffff;
+}
+
+.detalle-item-bottom {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: #cccccc;
+    margin-top: 3px;
+    padding-left: 10px;
+}
+
+/* Bloque de Notas individuales */
+.detalle-nota {
+    background-color: #262626;
+    border-left: 3px solid #ffb86c;
+    padding: 6px 10px;
+    margin-top: 6px;
+    margin-left: 10px;
+    font-size: 0.85rem;
+    color: #ffb86c;
+}
+
+/* Historial de Estados */
+.detalle-historial {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.historial-linea {
+    font-size: 0.95rem;
+    color: #e2e8f0;
+}
+
+.historial-hora {
+    color: #8be9fd;
+}
+
+/* Contenedor de Botones Inferiores */
+.detalle-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 10px;
+    margin-top: 15px;
+    padding-top: 5px;
+}
+
+/* Estilo para los botones en formato [Texto] */
+.detalle-actions button {
+    background: none;
+    border: none;
+    color: #50fa7b; /* Verde por defecto para acciones */
+    font-family: inherit;
+    font-size: 0.95rem;
+    cursor: pointer;
+    padding: 5px 8px;
+    transition: background-color 0.2s;
+}
+
+.detalle-actions button:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+/* Botón cancelar específico */
+.detalle-actions .btn-cancelar-pedido {
+    color: #ff5555;
+}
+
+/* Botón cerrar específico */
+.detalle-actions .btn-cerrar-modal-directo {
+    color: #f1fa8c;
+    margin-left: auto; /* Empuja el botón cerrar al extremo derecho */
+}
+
+/* Scrollbar personalizado para no romper la estética */
+.detalle-modal::-webkit-scrollbar {
+    width: 6px;
+}
+.detalle-modal::-webkit-scrollbar-track {
+    background: #1a1a1a;
+}
+.detalle-modal::-webkit-scrollbar-thumb {
+    background: #444;
+    border-radius: 3px;
+}
