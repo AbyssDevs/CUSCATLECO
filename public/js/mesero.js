@@ -782,7 +782,7 @@ else if (esPreparacion) {
     backdrop.id = "modal-detalle-pedido";
 
     // 1. Generar la lista de platillos con soporte para múltiples esquemas de nombres (Corrige undefined y NaN)
-    // 1. Generar la lista de platillos con soporte para múltiples esquemas de nombres y notas por defecto
+    // 2. Generar la lista de platillos con soporte para múltiples esquemas de nombres y notas por defecto
     const itemsHtml = (pedido.platillos || [])
         .map(item => {
             // 1. Identificar el nombre del platillo
