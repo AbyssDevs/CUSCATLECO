@@ -221,3 +221,26 @@ export const cambiarEstadoPedidoCocina = async (
     });
   }
 };
+
+
+
+
+
+
+
+export const obtenerDetallePedido = async (req, res) => {
+  try {
+
+    const { id_pedido } = req.params;
+
+    const data = await pedidosService.obtenerDetallePedido(id_pedido);
+
+    res.json(data);
+
+  } catch (error) {
+
+    res.status(error.status || 500).json({
+      error: error.message
+    });
+  }
+};

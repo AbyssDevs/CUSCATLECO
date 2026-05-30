@@ -1,3 +1,431 @@
+/* ==========================================================
+   CUS-201 — HISTORIAL DE CAMBIOS DE ESTADO
+   ESTILOS COMPLETOS Y MEJORADOS
+   Compatible con tu CSS actual
+========================================================== */
+
+/* CONTENEDOR PRINCIPAL */
+.historial-estados-container {
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 24px;
+    margin-top: 25px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+    border: 1px solid #ececec;
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+/* HEADER */
+.historial-estados-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 25px;
+    padding-bottom: 18px;
+    border-bottom: 2px solid #f3f3f3;
+}
+
+.historial-estados-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.historial-estados-title i {
+    width: 45px;
+    height: 45px;
+    background: #7a1d1d;
+    color: white;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
+
+.historial-estados-title h2 {
+    margin: 0;
+    color: #222;
+    font-size: 1.4rem;
+    font-weight: 700;
+}
+
+.historial-estados-subtitle {
+    margin: 3px 0 0 0;
+    color: #777;
+    font-size: 0.92rem;
+}
+
+/* BADGE DE CANTIDAD */
+.historial-count {
+    background: linear-gradient(135deg, #7a1d1d, #a52b2b);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 999px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+}
+
+/* TIMELINE */
+.historial-timeline {
+    position: relative;
+    padding-left: 35px;
+}
+
+/* LINEA VERTICAL */
+.historial-timeline::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 14px;
+    width: 3px;
+    height: 100%;
+    background: linear-gradient(to bottom, #7a1d1d, #d6d6d6);
+    border-radius: 999px;
+}
+
+/* ITEM */
+.historial-item {
+    position: relative;
+    margin-bottom: 28px;
+    animation: fadeTimeline 0.35s ease;
+}
+
+.historial-item:last-child {
+    margin-bottom: 0;
+}
+
+/* PUNTO TIMELINE */
+.historial-item::before {
+    content: "";
+    position: absolute;
+    left: -28px;
+    top: 10px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 4px solid white;
+    box-shadow: 0 0 0 2px #ddd;
+    z-index: 2;
+}
+
+/* COLORES POR ESTADO */
+.historial-item.pendiente::before {
+    background: #f39c12;
+}
+
+.historial-item.preparando::before {
+    background: #3498db;
+}
+
+.historial-item.completado::before {
+    background: #27ae60;
+}
+
+.historial-item.cancelado::before {
+    background: #dc3545;
+}
+
+.historial-item.entregado::before {
+    background: #16a34a;
+}
+
+/* CARD */
+.historial-card {
+    background: #ffffff;
+    border: 1px solid #ededed;
+    border-radius: 14px;
+    padding: 18px;
+    transition: all 0.25s ease;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+    overflow: hidden;
+    box-sizing: border-box;
+}
+
+.historial-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+    border-color: #d8d8d8;
+}
+
+/* TOP CARD */
+.historial-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+/* ESTADO */
+.historial-estado {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.historial-estado i {
+    font-size: 14px;
+}
+
+/* BADGES */
+.historial-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+}
+
+/* PENDIENTE */
+.historial-badge.pendiente {
+    background: rgba(243, 156, 18, 0.15);
+    color: #b86d00;
+}
+
+/* PREPARANDO */
+.historial-badge.preparando {
+    background: rgba(52, 152, 219, 0.14);
+    color: #1f6fa5;
+}
+
+/* COMPLETADO */
+.historial-badge.completado {
+    background: rgba(39, 174, 96, 0.14);
+    color: #1d7d49;
+}
+
+/* CANCELADO */
+.historial-badge.cancelado {
+    background: rgba(220, 53, 69, 0.14);
+    color: #b42334;
+}
+
+/* ENTREGADO */
+.historial-badge.entregado {
+    background: rgba(22, 163, 74, 0.14);
+    color: #15803d;
+}
+
+/* FECHA */
+.historial-fecha {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #666;
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.historial-fecha i {
+    color: #7a1d1d;
+}
+
+/* DETALLES */
+.historial-detalles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 10px;
+}
+
+/* CHIP */
+.historial-chip {
+    background: #f8f9fa;
+    border: 1px solid #e5e5e5;
+    padding: 8px 12px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #555;
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+.historial-chip i {
+    color: #7a1d1d;
+}
+
+/* MENSAJE */
+.historial-mensaje {
+    margin-top: 15px;
+    background: #fafafa;
+    border-left: 4px solid #7a1d1d;
+    padding: 14px;
+    border-radius: 8px;
+    color: #444;
+    line-height: 1.5;
+    font-size: 0.92rem;
+}
+
+/* ESTADO ACTUAL */
+.historial-actual {
+    border: 2px solid rgba(122, 29, 29, 0.15);
+    background: linear-gradient(to right, rgba(122,29,29,0.03), white);
+}
+
+/* ICONO ACTUAL */
+.historial-actual-badge {
+    background: #7a1d1d;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: bold;
+}
+
+/* EMPTY STATE */
+.historial-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 50px 20px;
+    text-align: center;
+    border: 2px dashed #ddd;
+    border-radius: 14px;
+    background: #fcfcfc;
+}
+
+.historial-empty i {
+    font-size: 3rem;
+    color: #cfcfcf;
+    margin-bottom: 16px;
+}
+
+.historial-empty h3 {
+    margin: 0;
+    color: #444;
+    font-size: 1.1rem;
+}
+
+.historial-empty p {
+    margin-top: 8px;
+    color: #888;
+    font-size: 0.9rem;
+}
+
+/* TABLA HISTORIAL */
+.tabla-historial {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+    background: white;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.tabla-historial th {
+    background: #7a1d1d;
+    color: white;
+    padding: 14px;
+    text-align: center;
+    font-size: 0.9rem;
+    letter-spacing: 0.4px;
+}
+
+.tabla-historial td {
+    padding: 14px;
+    border-bottom: 1px solid #f0f0f0;
+    text-align: center;
+    font-size: 0.92rem;
+}
+
+.tabla-historial tr:last-child td {
+    border-bottom: none;
+}
+
+.tabla-historial tr:hover {
+    background: #fafafa;
+}
+
+/* ANIMACION */
+@keyframes fadeTimeline {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+
+    .historial-estados-container {
+        padding: 18px;
+    }
+
+    .historial-card-top {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .historial-timeline {
+        padding-left: 28px;
+    }
+
+    .historial-item::before {
+        left: -22px;
+    }
+
+    .historial-detalles {
+        flex-direction: column;
+    }
+
+    .tabla-historial {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+
+    .historial-estados-title h2 {
+        font-size: 1.1rem;
+    }
+}
+
+/* MOBILE EXTRA */
+@media (max-width: 480px) {
+
+    .historial-estados-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .historial-count {
+        width: 100%;
+        text-align: center;
+    }
+
+    .historial-card {
+        padding: 15px;
+    }
+
+    .historial-chip {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .historial-fecha {
+        width: 100%;
+    }
+}
+
 /* GLOBAL STYLES */
 body {
     margin: 0;
