@@ -1,4 +1,8 @@
 document.addEventListener("DOMContentLoaded", () => {
+
+  const esVistaCajero =
+    window.location.pathname.includes("cajero");
+
   let platillosDisponibles = [];
   let mesasPedido = [];
   let pedidoActivo = null;
@@ -11,6 +15,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnsEliminar = document.querySelectorAll(".btn-eliminar-fila");
     btnsEliminar.forEach(btn => {
+      
       btn.disabled = true;
       btn.title = "Pedido ya enviado a cocina";
       btn.style.opacity = "0.6";
@@ -34,6 +39,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const btnsEliminar = document.querySelectorAll(".btn-eliminar-fila");
     btnsEliminar.forEach(btn => {
+      
       btn.disabled = false;
       btn.title = "";
       btn.style.opacity = "1";
@@ -72,7 +78,10 @@ document.addEventListener("DOMContentLoaded", () => {
     syncPedidoActualGlobal();
     actualizarEstadoBotonesMenu();
     aplicarTipoPedido("salon");
-    iniciarPollingMenu();
+
+    if (vistaPedidosPendientesActiva()) {
+      cargarMisPedidos();
+    }
   }
 
   async function cargarPlatillos() {
@@ -380,14 +389,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const menuPanel = document.querySelector(".pedido-menu-panel");
     const info = document.getElementById("pedido-activo-info");
 
-    if (type === "llevar") {
+    // If we are NOT editing an existing order, we can clear pedidoActivo for "llevar".
+    // But if we are editing, we must keep it.
+    if (type === "llevar" && !window.pedidoEditandoId) {
       pedidoActivo = null;
+    }
+
+    if (type === "llevar") {
       if (mesaContainer) mesaContainer.style.display = "none";
       if (formCard) formCard.style.display = "block";
       if (menuPanel) menuPanel.style.display = "block";
       if (info) {
-        info.style.display = "none";
-        info.innerHTML = "";
+        if (pedidoActivo) {
+          mostrarFormularioPedido(); // Will show info properly
+        } else {
+          info.style.display = "none";
+          info.innerHTML = "";
+        }
       }
       return;
     }
@@ -412,6 +430,678 @@ document.addEventListener("DOMContentLoaded", () => {
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  function formatPrice(value) {
+    return `$${(Number(value) || 0).toFixed(2)}`;
+  }
+
+  function obtenerGridMisPedidos() {
+    return document.getElementById("gridPedidosActivos") || null;
+  }
+
+  function vistaPedidosPendientesActiva() {
+    const view = document.getElementById("pedidos-pendientes");
+    return view && view.style.display !== "none";
+  }
+
+  function estadoClasePedido(estado) {
+
+    const e = (estado || "").toLowerCase();
+
+    if (e === "enpreparacion") return "preparando";
+
+    if (e === "listo") return "completado";
+
+    if (e === "pendiente") return "pendiente";
+
+    return "pendiente";
+}
+
+  function estadoTextoPedido(estado) {
+    if (estado === "EnPreparacion") return "EnPreparacion";
+    if (estado === "Listo") return "Listo";
+    return "Pendiente";
+  }
+
+  function obtenerNombreMesaPedido(pedido) {
+    const tipo = (pedido.pedido_tipo || pedido.tipo || "").toString().toLowerCase();
+    const mesa = pedido.mesa ?? pedido.mesa_numero ?? pedido.numero_mesa;
+
+    if (tipo === "llevar" || mesa === "Para llevar" || mesa == null || mesa === "") {
+      return "Para llevar";
+    }
+
+    return `Mesa ${mesa}`;
+  }
+
+  function obtenerPlatillosPedido(pedido) {
+    return pedido.platillos || pedido.items || pedido.detalles || [];
+  }
+
+  function obtenerNombrePlatilloPedido(item) {
+    return item.nombre || item.platillo_nombre || item.nombre_platillo || "Platillo";
+  }
+
+  function obtenerCantidadPlatilloPedido(item) {
+    return item.cantidad || item.detalle_pedido_cantidad || 1;
+  }
+
+  function calcularTiempo(fecha) {
+    const creada = new Date(fecha);
+    if (Number.isNaN(creada.getTime())) return "";
+
+    const minutos = Math.max(0, Math.floor((Date.now() - creada.getTime()) / 60000));
+    if (minutos < 60) return `Hace ${minutos} minutos`;
+
+    const horas = Math.floor(minutos / 60);
+    if (horas < 24) return `Hace ${horas} horas`;
+
+    const dias = Math.floor(horas / 24);
+    return `Hace ${dias} dias`;
+  }
+
+  function obtenerClaseEstadoPedido(estado) {
+    if (estado === "EnPreparacion") return "estado-preparando";
+    if (estado === "Listo") return "estado-completado";
+    return `estado-${String(estado || "Pendiente").toLowerCase()}`;
+  }
+
+  // ==================================================================
+  // MIS PEDIDOS ACTIVOS — Module
+  // ==================================================================
+  const PEDIDOS_POR_PAGINA = 6;
+  let misPedidosData = [];
+  let misPedidosPagina = 1;
+  let misPedidosCargando = false;
+
+  // --- Status helpers ------------------------------------------------
+  function obtenerStatusBadgeClass(estado) {
+    if (estado === "EnPreparacion") return "status-enpreparacion";
+    if (estado === "Listo") return "status-listo";
+    return "status-pendiente";
+  }
+
+  function obtenerStatusTexto(estado) {
+
+    const e = (estado || "").toLowerCase();
+
+    if (e === "enpreparacion") {
+        return "En Preparación";
+    }
+
+    if (e === "listo") {
+        return "Listo";
+    }
+
+    if (e === "pendiente") {
+        return "Pendiente";
+    }
+
+    return estado || "Pendiente";
+}
+
+  // --- Mesa helper ---------------------------------------------------
+  function obtenerTextoMesa(pedido) {
+
+    const tipo = (pedido.pedido_tipo || "").toLowerCase();
+
+    if (tipo === "llevar") {
+        return "Para llevar";
+    }
+
+    if (!pedido.mesa_numero) {
+        return "Sin mesa";
+    }
+
+    return `Mesa ${pedido.mesa_numero}`;
+}
+
+  // --- Hora de inicio ------------------------------------------------
+  function formatHoraInicio(fecha) {
+    const d = new Date(fecha);
+    if (isNaN(d.getTime())) return "--:--";
+    return d.toLocaleTimeString("es-SV", { hour: "2-digit", minute: "2-digit", hour12: true });
+  }
+
+  // --- UI state toggles ----------------------------------------------
+  function toggleMisPedidosLoading(show) {
+    const el = document.getElementById("misPedidosLoading");
+    if (el) el.style.display = show ? "flex" : "none";
+  }
+
+  function toggleMisPedidosEmpty(show) {
+    const el = document.getElementById("misPedidosEmpty");
+    if (el) el.style.display = show ? "flex" : "none";
+  }
+
+  function actualizarContadorPedidos(total) {
+    const el = document.getElementById("pedidosCount");
+    if (!el) return;
+    if (total > 0) {
+      el.textContent = `${total} pedido${total !== 1 ? "s" : ""}`;
+      el.style.display = "";
+    } else {
+      el.style.display = "none";
+    }
+  }
+
+  // --- Render single card --------------------------------------------
+  function crearCardPedido(pedido) {
+
+    const estado = (pedido.pedido_estado || "Pendiente").trim();
+
+    const esPendiente =
+        estado.toLowerCase() === "pendiente";
+
+    const esListo =
+        estado.toLowerCase() === "listo";
+
+    const esPreparacion =
+        estado.toLowerCase() === "enpreparacion";
+
+    const esLlevar =
+        (pedido.pedido_tipo || "").toLowerCase() === "llevar";
+
+    const mesaTexto = obtenerTextoMesa(pedido);
+
+    const card = document.createElement("div");
+    card.className = "pedido-activo-card";
+    card.dataset.estado = estado;
+    card.dataset.idPedido = pedido.id_pedido;
+
+    // --- Meta badges ---
+    let metaHtml = `
+      <span class="pedido-meta-item">
+        <i class="fa-solid fa-chair"></i> ${escapeHtml(mesaTexto)}
+      </span>
+      <span class="pedido-meta-item">
+        <i class="fa-solid fa-clock"></i> ${escapeHtml(formatHoraInicio(pedido.pedido_fecha_hora))}
+      </span>
+    `;
+
+    if (esLlevar) {
+      metaHtml += `
+        <span class="pedido-meta-item pedido-badge-llevar">
+          <i class="fa-solid fa-bag-shopping"></i> Para Llevar
+        </span>
+      `;
+    } else {
+      metaHtml += `
+        <span class="pedido-meta-item">
+          <i class="fa-solid fa-utensils"></i> En Salón
+        </span>
+      `;
+    }
+
+    // --- Actions based on estado ---
+    let actionsHtml = "";
+    let readonlyHtml = "";
+
+    if (esPendiente) {
+
+    actionsHtml = `
+<div class="pedido-card-actions">
+
+  <button
+      type="button"
+      class="btn-editar-pedido"
+      data-action="editar"
+      data-id="${pedido.id_pedido}">
+      <i class="fa-solid fa-pen-to-square"></i>
+      Editar Pedido
+  </button>
+
+  <button
+    type="button"
+    class="btn-cancelar-pedido"
+    data-action="cancelar"
+    data-id="${pedido.id_pedido}">
+    <i class="fa-solid fa-trash"></i>
+    Cancelar Pedido
+</button>
+
+</div>
+`;
+
+}
+else if (esListo) {
+
+    actionsHtml = `
+        <div class="pedido-card-actions">
+
+          <button type="button" class="btn-entregado" data-action="entregado" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-check-double"></i> Marcar Entregado
+          </button>
+
+          <button type="button" class="btn-ver-detalle" data-action="detalle" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-eye"></i> Ver Detalle
+          </button>
+
+        </div>
+    `;
+
+}
+else if (esPreparacion) {
+
+    readonlyHtml = `
+        <div class="pedido-card-readonly">
+          <i class="fa-solid fa-lock"></i>
+          Solo lectura — pedido en preparación
+        </div>
+    `;
+
+    actionsHtml = `
+        <div class="pedido-card-actions">
+
+          <button type="button" class="btn-ver-detalle" data-action="detalle" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-eye"></i> Ver Detalle
+          </button>
+
+        </div>
+    `;
+
+} else {
+      readonlyHtml = `
+        <div class="pedido-card-readonly">
+          <i class="fa-solid fa-lock"></i> Solo lectura — pedido en preparación
+        </div>
+      `;
+      actionsHtml = `
+        <div class="pedido-card-actions">
+          <button type="button" class="btn-ver-detalle" data-action="detalle" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-eye"></i> Ver Detalle
+          </button>
+        </div>
+      `;
+    }
+
+    card.innerHTML = `
+      <div class="pedido-card-header">
+        <span class="pedido-card-numero">
+          <i class="fa-solid fa-receipt"></i>
+          Pedido #${escapeHtml(String(pedido.id_pedido))}
+        </span>
+        <span class="pedido-status-badge ${obtenerStatusBadgeClass(estado)}">
+          ${escapeHtml(obtenerStatusTexto(estado))}
+        </span>
+      </div>
+      <div class="pedido-card-body">
+        <div class="pedido-card-meta">
+          ${metaHtml}
+        </div>
+        <div class="pedido-card-subtotal">
+          <span>Subtotal actual</span>
+          <span class="subtotal-valor">${formatPrice(pedido.pedido_total || 0)}</span>
+        </div>
+      </div>
+      ${readonlyHtml}
+      ${actionsHtml}
+    `;
+
+    // Click on card body → placeholder detalle
+    card.addEventListener("click", (e) => {
+      if (e.target.closest("button")) return;
+      abrirDetallePedido(pedido.id_pedido);
+    });
+
+    return card;
+  }
+
+  // --- Placeholder detalle -------------------------------------------
+  async function abrirDetallePedido(idPedido) {
+  try {
+
+    const res = await fetch(`/api/pedidos/${idPedido}`);
+
+    const pedido = await res.json();
+
+    if (!res.ok) {
+      throw new Error(pedido.error || "No se pudo cargar el detalle");
+    }
+
+    mostrarModalDetallePedido(pedido);
+
+  } catch (error) {
+    console.error(error);
+    toast("error", error.message);
+  }
+}
+
+  window.abrirDetallePedido = abrirDetallePedido;
+
+  function mostrarModalDetallePedido(pedido) {
+    let modalExistente = document.getElementById("modal-detalle-pedido");
+
+    if (modalExistente) {
+        modalExistente.remove();
+    }
+
+    const backdrop = document.createElement("div");
+    backdrop.className = "detalle-pedido-backdrop";
+    backdrop.id = "modal-detalle-pedido";
+
+    // Generar la lista de platillos
+    const itemsHtml = (pedido.platillos || [])
+        .map(item => {
+            const subtotal = (item.cantidad || 0) * (item.precio || 0);
+            return `
+                <div class="detalle-item">
+                    <div class="detalle-item-top">
+                        <strong>${item.nombre}</strong>
+                        <span>x${item.cantidad}</span>
+                    </div>
+                    <div class="detalle-item-bottom">
+                        <span>Unitario: $${Number(item.precio).toFixed(2)}</span>
+                        <span>Subtotal: $${subtotal.toFixed(2)}</span>
+                    </div>
+                    ${item.notas ? `
+                        <div class="detalle-nota">
+                            <i class="fa-solid fa-note-sticky"></i>
+                            ${item.notas}
+                        </div>
+                    ` : ""}
+                </div>
+            `;
+        })
+        .join("");
+
+    // Construir estructura del modal
+    backdrop.innerHTML = `
+        <div class="detalle-modal">
+            <div class="detalle-header">
+                <h2>Pedido #${pedido.id_pedido}</h2>
+                <button class="detalle-cerrar">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <div class="detalle-info-general">
+                <div><strong>Mesa:</strong> ${pedido.mesa_numero || "Para llevar"}</div>
+                <div><strong>Tipo:</strong> ${pedido.pedido_tipo}</div>
+                <div><strong>Estado:</strong> ${pedido.pedido_estado}</div>
+                <div><strong>Hora:</strong> ${new Date(pedido.pedido_fecha_hora).toLocaleString()}</div>
+                <div><strong>Subtotal:</strong> $${Number(pedido.pedido_total || 0).toFixed(2)}</div>
+            </div>
+
+            <div class="detalle-items">
+                ${itemsHtml}
+            </div>
+
+            ${// Renderizado de botones dinámicos en un solo contenedor semántico
+                (pedido.pedido_estado === "Pendiente" || pedido.pedido_estado === "EnPreparacion" || pedido.factura_id || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado")
+                ? `
+                <div class="detalle-actions">
+                    ${(pedido.pedido_estado === "Pendiente" || pedido.pedido_estado === "EnPreparacion") ? `
+                        <button class="btn-cancelar-pedido" data-pedido="${pedido.id_pedido}">
+                            <i class="fa-solid fa-ban"></i> Cancelar Pedido
+                        </button>
+                    ` : ""}
+
+                    ${pedido.factura_id ? `
+                        <button class="btn-ver-factura" data-factura="${pedido.factura_id}">
+                            <i class="fa-solid fa-file-invoice"></i> Ver Factura
+                        </button>
+                    ` : ""}
+
+                    ${(pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado") ? `
+                        <button class="btn-generar-factura" data-pedido="${pedido.id_pedido}">
+                            <i class="fa-solid fa-file-invoice-dollar"></i> Generar Factura
+                        </button>
+                    ` : ""}
+                </div>
+                `
+                : ""
+            }
+        </div>
+    `;
+
+    // Inyectar en el DOM
+    document.body.appendChild(backdrop);
+
+    // --- EVENT LISTENERS ---
+
+    // Botón Cancelar Pedido
+    const btnCancelar = backdrop.querySelector(".btn-cancelar-pedido");
+    if (btnCancelar) {
+        btnCancelar.addEventListener("click", async () => {
+            const result = await Swal.fire({
+                title: "¿Está seguro?",
+                text: "¿Desea cancelar este pedido?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Cancelar Pedido",
+                cancelButtonText: "Volver",
+                confirmButtonColor: "#7a1d1d"
+            });
+            if (!result.isConfirmed) return;
+
+            try {
+                const res = await fetch(`/api/pedidos/${pedido.id_pedido}/cancelar`, {
+                    method: "DELETE"
+                });
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.error || "No se pudo cancelar el pedido");
+
+                toast("success", "Pedido cancelado correctamente");
+                backdrop.remove();
+                if (typeof cargarMisPedidos === "function") cargarMisPedidos();
+            } catch (error) {
+                toast("error", error.message);
+            }
+        });
+    }
+
+    // Botón Ver Factura
+    const btnFactura = backdrop.querySelector(".btn-ver-factura");
+    if (btnFactura) {
+        btnFactura.addEventListener("click", () => {
+            const facturaId = btnFactura.dataset.factura;
+            console.log("Ver factura:", facturaId);
+            toast("info", `Factura #${facturaId}`);
+        });
+    }
+
+    // Botón Generar Factura (Si necesitas su lógica luego)
+    const btnGenerarFactura = backdrop.querySelector(".btn-generar-factura");
+    if (btnGenerarFactura) {
+        btnGenerarFactura.addEventListener("click", () => {
+            console.log("Generar factura para pedido:", pedido.id_pedido);
+            // Tu lógica para facturar aquí...
+        });
+    }
+
+    // Cerrar desde la 'X'
+    backdrop.querySelector(".detalle-cerrar").addEventListener("click", () => {
+        backdrop.remove();
+    });
+
+    // Cerrar al hacer click en el fondo (Backdrop)
+    backdrop.addEventListener("click", (e) => {
+        if (e.target === backdrop) {
+            backdrop.remove();
+        }
+    });
+} // <-- Fin de la función mostrarModalDetallePedido
+
+  // --- Render all cards with pagination -------------------------------
+  function renderizarPedidos(pedidos) {
+    const grid = obtenerGridMisPedidos();
+    if (!grid) return;
+
+    grid.innerHTML = "";
+
+    if (!Array.isArray(pedidos) || pedidos.length === 0) {
+      toggleMisPedidosEmpty(true);
+      actualizarContadorPedidos(0);
+      actualizarPaginacion(0);
+      return;
+    }
+
+    toggleMisPedidosEmpty(false);
+    actualizarContadorPedidos(pedidos.length);
+
+    // Sort: most recent first (already from API but ensure client-side)
+    const sorted = [...pedidos].sort((a, b) => {
+      return new Date(b.pedido_fecha_hora) - new Date(a.pedido_fecha_hora);
+    });
+
+    misPedidosData = sorted;
+
+    // Paginate
+    const totalPages = Math.ceil(sorted.length / PEDIDOS_POR_PAGINA);
+    if (misPedidosPagina > totalPages) misPedidosPagina = totalPages;
+    if (misPedidosPagina < 1) misPedidosPagina = 1;
+
+    const start = (misPedidosPagina - 1) * PEDIDOS_POR_PAGINA;
+    const pageItems = sorted.slice(start, start + PEDIDOS_POR_PAGINA);
+
+    pageItems.forEach((pedido, idx) => {
+      const card = crearCardPedido(pedido);
+      card.style.animationDelay = `${idx * 0.06}s`;
+      grid.appendChild(card);
+    });
+
+    actualizarPaginacion(sorted.length);
+  }
+
+  // --- Pagination controls -------------------------------------------
+  function actualizarPaginacion(total) {
+    const pagEl = document.getElementById("pedidosPagination");
+    const infoEl = document.getElementById("pagInfo");
+    const btnPrev = document.getElementById("btnPagAnterior");
+    const btnNext = document.getElementById("btnPagSiguiente");
+    if (!pagEl) return;
+
+    const totalPages = Math.max(1, Math.ceil(total / PEDIDOS_POR_PAGINA));
+
+    if (total <= PEDIDOS_POR_PAGINA) {
+      pagEl.style.display = "none";
+      return;
+    }
+
+    pagEl.style.display = "flex";
+    if (infoEl) infoEl.textContent = `Página ${misPedidosPagina} de ${totalPages}`;
+    if (btnPrev) btnPrev.disabled = misPedidosPagina <= 1;
+    if (btnNext) btnNext.disabled = misPedidosPagina >= totalPages;
+  }
+
+  // --- Edit pedido action --------------------------------------------
+  function editarPedido(idPedido) {
+    const pedido = misPedidosData.find(p => String(p.id_pedido) === String(idPedido));
+    if (!pedido) {
+      toast("error", "No se encontró el pedido");
+      return;
+    }
+
+    // Configurar el pedido activo
+    pedidoActivo = {
+      ...pedido,
+      mesa_ubicacion: "Area General" 
+    };
+    window.pedidoEditandoId = idPedido;
+
+    // Limpiar y popular contenedor de platillos
+    const container = document.getElementById("platillos-container");
+    container.innerHTML = "";
+    container.classList.remove("pedido-items-empty");
+
+    if (pedido.platillos && pedido.platillos.length > 0) {
+      pedido.platillos.forEach(platilloObj => {
+        let pId = platilloObj.id_platillo;
+        let pPrecio = platilloObj.precio;
+
+        // Fallback: si el backend no devolvió id_platillo o precio (ej. servidor no reiniciado)
+        if (!pId || pPrecio === undefined) {
+          const platilloEnMenu = (window.menuItems || []).find(m => m.platillo_nombre === platilloObj.nombre);
+          if (platilloEnMenu) {
+            pId = platilloEnMenu.id_platillo;
+            pPrecio = platilloEnMenu.platillo_precio;
+          }
+        }
+
+        const p = {
+          id_platillo: pId,
+          platillo_nombre: platilloObj.nombre,
+          platillo_precio: pPrecio
+        };
+        const fila = crearFilaPlatillo(p, platilloObj.cantidad, platilloObj.id_detalle || null);
+        container.appendChild(fila);
+      });
+    } else {
+      renderEstadoPedidoVacio();
+    }
+
+    // Actualizar tipo de pedido (Salón vs Llevar)
+    const tipo = (pedido.pedido_tipo || "salon").toLowerCase();
+    const typeBtn = document.querySelector(`.pedido-type-btn[data-type="${tipo}"]`);
+    if (typeBtn) {
+      document.querySelectorAll(".pedido-type-btn").forEach(b => b.classList.remove("active"));
+      typeBtn.classList.add("active");
+    }
+    
+    aplicarTipoPedido(tipo);
+    actualizarSubtotal();
+    actualizarBloqueoTipoPedido();
+    syncPedidoActualGlobal();
+    actualizarEstadoBotonesMenu();
+
+    mostrarViews("tomar-pedido");
+    mostrarFormularioPedido();
+  }
+
+  window.renderizarPedidos = renderizarPedidos;
+  window.calcularTiempo = calcularTiempo;
+  window.editarPedido = editarPedido;
+
+  // --- Main data loader -----------------------------------------------
+  async function cargarMisPedidos() {
+    if (misPedidosCargando) return;
+    misPedidosCargando = true;
+
+    const grid = obtenerGridMisPedidos();
+    const btnRefresh = document.getElementById("btnActualizarPedidos");
+
+    toggleMisPedidosLoading(true);
+    toggleMisPedidosEmpty(false);
+    if (grid) grid.innerHTML = "";
+    if (btnRefresh) btnRefresh.classList.add("loading");
+
+    try {
+      const res = await fetch("/api/pedidos/mis-pedidos");
+
+      if (!res.ok) {
+        throw new Error("Error al cargar pedidos");
+      }
+
+      const pedidos = await res.json();
+      renderizarPedidos(pedidos);
+    } catch (error) {
+      console.error(error);
+      toggleMisPedidosEmpty(true);
+      toast("error", "No se pudieron cargar los pedidos");
+    } finally {
+      misPedidosCargando = false;
+      toggleMisPedidosLoading(false);
+      if (btnRefresh) btnRefresh.classList.remove("loading");
+    }
+  }
+
+  window.cargarMisPedidos = cargarMisPedidos;
+
+  function setupMisPedidosViewHook() {
+    if (typeof window.mostrarViews !== "function") return;
+
+    const mostrarViewsOriginal = window.mostrarViews;
+    window.mostrarViews = function (seccion) {
+      mostrarViewsOriginal(seccion);
+
+      if (seccion === "pedidos-pendientes") {
+        misPedidosPagina = 1;
+        cargarMisPedidos();
+      }
+    };
   }
 
   function obtenerPlatilloPorId(idPlatillo) {
@@ -441,15 +1131,17 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function crearFilaPlatillo(platillo, cantidad = 1) {
+  function crearFilaPlatillo(platillo, cantidad = 1, id_detalle = null) {
     const row = document.createElement("div");
     row.className = "platillo-row";
     row.dataset.idPlatillo = platillo.id_platillo;
     row.dataset.precio = Number(platillo.platillo_precio) || 0;
+    if (id_detalle) row.dataset.idDetalle = id_detalle;
 
     row.innerHTML = `
       <div class="platillo-info-pedido">
         <input type="hidden" class="platillo-id" value="${platillo.id_platillo}">
+        ${id_detalle ? `<input type="hidden" class="platillo-id-detalle" value="${id_detalle}">` : ""}
         <strong>${escapeHtml(platillo.platillo_nombre || "Sin nombre")}</strong>
         <span>${formatPrice(platillo.platillo_precio)}</span>
       </div>
@@ -572,12 +1264,49 @@ document.addEventListener("DOMContentLoaded", () => {
 
     container.addEventListener("click", (e) => {
       if (e.target.closest(".btn-eliminar-fila")) {
-        e.target.closest(".platillo-row")?.remove();
-        renderEstadoPedidoVacio();
-        actualizarBloqueoTipoPedido();
-        actualizarSubtotal();
-        syncPedidoActualGlobal();
-        actualizarEstadoBotonesMenu();
+        const row = e.target.closest(".platillo-row");
+        const nombre = row?.querySelector("strong")?.textContent?.trim() || "este platillo";
+
+        Swal.fire({
+          title: `¿Eliminar ${nombre} del pedido?`,
+          text: "Esta acción no se puede deshacer.",
+          icon: "warning",
+          showCancelButton: true,
+          confirmButtonText: "Eliminar",
+          cancelButtonText: "Cancelar"
+        }).then(async (result) => {
+          if (!result.isConfirmed) return;
+
+          const idDetalle = row.dataset.idDetalle || row.querySelector('.platillo-id-detalle')?.value;
+
+          if (idDetalle) {
+            try {
+              const res = await fetch(`/api/pedidos/platillos/${idDetalle}`, { method: "DELETE" });
+              const data = await res.json();
+              if (!res.ok) throw new Error(data.error || "Error al eliminar platillo");
+              toast("success", data.message || "Platillo eliminado correctamente");
+              row.remove();
+              renderEstadoPedidoVacio();
+              actualizarBloqueoTipoPedido();
+              actualizarSubtotal();
+              syncPedidoActualGlobal();
+              actualizarEstadoBotonesMenu();
+            } catch (err) {
+              console.error(err);
+              toast("error", err.message || "No se pudo eliminar el platillo");
+            }
+          } else {
+            row.remove();
+            renderEstadoPedidoVacio();
+            actualizarBloqueoTipoPedido();
+            actualizarSubtotal();
+            syncPedidoActualGlobal();
+            actualizarEstadoBotonesMenu();
+            toast("success", "Platillo eliminado del pedido");
+          }
+        });
+
+        return;
       }
 
       if (e.target.closest(".btn-aumentar-cantidad")) {
@@ -661,6 +1390,165 @@ document.addEventListener("DOMContentLoaded", () => {
         btnActualizar.innerHTML = `<i class="fa-solid fa-rotate"></i> Actualizar`;
       });
     }
+
+    setupMisPedidosViewHook();
+
+    // --- Mis Pedidos: Refresh button ---
+    const btnRefreshPedidos = document.getElementById("btnActualizarPedidos");
+    if (btnRefreshPedidos) {
+      btnRefreshPedidos.addEventListener("click", () => {
+        misPedidosPagina = 1;
+        cargarMisPedidos();
+      });
+    }
+
+    // --- Mis Pedidos: Pagination ---
+    const btnPagPrev = document.getElementById("btnPagAnterior");
+    const btnPagNext = document.getElementById("btnPagSiguiente");
+    if (btnPagPrev) {
+      btnPagPrev.addEventListener("click", () => {
+        if (misPedidosPagina > 1) {
+          misPedidosPagina--;
+          renderizarPedidos(misPedidosData);
+        }
+      });
+    }
+    if (btnPagNext) {
+      btnPagNext.addEventListener("click", () => {
+        const totalPages = Math.ceil(misPedidosData.length / PEDIDOS_POR_PAGINA);
+        if (misPedidosPagina < totalPages) {
+          misPedidosPagina++;
+          renderizarPedidos(misPedidosData);
+        }
+      });
+    }
+
+    // --- Mis Pedidos: Card action delegation ---
+    const gridMisPedidos = obtenerGridMisPedidos();
+    if (gridMisPedidos) {
+      gridMisPedidos.addEventListener("click", async (event) => {
+        const btn = event.target.closest("button[data-action]");
+        if (!btn) return;
+
+        const action = btn.dataset.action;
+        const idPedido = btn.dataset.id;
+
+        if (action === "entregado") {
+          await marcarPedidoEntregadoConAnimacion(idPedido, btn.closest(".pedido-activo-card"));
+        }
+
+        if (action === "editar") {
+          editarPedido(Number(idPedido));
+        }
+
+        if (action === "detalle") {
+          abrirDetallePedido(Number(idPedido));
+        }
+
+        if (action === "cancelar") {
+
+  const result = await Swal.fire({
+    title: "¿Está seguro?",
+    text: "¿Desea cancelar este pedido?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Cancelar Pedido",
+    cancelButtonText: "Volver",
+    confirmButtonColor: "#7a1d1d"
+  });
+
+  if (!result.isConfirmed) return;
+
+  try {
+
+    const res = await fetch(
+      `/api/pedidos/${idPedido}`,
+      {
+        method: "DELETE"
+      }
+    );
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(
+        data.error || "No se pudo cancelar el pedido"
+      );
+    }
+
+    toast(
+      "success",
+      "Pedido cancelado correctamente"
+    );
+
+    cargarMisPedidos();
+
+  } catch (error) {
+
+    toast(
+      "error",
+      error.message
+    );
+  }
+}
+
+        if (action === "eliminar") {
+          modal("info", "Aún no disponible", "La función de eliminar pedidos estará disponible pronto.");
+        }
+      });
+    }
+  }
+
+  async function marcarPedidoEntregado(idPedido) {
+    if (!idPedido) return;
+
+    try {
+      const res = await fetch(`/api/pedidos/${idPedido}/entregar`, {
+        method: "PUT"
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo marcar el pedido como entregado");
+
+      toast("success", data.message || "Pedido entregado correctamente");
+      cargarMisPedidos();
+      cargarMesasPedido();
+    } catch (error) {
+      console.error(error);
+      toast("error", error.message);
+    }
+  }
+
+  // Animated version for card removal
+  async function marcarPedidoEntregadoConAnimacion(idPedido, cardElement) {
+    if (!idPedido) return;
+
+    try {
+      const res = await fetch(`/api/pedidos/${idPedido}/entregar`, {
+        method: "PUT"
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo marcar el pedido como entregado");
+
+      toast("success", data.message || "¡Pedido entregado correctamente!");
+
+      // Animate card removal
+      if (cardElement) {
+        cardElement.classList.add("card-removing");
+        cardElement.addEventListener("animationend", () => {
+          // Remove from data array
+          misPedidosData = misPedidosData.filter(p => String(p.id_pedido) !== String(idPedido));
+          renderizarPedidos(misPedidosData);
+        }, { once: true });
+      } else {
+        misPedidosData = misPedidosData.filter(p => String(p.id_pedido) !== String(idPedido));
+        renderizarPedidos(misPedidosData);
+      }
+
+      cargarMesasPedido();
+    } catch (error) {
+      console.error(error);
+      toast("error", error.message);
+    }
   }
   function obtenerItemsPedido() {
     const items = [];
@@ -676,46 +1564,81 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function enviarPedido() {
-    const typeBtn = document.querySelector(".pedido-type-btn.active");
-    const tipo = typeBtn.dataset.type === "salon" ? "Salon" : "Llevar";
-    const items = obtenerItemsPedido();
-    const notasGenerales = document.getElementById("pedido-notas-generales")?.value.trim() || "";
+  const typeBtn = document.querySelector(".pedido-type-btn.active");
+  const tipo = typeBtn.dataset.type === "salon" ? "Salon" : "Llevar";
+  const items = obtenerItemsPedido();
+  const notasGenerales = document.getElementById("pedido-notas-generales")?.value.trim() || "";
 
-    if (tipo === "Salon" && !pedidoActivo) {
-      toast("warning", "Seleccione una mesa para iniciar el pedido");
-      return;
-    }
-
-    if (items.length === 0) {
-      toast("warning", "Debe seleccionar al menos un platillo válido");
-      return;
-    }
-
-    try {
-      const url = tipo === "Salon"
-        ? `/api/pedidos/${pedidoActivo.id_pedido}/items`
-        : "/api/pedidos/crear";
-
-      const body = tipo === "Salon"
-        ? { items, notas: notasGenerales }
-        : { tipo, id_mesa: null, items, notas: notasGenerales };
-
-      const res = await fetch(url, {
-        method: tipo === "Salon" ? "PATCH" : "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body)
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Error al enviar pedido");
-
-      toast("success", "Pedido guardado correctamente");
-      resetForm();
-    } catch (error) {
-      console.error(error);
-      toast("error", error.message);
-    }
+  if (tipo === "Salon" && !pedidoActivo) {
+    toast("warning", "Seleccione una mesa para iniciar el pedido");
+    return;
   }
+
+  if (items.length === 0) {
+    toast("warning", "Debe seleccionar al menos un platillo válido");
+    return;
+  }
+
+  try {
+
+    // ==================================================
+    // VALIDAR STOCK ANTES DE ENVIAR
+    // ==================================================
+    for (const item of items) {
+
+      const resStock = await fetch(`/api/platillos/${item.id_platillo}`);
+
+      if (!resStock.ok) {
+        throw new Error("No se pudo validar inventario");
+      }
+
+      const platillo = await resStock.json();
+
+      if (platillo.stock < item.cantidad) {
+
+        toast(
+          "warning",
+          `Stock insuficiente para ${platillo.nombre}. Disponible: ${platillo.stock}`
+        );
+
+        return;
+      }
+    }
+
+    const isEditing = !!window.pedidoEditandoId;
+
+    const url = isEditing
+      ? `/api/pedidos/${pedidoActivo.id_pedido}/items`
+      : "/api/pedidos/crear";
+
+    const body = isEditing
+      ? { items, notas: notasGenerales }
+      : { tipo, id_mesa: null, items, notas: notasGenerales };
+
+    const res = await fetch(url, {
+      method: isEditing ? "PATCH" : "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      throw new Error(data.error || "Error al enviar pedido");
+    }
+
+    toast("success", "Pedido guardado correctamente");
+
+    resetForm();
+
+  } catch (error) {
+
+    console.error(error);
+
+    toast("error", error.message);
+
+  }
+}
 
   function actualizarSubtotal() {
     let subtotal = 0;
@@ -731,10 +1654,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (subtotalSpan) {
       subtotalSpan.textContent = `$${subtotal.toFixed(2)}`;
     }
+
+    const btnEnviar = document.getElementById("btn-enviar-pedido");
+    if (btnEnviar) {
+      if (rows.length > 0 && !pedidoEnviado) {
+        btnEnviar.disabled = false;
+        btnEnviar.title = "Enviar a cocina";
+        btnEnviar.style.cursor = "pointer";
+        btnEnviar.style.opacity = "1";
+      } else {
+        btnEnviar.disabled = true;
+        btnEnviar.title = "Agrega al menos un platillo";
+        btnEnviar.style.cursor = "not-allowed";
+        btnEnviar.style.opacity = "0.6";
+      }
+    }
   }
 
   function resetForm() {
     pedidoActivo = null;
+    window.pedidoEditandoId = null;
 
     const container = document.getElementById("platillos-container");
     container.innerHTML = '<p class="pedido-empty-text">Agregue platillos desde el menú.</p>';

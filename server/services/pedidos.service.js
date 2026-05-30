@@ -6,7 +6,6 @@ const generarNumeroPedido = async (connection) => {
     "SELECT YEAR(CURRENT_DATE()) AS anio"
   );
 
-
   const lockName = `pedidos_correlativo_${anio}`;
   const [[lockResult]] = await connection.query(
     "SELECT GET_LOCK(?, 10) AS lock_obtenido",
@@ -173,6 +172,12 @@ export const agregarItemsPedido = async ({ id_pedido, items }) => {
         { status: 400 }
       );
     }
+
+    // Eliminar todos los detalles existentes para reemplazarlos
+    await connection.query(
+      "DELETE FROM detalle_pedido WHERE id_pedido = ?",
+      [id_pedido]
+    );
 
     for (const item of items) {
       const [platillo] = await connection.query(
@@ -624,6 +629,104 @@ export const modificarCantidadPlatillo = async ({ id_detalle, cantidad }) => {
   };
 };
 
+
+ 
+// Enviar pedido a cocina
+export const enviarPedidoACocina = async (id_pedido, userId) => {
+
+  const [rows] = await db.query(`
+    SELECT pedido_estado
+    FROM pedidos
+    WHERE id_pedido = ? AND id_mesero = ?
+  `, [id_pedido, userId]);
+
+  if (rows.length === 0) {
+    throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+  }
+
+  if (rows[0].pedido_estado !== "Pendiente") {
+    throw Object.assign(
+      new Error("Solo pedidos pendientes pueden enviarse a cocina"),
+      { status: 400 }
+    );
+  }
+
+  
+  //VALIDACION PPARA ENVIOS VACIOS A COCINA
+  const [detalle] = await db.query(`
+    SELECT COUNT(*) AS total
+    FROM detalle_pedido
+    WHERE id_pedido = ?
+  `, [id_pedido]);
+
+  if (detalle[0].total === 0) {
+    throw Object.assign(
+      new Error("No puedes enviar un pedido sin platillos"),
+      { status: 400 }
+    );
+  }
+
+  // DESPUÉS SE ACTUALIZA
+  await db.query(`
+    UPDATE pedidos
+    SET 
+      pedido_estado = 'EnPreparacion',
+      pedido_enviado_cocina_en = NOW()
+    WHERE id_pedido = ?
+  `, [id_pedido]);
+
+  return {
+    message: "Pedido enviado a cocina"
+  };
+};
+
+// Marcar pedido como entregado
+export const marcarPedidoEntregado = async (id_pedido, userId) => {
+
+  const [rows] = await db.query(`
+    SELECT pedido_estado, id_mesa
+    FROM pedidos
+    WHERE id_pedido = ? AND id_mesero = ?
+  `, [id_pedido, userId]);
+
+  if (rows.length === 0) {
+    throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+  }
+
+  const pedido = rows[0];
+
+  // Solo pedidos listos
+  if (pedido.pedido_estado !== "Listo") {
+    throw Object.assign(
+      new Error("Solo pedidos en estado 'Listo' pueden entregarse"),
+      { status: 400 }
+    );
+  }
+
+const [result] = await db.query(`
+  UPDATE pedidos
+  SET 
+    pedido_estado = 'Entregado',
+    pedido_entregado_en = NOW()
+  WHERE id_pedido = ? AND pedido_estado = 'Listo'
+`, [id_pedido]);
+
+if (result.affectedRows === 0) {
+  throw Object.assign(
+    new Error("El pedido ya no está en estado 'Listo'"),
+    { status: 400 }
+  );
+}
+
+  // liberar mesa automáticamente
+  if (pedido.id_mesa) {
+    await cambiarEstadoMesa(pedido.id_mesa, "Disponible");
+  }
+
+  return {
+    message: "Pedido entregado correctamente"
+  };
+};
 //Ver pedidos activos del mesero
 export const obtenerPedidosActivosMesero = async (id_mesero) => {
 
@@ -634,17 +737,58 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
         p.pedido_estado,
         p.pedido_total,
         p.pedido_fecha_hora,
-        m.mesa_numero
+        m.mesa_numero,
+        dp.id_detalle,
+        dp.detalle_pedido_cantidad,
+        dp.detalle_pedido_notas,
+        pl.id_platillo,
+        pl.platillo_nombre,
+        pl.platillo_precio
      FROM pedidos p
      LEFT JOIN mesas m
         ON p.id_mesa = m.id_mesa
+     LEFT JOIN detalle_pedido dp
+        ON p.id_pedido = dp.id_pedido
+     LEFT JOIN platillos pl
+        ON dp.id_platillo = pl.id_platillo
      WHERE p.id_mesero = ?
-       AND p.pedido_estado NOT IN ('Facturado', 'Anulado')
+       AND p.pedido_estado IN ('Pendiente', 'EnPreparacion', 'Listo')
      ORDER BY p.pedido_fecha_hora DESC`,
     [id_mesero]
   );
 
-  return rows;
+  const pedidosMap = {};
+
+  rows.forEach((row) => {
+    if (!pedidosMap[row.id_pedido]) {
+      pedidosMap[row.id_pedido] = {
+        id_pedido: row.id_pedido,
+        pedido_tipo: row.pedido_tipo,
+        pedido_estado: row.pedido_estado,
+        pedido_total: row.pedido_total,
+        pedido_fecha_hora: row.pedido_fecha_hora,
+        mesa:
+          row.pedido_tipo === "Llevar"
+            ? "Para llevar"
+            : row.mesa_numero,
+        mesa_numero: row.mesa_numero,
+        platillos: []
+      };
+    }
+
+    if (row.id_detalle) {
+      pedidosMap[row.id_pedido].platillos.push({
+        id_detalle: row.id_detalle,
+        id_platillo: row.id_platillo,
+        nombre: row.platillo_nombre,
+        precio: row.platillo_precio,
+        cantidad: row.detalle_pedido_cantidad,
+        notas: row.detalle_pedido_notas
+      });
+    }
+  });
+
+  return Object.values(pedidosMap);
 };
 
 // Cancelar pedido
@@ -910,4 +1054,3 @@ export const cambiarEstadoPedidoCocina = async (
         : "Pedido marcado como listo"
   };
 };
-
