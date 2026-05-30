@@ -457,6 +457,41 @@
 
             </div>
 
+            <!-- MIS PEDIDOS ACTIVOS -->
+            <div id="pedidos-pendientes" style="display: none;">
+                <div class="mis-pedidos-header">
+                    <div class="mis-pedidos-title-group">
+                        <h1>Mis Pedidos Activos</h1>
+                        <span class="mis-pedidos-count" id="pedidosCount"></span>
+                    </div>
+                    <button type="button" class="btn-actualizar-pedidos" id="btnActualizarPedidos" title="Actualizar pedidos">
+                        <i class="fa-solid fa-arrows-rotate"></i>
+                        <span>Actualizar</span>
+                    </button>
+                </div>
+
+                <div class="mis-pedidos-loading" id="misPedidosLoading" style="display: none;">
+                    <div class="mis-pedidos-spinner"></div>
+                    <span>Cargando pedidos...</span>
+                </div>
+
+                <div class="mis-pedidos-empty" id="misPedidosEmpty" style="display: none;">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    <p>No tienes pedidos activos actualmente</p>
+                    <span>Los pedidos que inicies aparecerán aquí</span>
+                </div>
+
+                <div class="grid-pedidos" id="gridPedidosActivos"></div>
+
+                <div class="mis-pedidos-pagination" id="pedidosPagination" style="display: none;">
+                    <button type="button" class="btn-pag" id="btnPagAnterior" disabled>
+                        <i class="fa-solid fa-chevron-left"></i> Anterior
+                    </button>
+                    <span class="pag-info" id="pagInfo">Página 1 de 1</span>
+                    <button type="button" class="btn-pag" id="btnPagSiguiente">
+                        Siguiente <i class="fa-solid fa-chevron-right"></i>
+                    </button>
+
             <!-- PEDIDOS -->
             <div id="pedidos-pendientes" style="display: none;">
 
@@ -486,6 +521,7 @@
                 <div id="grid-pedidos-mesero" class="grid-pedidos">
 
                     <!-- JS -->
+
 
                 </div>
 
