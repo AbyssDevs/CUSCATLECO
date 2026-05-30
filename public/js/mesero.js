@@ -781,17 +781,27 @@ else if (esPreparacion) {
     backdrop.className = "detalle-pedido-backdrop";
     backdrop.id = "modal-detalle-pedido";
 
-    // 1. Generar la lista de platillos con el formato del boceto
+    // 1. Generar la lista de platillos con soporte para múltiples esquemas de nombres (Corrige undefined y NaN)
     const itemsHtml = (pedido.platillos || [])
         .map(item => {
-            const subtotal = (item.cantidad || 0) * (item.precio || 0);
+            // Soporta item.nombre, item.platillo_nombre, item.nombre_platillo
+            const nombrePlatillo = item.nombre || item.platillo_nombre || item.nombre_platillo || "Platillo";
+            
+            // Soporta item.cantidad o item.det_cantidad
+            const cantidad = item.cantidad || item.det_cantidad || 0;
+            
+            // Soporta item.precio o item.precio_unitario
+            const precio = item.precio || item.precio_unitario || 0;
+            
+            const subtotal = cantidad * precio;
+
             return `
                 <div class="detalle-item">
                     <div class="detalle-item-top">
-                        <strong>${item.cantidad}x ${item.nombre}</strong>
+                        <strong>${cantidad}x ${nombrePlatillo}</strong>
                     </div>
                     <div class="detalle-item-bottom">
-                        <span>Precio unitario: $${Number(item.precio).toFixed(2)}</span>
+                        <span>Precio unitario: $${Number(precio).toFixed(2)}</span>
                         <span>Subtotal: $${subtotal.toFixed(2)}</span>
                     </div>
                     ${item.notas ? `
@@ -834,7 +844,7 @@ else if (esPreparacion) {
     if (pedido.pedido_estado === "EnPreparacion") estadoEmoji = "🟠";
     if (pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado") estadoEmoji = "🟢";
 
-    // 4. Construir la estructura semántica y limpia del modal
+    // 4. Construir la estructura semántica del modal
     backdrop.innerHTML = `
         <div class="detalle-modal">
             <div class="detalle-header">
@@ -869,7 +879,7 @@ else if (esPreparacion) {
                 </div>
             </div>
 
-            ${// Renderizado de botones de acción inferiores agrupados de manera coherente
+            ${
                 (pedido.pedido_estado === "Pendiente" || pedido.pedido_estado === "EnPreparacion" || pedido.factura_id || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado")
                 ? `
                 <div class="detalle-actions">
@@ -902,12 +912,10 @@ else if (esPreparacion) {
         </div>
     `;
 
-    // Inyectar en el DOM
     document.body.appendChild(backdrop);
 
     // --- EVENT LISTENERS ---
 
-    // Botón Editar Pedido (Invoca la función nativa que ya posees en mesero.js)
     const btnEditarModal = backdrop.querySelector(".btn-editar-pedido-modal");
     if (btnEditarModal) {
         btnEditarModal.addEventListener("click", () => {
@@ -916,7 +924,6 @@ else if (esPreparacion) {
         });
     }
 
-    // Botón Cancelar Pedido con SweetAlert2
     const btnCancelar = backdrop.querySelector(".btn-cancelar-pedido");
     if (btnCancelar) {
         btnCancelar.addEventListener("click", async () => {
@@ -933,7 +940,7 @@ else if (esPreparacion) {
 
             try {
                 const res = await fetch(`/api/pedidos/${pedido.id_pedido}/cancelar`, {
-                    method: "DELETE" // Mantiene el método DELETE que tenías configurado
+                    method: "DELETE"
                 });
                 const data = await res.json();
 
@@ -948,17 +955,14 @@ else if (esPreparacion) {
         });
     }
 
-    // Botón Ver Factura
     const btnFactura = backdrop.querySelector(".btn-ver-factura");
     if (btnFactura) {
         btnFactura.addEventListener("click", () => {
             const facturaId = btnFactura.dataset.factura;
-            console.log("Ver factura:", facturaId);
             toast("info", `Factura #${facturaId}`);
         });
     }
 
-    // Botón Generar Factura
     const btnGenerarFactura = backdrop.querySelector(".btn-generar-factura");
     if (btnGenerarFactura) {
         btnGenerarFactura.addEventListener("click", () => {
@@ -966,9 +970,7 @@ else if (esPreparacion) {
         });
     }
 
-    // Lógica unificada para cerrar el modal
     const cerrarModal = () => backdrop.remove();
-
     backdrop.querySelector(".detalle-cerrar").addEventListener("click", cerrarModal);
     
     const btnCerrarDirecto = backdrop.querySelector(".btn-cerrar-modal-directo");
