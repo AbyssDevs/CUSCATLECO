@@ -1,5 +1,167 @@
 window.tipoPedidoCajero = "Para llevar";
 
+// Estado local del pedido que se está construyendo. menu.js también lo lee
+// (window.pedidoActual?.items) para marcar los platillos ya agregados.
+window.pedidoActual = window.pedidoActual || { items: [] };
+
+// Mapea el texto de la UI al valor que exige el backend (/api/pedidos/iniciar).
+function tipoPedidoApi() {
+  return window.tipoPedidoCajero === "Comer aquí" ? "Salon" : "Llevar";
+}
+
+// Busca un platillo dentro del catálogo cargado por menu.js.
+function buscarPlatilloEnMenu(idPlatillo) {
+  const catalogo = window.menuItems || [];
+  return catalogo.find((p) => String(p.id_platillo) === String(idPlatillo)) || null;
+}
+
+// Agrega (o incrementa) un platillo en el pedido actual.
+function agregarPlatilloAlPedidoCajero(idPlatillo) {
+  const platillo = buscarPlatilloEnMenu(idPlatillo);
+  if (!platillo) return;
+
+  const disponible =
+    platillo.platillo_disponible === true ||
+    platillo.platillo_disponible === 1 ||
+    platillo.platillo_disponible === "1";
+  if (!disponible) return;
+
+  const id = String(platillo.id_platillo);
+  const existente = window.pedidoActual.items.find((i) => String(i.id_platillo) === id);
+
+  if (existente) {
+    existente.cantidad = Math.min((Number(existente.cantidad) || 1) + 1, 99);
+  } else {
+    window.pedidoActual.items.push({
+      id_platillo: platillo.id_platillo,
+      nombre: platillo.platillo_nombre || "Platillo",
+      precio: Number(platillo.platillo_precio) || 0,
+      cantidad: 1,
+    });
+  }
+
+  renderPedidoActualCajero();
+}
+
+// Recalcula y pinta el subtotal del pedido.
+function actualizarSubtotalCajero() {
+  const subtotalEl = document.getElementById("subtotal-pedido");
+  if (!subtotalEl) return;
+
+  const subtotal = window.pedidoActual.items.reduce(
+    (acc, item) => acc + (Number(item.precio) || 0) * (Number(item.cantidad) || 0),
+    0
+  );
+  subtotalEl.textContent = `$${subtotal.toFixed(2)}`;
+}
+
+// Sincroniza las insignias del menú (cantidad y texto del botón "Agregar").
+// menu.js invoca window.actualizarEstadoBotonesMenu tras cada render del menú.
+function actualizarEstadoBotonesMenuCajero() {
+  const cantidades = new Map(
+    window.pedidoActual.items.map((i) => [String(i.id_platillo), Number(i.cantidad) || 0])
+  );
+
+  document.querySelectorAll(".btn-agregar[data-id-platillo]").forEach((button) => {
+    if (button.dataset.disponible === "false") return;
+    const cantidad = cantidades.get(String(button.dataset.idPlatillo)) || 0;
+    const enPedido = cantidad > 0;
+    const icon = enPedido ? "fa-plus-circle" : "fa-plus";
+    const defaultText = button.dataset.defaultText || "Agregar";
+    button.innerHTML = `<i class="fa-solid ${icon}"></i> ${enPedido ? "Agregar otro" : defaultText}`;
+  });
+
+  document.querySelectorAll(".menu-cantidad-pedido[data-id-platillo]").forEach((label) => {
+    const cantidad = cantidades.get(String(label.dataset.idPlatillo)) || 0;
+    if (cantidad > 0) {
+      label.textContent = `Cantidad: ${cantidad}`;
+      label.style.display = "";
+    } else {
+      label.textContent = "";
+      label.style.display = "none";
+    }
+  });
+}
+window.actualizarEstadoBotonesMenu = actualizarEstadoBotonesMenuCajero;
+
+// Pinta la lista de platillos del pedido actual (o el estado vacío).
+function renderPedidoActualCajero() {
+  const container = document.getElementById("platillos-container");
+  if (!container) return;
+
+  const items = window.pedidoActual.items;
+
+  if (items.length === 0) {
+    container.classList.add("pedido-items-empty");
+    container.innerHTML = '<p class="pedido-empty-text">Agregue platillos desde el menú.</p>';
+  } else {
+    container.classList.remove("pedido-items-empty");
+    container.innerHTML = items
+      .map((item) => {
+        const id = String(item.id_platillo);
+        const precio = Number(item.precio) || 0;
+        const cantidad = Number(item.cantidad) || 0;
+        return `
+          <div class="fila-platillo" data-id-platillo="${id}">
+            <div class="fp-info">
+              <strong>${item.nombre}</strong>
+              <span>$${precio.toFixed(2)} c/u</span>
+            </div>
+            <div class="fp-cantidad">
+              <button type="button" class="fp-btn" data-accion="restar" title="Quitar uno">&minus;</button>
+              <span class="fp-num">${cantidad}</span>
+              <button type="button" class="fp-btn" data-accion="sumar" title="Agregar uno">+</button>
+            </div>
+            <span class="fp-total">$${(precio * cantidad).toFixed(2)}</span>
+            <button type="button" class="fp-eliminar" data-accion="eliminar" title="Eliminar platillo">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        `;
+      })
+      .join("");
+  }
+
+  actualizarSubtotalCajero();
+  actualizarEstadoBotonesMenuCajero();
+}
+
+// Controles +/-/eliminar dentro del contenedor del pedido (delegación).
+function inicializarControlesPedidoActual() {
+  const container = document.getElementById("platillos-container");
+  if (!container) return;
+
+  container.addEventListener("click", (event) => {
+    const boton = event.target.closest("[data-accion]");
+    if (!boton) return;
+
+    const fila = boton.closest(".fila-platillo");
+    if (!fila) return;
+
+    const id = String(fila.dataset.idPlatillo);
+    const item = window.pedidoActual.items.find((i) => String(i.id_platillo) === id);
+    if (!item) return;
+
+    const accion = boton.dataset.accion;
+    if (accion === "sumar") {
+      item.cantidad = Math.min((Number(item.cantidad) || 1) + 1, 99);
+    } else if (accion === "restar") {
+      item.cantidad = (Number(item.cantidad) || 1) - 1;
+      if (item.cantidad < 1) {
+        window.pedidoActual.items = window.pedidoActual.items.filter(
+          (i) => String(i.id_platillo) !== id
+        );
+      }
+    } else if (accion === "eliminar") {
+      window.pedidoActual.items = window.pedidoActual.items.filter(
+        (i) => String(i.id_platillo) !== id
+      );
+    }
+
+    renderPedidoActualCajero();
+  });
+}
+
 function actualizarTipoPedidoCajero() {
   const mesaSelect = document.getElementById("mesaPedidoCajero");
   const activeButton = document.querySelector(".pedido-type-btn.active");
@@ -58,14 +220,22 @@ function configurarFormularioPedidoCajero() {
       return;
     }
 
+    // El backend espera { tipo: "Salon"|"Llevar", id_mesa, items:[{id_platillo,cantidad}] }.
+    const items = window.pedidoActual.items.map((i) => ({
+      id_platillo: i.id_platillo,
+      cantidad: Number(i.cantidad) || 1,
+    }));
+
     const payload = {
+      // Contrato real de /api/pedidos/iniciar:
+      tipo: tipoPedidoApi(), // "Para llevar" (UI) -> "Llevar" (API)
+      id_mesa: mesaPedido,
+      items,
+      // Datos del cliente: se envían para la integración aunque el backend
+      // aún no los persista (no hay columnas cliente/telefono/observaciones).
       cliente: nombreCliente,
-      telefono: telefonoCliente || "",
-      observaciones: observacionesPedido || "",
-      tipo: window.tipoPedidoCajero, // "Para llevar" por defecto
-      mesa: mesaPedido,
-      estado: "Pendiente",
-      productos: [],
+      telefono: telefonoCliente,
+      observaciones: observacionesPedido,
     };
 
     if (botonIniciar) {
@@ -99,6 +269,8 @@ function configurarFormularioPedidoCajero() {
       });
 
       form.reset();
+      window.pedidoActual.items = [];
+      renderPedidoActualCajero();
       actualizarTipoPedidoCajero();
 
       if (typeof actualizarEstadoMesaCajero === "function") {
@@ -199,46 +371,28 @@ function renderCobrosTabla(pedidos = []) {
 }
 
 function inicializarDelegacionAgregarPlatillo() {
-  const contenedorMenu = document.querySelector(".menu-table-body") || document.getElementById("menuTableBody") || document;
+  // Delegamos sobre toda la vista para capturar el clic tanto en la tabla
+  // (.menu-table-body) como en las tarjetas (.menu-card-list), aunque se
+  // re-rendericen dinámicamente.
+  const contenedor = document.getElementById("tomar-pedido") || document;
 
-  contenedorMenu.addEventListener("click", async (event) => {
+  contenedor.addEventListener("click", (event) => {
     const button = event.target.closest(".btn-agregar");
-    if (!button) return;
+    if (!button || button.disabled) return;
     event.preventDefault();
 
-    // BLOQUEO REGLA DE JIRA: Evita agregar comida a órdenes en cocina o ya cobradas
-    if (
-      window.estadoPedidoActualCajero === "pendiente" || 
-      window.estadoPedidoActualCajero === "en preparación" || 
-      window.estadoPedidoActualCajero === "en preparacion" || 
-      window.estadoPedidoActualCajero === "listo para entregar" ||
-      window.pedidoTieneFacturaActual === true
-    ) {
-      await Swal.fire({
-        icon: "error",
-        title: "Acción no permitida",
-        text: "No se pueden añadir platillos a un pedido en proceso o que ya fue facturado.",
-      });
-      return;
-    }
-
-    if (button.disabled) return;
-
-    const idPlatillo = button.getAttribute("data-id") || button.getAttribute("data-id-platillo");
-    const nombrePlatillo = button.getAttribute("data-nombre") || button.getAttribute("data-platillo-nombre") || "";
-    const precioPlatillo = parseFloat(button.getAttribute("data-precio"));
-
+    const idPlatillo =
+      button.getAttribute("data-id-platillo") || button.getAttribute("data-id");
     if (!idPlatillo) return;
 
-    if (typeof window.agregarAlPedidoDesdeMenu === "function") {
-      window.agregarAlPedidoDesdeMenu(idPlatillo);
-      return;
-    }
-
-    if (typeof window.agregarPlatilloAlPedido === "function") {
-      window.agregarPlatilloAlPedido(idPlatillo, nombrePlatillo, Number.isNaN(precioPlatillo) ? null : precioPlatillo);
-    }
+    agregarPlatilloAlPedidoCajero(idPlatillo);
   });
+
+  // menu.js renderiza cada botón con onclick="agregarAlPedidoDesdeMenu(id)"
+  // (función del flujo de mesero). En el cajero el clic ya se maneja por la
+  // delegación de arriba, así que dejamos este global inofensivo para no
+  // agregar el platillo dos veces por clic.
+  window.agregarAlPedidoDesdeMenu = function () {};
 }
 
 function configurarCajeroPedido() {
@@ -254,6 +408,8 @@ function configurarCajeroPedido() {
   actualizarTipoPedidoCajero();
   configurarFormularioPedidoCajero();
   inicializarDelegacionAgregarPlatillo();
+  inicializarControlesPedidoActual();
+  renderPedidoActualCajero();
 }
 
 window.addEventListener("DOMContentLoaded", () => {

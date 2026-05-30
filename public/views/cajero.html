@@ -133,9 +133,9 @@
         margin-left: 4px;
       }
 
-      /* Inputs y textarea con ancho controlado y bordes consistentes */
-      #tomar-pedido .form-group input,
-      #tomar-pedido .form-group textarea {
+      /* Inputs y textarea del pedido: clase neutral (sin vínculo con la
+         búsqueda de menu.js), con ancho controlado y bordes consistentes */
+      #tomar-pedido .form-control-pedido {
         width: 100%;
         box-sizing: border-box;
         padding: 11px 14px;
@@ -149,15 +149,93 @@
         transition: border-color 0.2s ease, box-shadow 0.2s ease;
       }
 
-      #tomar-pedido .form-group textarea {
+      #tomar-pedido textarea.form-control-pedido {
         min-height: 90px;
         resize: vertical;
       }
 
-      #tomar-pedido .form-group input:focus,
-      #tomar-pedido .form-group textarea:focus {
+      #tomar-pedido .form-control-pedido:focus {
         border-color: #7a1d1d;
         box-shadow: 0 0 0 3px rgba(122, 29, 29, 0.12);
+      }
+
+      /* Filas de platillos dentro de "Pedido Actual" */
+      #platillos-container .fila-platillo {
+        gap: 12px;
+        padding: 10px 4px;
+      }
+
+      #platillos-container .fp-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+      }
+
+      #platillos-container .fp-info strong {
+        color: #222;
+        font-size: 0.92rem;
+        overflow-wrap: anywhere;
+      }
+
+      #platillos-container .fp-info span {
+        color: #777;
+        font-size: 0.8rem;
+      }
+
+      #platillos-container .fp-cantidad {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #platillos-container .fp-btn {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        font-size: 1rem;
+        line-height: 1;
+        font-weight: 700;
+        border-radius: 6px;
+        background: #7a1d1d;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+
+      #platillos-container .fp-btn:hover {
+        background: #661515;
+      }
+
+      #platillos-container .fp-num {
+        min-width: 20px;
+        text-align: center;
+        font-weight: 700;
+        color: #333;
+      }
+
+      #platillos-container .fp-total {
+        font-weight: 700;
+        color: #248a4c;
+        min-width: 64px;
+        text-align: right;
+      }
+
+      #platillos-container .fp-eliminar {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border-radius: 6px;
+        background: #c53030;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+
+      #platillos-container .fp-eliminar:hover {
+        background: #e53935;
       }
 
       /* Estado vacío del pedido actual */
@@ -320,17 +398,17 @@
 
                             <div class="form-group">
                                 <label for="nombreClienteCajero">Nombre del Cliente *</label>
-                                <input type="text" id="nombreClienteCajero" class="menu-search-input" placeholder="Nombre del cliente">
+                                <input type="text" id="nombreClienteCajero" class="form-control-pedido" placeholder="Nombre del cliente">
                             </div>
 
                             <div class="form-group">
                                 <label for="telefonoClienteCajero">Teléfono <small>Opcional</small></label>
-                                <input type="tel" id="telefonoClienteCajero" class="menu-search-input" placeholder="Teléfono del cliente (Opcional)">
+                                <input type="tel" id="telefonoClienteCajero" class="form-control-pedido" placeholder="Teléfono del cliente (Opcional)">
                             </div>
 
                             <div class="form-group">
                                 <label for="observacionesPedidoCajero">Observaciones <small>Opcional</small></label>
-                                <textarea id="observacionesPedidoCajero" class="menu-search-input" rows="4" placeholder="Notas especiales - Opcional"></textarea>
+                                <textarea id="observacionesPedidoCajero" class="form-control-pedido" rows="4" placeholder="Notas especiales - Opcional"></textarea>
                             </div>
                         </div>
 
@@ -345,7 +423,7 @@
 
                             <div class="form-group notas-generales-group">
                                 <label for="pedido-notas-generales">Notas generales</label>
-                                <textarea id="pedido-notas-generales" class="menu-search-input" rows="3" placeholder="Escribe aquí notas generales para el pedido..."></textarea>
+                                <textarea id="pedido-notas-generales" class="form-control-pedido" rows="3" placeholder="Escribe aquí notas generales para el pedido..."></textarea>
                             </div>
 
                             <div id="resumen-pedido" style="background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin: 15px 0;">
