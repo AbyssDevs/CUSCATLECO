@@ -1654,6 +1654,21 @@ else if (esPreparacion) {
     if (subtotalSpan) {
       subtotalSpan.textContent = `$${subtotal.toFixed(2)}`;
     }
+
+    const btnEnviar = document.getElementById("btn-enviar-pedido");
+    if (btnEnviar) {
+      if (rows.length > 0 && !pedidoEnviado) {
+        btnEnviar.disabled = false;
+        btnEnviar.title = "Enviar a cocina";
+        btnEnviar.style.cursor = "pointer";
+        btnEnviar.style.opacity = "1";
+      } else {
+        btnEnviar.disabled = true;
+        btnEnviar.title = "Agrega al menos un platillo";
+        btnEnviar.style.cursor = "not-allowed";
+        btnEnviar.style.opacity = "0.6";
+      }
+    }
   }
 
   function resetForm() {
