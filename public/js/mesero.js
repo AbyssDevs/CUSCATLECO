@@ -657,7 +657,7 @@ document.addEventListener("DOMContentLoaded", () => {
     class="btn-cancelar-pedido"
     data-action="cancelar"
     data-id="${pedido.id_pedido}">
-    <i class="fa-solid fa-ban"></i>
+    <i class="fa-solid fa-trash"></i>
     Cancelar Pedido
 </button>
 
@@ -870,8 +870,16 @@ else if (esPreparacion) {
     const btnCancelar = backdrop.querySelector(".btn-cancelar-pedido");
     if (btnCancelar) {
         btnCancelar.addEventListener("click", async () => {
-            const confirmado = confirm("¿Está seguro de que desea cancelar este pedido?");
-            if (!confirmado) return;
+            const result = await Swal.fire({
+                title: "¿Está seguro?",
+                text: "¿Desea cancelar este pedido?",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonText: "Cancelar Pedido",
+                cancelButtonText: "Volver",
+                confirmButtonColor: "#7a1d1d"
+            });
+            if (!result.isConfirmed) return;
 
             try {
                 const res = await fetch(`/api/pedidos/${pedido.id_pedido}/cancelar`, {
@@ -1444,11 +1452,17 @@ else if (esPreparacion) {
 
         if (action === "cancelar") {
 
-  const confirmar = confirm(
-    "¿Desea cancelar este pedido?"
-  );
+  const result = await Swal.fire({
+    title: "¿Está seguro?",
+    text: "¿Desea cancelar este pedido?",
+    icon: "warning",
+    showCancelButton: true,
+    confirmButtonText: "Cancelar Pedido",
+    cancelButtonText: "Volver",
+    confirmButtonColor: "#7a1d1d"
+  });
 
-  if (!confirmar) return;
+  if (!result.isConfirmed) return;
 
   try {
 
