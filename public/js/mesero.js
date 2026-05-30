@@ -772,7 +772,9 @@ document.addEventListener("DOMContentLoaded", () => {
           platillo_nombre: platilloObj.nombre,
           platillo_precio: pPrecio
         };
+
         const fila = crearFilaPlatillo(p, platilloObj.cantidad, platilloObj.id_detalle || null);
+
         container.appendChild(fila);
       });
     } else {
@@ -932,7 +934,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function actualizarEstadoBotonesMenu() {
     const cantidades = obtenerCantidadesPedidoActual();
-
     document.querySelectorAll(".btn-agregar[data-id-platillo]").forEach((button) => {
       const idPlatillo = String(button.dataset.idPlatillo);
       const cantidad = cantidades.get(idPlatillo);
@@ -956,6 +957,29 @@ document.addEventListener("DOMContentLoaded", () => {
         label.style.display = "none";
       }
     });
+
+    // Manejo del botón Enviar a cocina
+    const btnEnviar = document.getElementById("btn-enviar-pedido");
+    if (btnEnviar) {
+      const items = obtenerItemsPedido();
+
+      if (items.length === 0) {
+        btnEnviar.disabled = true;
+        btnEnviar.title = "Agrega al menos un platillo";
+        btnEnviar.style.cursor = "not-allowed";
+        btnEnviar.style.opacity = "0.6";
+      } else if (pedidoEnviado) {
+        btnEnviar.disabled = true;
+        btnEnviar.title = "El pedido ya está en preparación";
+        btnEnviar.style.cursor = "not-allowed";
+        btnEnviar.style.opacity = "0.6";
+      } else {
+        btnEnviar.disabled = false;
+        btnEnviar.title = "";
+        btnEnviar.style.cursor = "pointer";
+        btnEnviar.style.opacity = "1";
+      }
+    }
   }
 
   window.actualizarEstadoBotonesMenu = actualizarEstadoBotonesMenu;
@@ -1278,16 +1302,36 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // Confirmación antes de enviar
+    const numeroPedido = pedidoActivo?.pedido_numero || pedidoActivo?.id_pedido || "Nuevo Pedido";
+    let confirmado = false;
+    if (typeof Swal !== "undefined") {
+      const result = await Swal.fire({
+        title: `¿Enviar pedido ${numeroPedido} a cocina?`,
+        text: "No podrás modificar los platillos si el cocinero pasa a estado En preparación",
+        icon: "question",
+        showCancelButton: true,
+        confirmButtonText: "Enviar a cocina",
+        cancelButtonText: "Cancelar",
+        confirmButtonColor: "#7a1d1d"
+      });
+      confirmado = result.isConfirmed;
+    } else {
+      confirmado = confirm(`¿Enviar pedido ${numeroPedido} a cocina?\n\nNo podrás modificar los platillos si el cocinero pasa a estado En preparación`);
+    }
+
+    if (!confirmado) return;
+
     try {
       const isEditing = !!pedidoActivo;
-      
+
       const url = isEditing
         ? `/api/pedidos/${pedidoActivo.id_pedido}/items`
         : "/api/pedidos/crear";
 
       const body = isEditing
         ? { items, notas: notasGenerales }
-        : { tipo, id_mesa: null, items, notas: notasGenerales };
+        : { tipo, id_mesa: pedidoActivo?.id_mesa || null, items, notas: notasGenerales };
 
       const res = await fetch(url, {
         method: isEditing ? "PATCH" : "POST",
@@ -1298,13 +1342,47 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Error al enviar pedido");
 
-      toast("success", "Pedido guardado correctamente");
+      toast("success", "Pedido enviado correctamente. Puedes iniciar un nuevo pedido.");
+
+      // Limpiar el formulario para comenzar un nuevo pedido inmediatamente
       resetForm();
+
+      // Si el servidor devolvió el pedido creado/actualizado, actualizamos el estado local del pedido anterior
+      if (data && data.id_pedido) {
+        pedidoActivo = { ...pedidoActivo, ...data };
+      }
+
+      // Dejar pedidoActivo en null después de resetear para iniciar uno nuevo sin conflicto
+      pedidoActivo = null;
     } catch (error) {
       console.error(error);
       toast("error", error.message);
     }
   }
+
+  // Verificar en servidor si el pedido pasó a 'EnPreparacion' y bloquear edición
+  async function verificarEstadoPedido() {
+    if (!pedidoActivo?.id_pedido) return;
+
+    try {
+      const res = await fetch(`/api/pedidos/${pedidoActivo.id_pedido}`);
+      if (!res.ok) return;
+      const pedido = await res.json();
+
+      if (pedido.pedido_estado === "EnPreparacion" || pedido.pedido_estado === "En Preparación") {
+        pedidoEnviado = true;
+        deshabilitarBotonesPlatillos();
+        toast("warning", "Pedido bloqueado: cocina ya inició preparación");
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // Polling: comprobar estado periódicamente
+  setInterval(() => {
+    verificarEstadoPedido();
+  }, 5000);
 
   function actualizarSubtotal() {
     let subtotal = 0;
