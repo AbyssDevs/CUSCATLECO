@@ -781,24 +781,24 @@ else if (esPreparacion) {
     backdrop.className = "detalle-pedido-backdrop";
     backdrop.id = "modal-detalle-pedido";
 
-    // 1. Generar la lista de platillos con soporte para múltiples esquemas de nombres (Corrige undefined y NaN)
-    // 2. Generar la lista de platillos con soporte para múltiples esquemas de nombres y notas por defecto
+    // 1. Generar la lista de platillos con soporte extendido para propiedades de BD y notas por defecto
     const itemsHtml = (pedido.platillos || [])
         .map(item => {
             // 1. Identificar el nombre del platillo
             const nombrePlatillo = item.nombre || item.platillo_nombre || item.nombre_platillo || "Platillo";
             
-            // 2. Identificar la cantidad (agregamos posibles nombres de tu base de datos como cantidad_platillo o cant)
-            const cantidad = item.cantidad || item.det_cantidad || item.cantidad_platillo || item.cant || 0;
+            // 2. Identificar la cantidad (Añadidas variantes comunes de tablas de detalle)
+            const cantidad = item.cantidad || item.det_cantidad || item.ped_cantidad || item.cantidad_platillo || item.cant || 0;
             
-            // 3. Identificar el precio (agregamos posibles nombres como precio_platillo o valor)
-            const precio = item.precio || item.precio_unitario || item.precio_platillo || item.precio_venta || 0;
+            // 3. Identificar el precio (Añadidas variantes comunes como det_precio o precio_unitario)
+            const precio = item.precio || item.precio_unitario || item.det_precio || item.ped_precio || item.precio_platillo || item.precio_venta || 0;
             
             const subtotal = cantidad * precio;
 
-            // 4. Evaluar el texto de la nota u observación
-            const textoNota = (item.notas && item.notas.trim() !== "") 
-                ? `📝 <strong>Nota:</strong> ${item.notas}` 
+            // 4. Evaluar el texto de la nota, comentario u observación
+            const notaReal = item.notas || item.nota || item.observaciones || item.comentarios || "";
+            const textoNota = (notaReal && notaReal.trim() !== "") 
+                ? `📝 <strong>Nota:</strong> ${notaReal}` 
                 : "📝 <strong>Nota:</strong> Sin notas u observaciones";
 
             return `
