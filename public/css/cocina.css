@@ -114,6 +114,9 @@ h1, h2, h3, h4, th {
 }
 
 .card {
+    display: block;  /* o flex, lo que corresponda */
+    opacity: 1;
+    visibility: visible;
     background: white;
     padding: 25px;
     border-radius: 8px;

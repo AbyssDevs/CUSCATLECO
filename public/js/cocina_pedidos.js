@@ -1,11 +1,13 @@
-﻿// ============================================
-// CUS-74: Ver pedidos pendientes en cocina
-// ============================================
+﻿let pollingInterval = null;
 
-let pollingInterval = null;
-
-function obtenerToken() {
-  return localStorage.getItem("token");
+async function verificarSesion() {
+  try {
+    const res = await fetch("/api/usuario");
+    if (!res.ok) throw new Error("Sesión no válida");
+    return await res.json();
+  } catch {
+    return null;
+  }
 }
 
 function mostrarMenu(seccion) {
@@ -16,6 +18,10 @@ function mostrarMenu(seccion) {
   });
   const vista = document.getElementById(seccion);
   if (vista) vista.style.display = "block";
+
+  if (seccion === "ordenes") {
+    cargarPedidosCocina();
+  }
 }
 
 function toggleMenu() {
@@ -26,8 +32,7 @@ function toggleMenu() {
 }
 
 function cerrarSesion() {
-  localStorage.clear();
-  window.location.href = "/";
+  window.location.href = "/logout";
 }
 
 function obtenerUbicacionPedido(pedido) {
@@ -45,7 +50,7 @@ function crearTarjetaPedido(pedido) {
   const estado = pedido.pedido_estado;
   const esPendiente = estado === "Pendiente";
   const esEnPreparacion = estado === "EnPreparacion";
-  
+
   const platillosHtml = (pedido.platillos || []).map(p => {
     const notas = p.notas ? ` - ${p.notas}` : "";
     return `<li>${p.cantidad}x ${p.nombre}${notas}</li>`;
@@ -59,7 +64,7 @@ function crearTarjetaPedido(pedido) {
   }
 
   return `
-    <div class="card" data-id-pedido="${pedido.id_pedido}">
+    <div class="card" data-id-pedido="${pedido.id_pedido}" onclick="verDetallePedido(${pedido.id_pedido})" style="cursor: pointer;">
       <div class="pedido-header">
         <h3>Pedido #${pedido.id_pedido}</h3>
         <span class="${estado === "EnPreparacion" ? "preparando" : "pendiente"}">${estado}</span>
@@ -76,41 +81,37 @@ async function cargarPedidosCocina() {
   const container = document.getElementById("listaPedidosCocina");
   if (!container) return;
 
-  const token = obtenerToken();
-  if (!token) {
-    container.innerHTML = "<p>No hay sesión activa. Inicia sesión nuevamente.</p>";
-    return;
-  }
-
   container.innerHTML = "<p>Cargando pedidos...</p>";
 
   try {
-    const res = await fetch("/api/pedidos/cocina/pendientes", {
-      headers: { "Authorization": `Bearer ${token}` }
-    });
-    
+    const res = await fetch("/api/pedidos/cocina/pendientes");
+
+    if (res.status === 401) {
+      container.innerHTML = "<p>Tu sesión expiró. <a href='/'>Inicia sesión nuevamente</a></p>";
+      return;
+    }
+
     if (!res.ok) {
       throw new Error(`Error ${res.status}: ${res.statusText}`);
     }
-    
+
     const pedidos = await res.json();
-    
+
     if (!pedidos.length) {
       container.innerHTML = "<p>No hay pedidos pendientes</p>";
       return;
     }
-    
+
     pedidos.sort((a, b) => new Date(a.pedido_fecha_hora) - new Date(b.pedido_fecha_hora));
     container.innerHTML = pedidos.map(p => crearTarjetaPedido(p)).join("");
-    
-    // Asignar eventos a los botones
+
     document.querySelectorAll(".btn-iniciar-preparacion").forEach(btn => {
       btn.addEventListener("click", () => cambiarEstadoPedido(btn.dataset.id, "EnPreparacion"));
     });
     document.querySelectorAll(".btn-marcar-preparado").forEach(btn => {
       btn.addEventListener("click", () => cambiarEstadoPedido(btn.dataset.id, "Listo"));
     });
-    
+
   } catch (error) {
     console.error("Error cargando pedidos:", error);
     container.innerHTML = "<p>Error al cargar pedidos. Intente nuevamente.</p>";
@@ -118,31 +119,21 @@ async function cargarPedidosCocina() {
 }
 
 async function cambiarEstadoPedido(idPedido, nuevoEstado) {
-  const token = obtenerToken();
-  if (!token) {
-    alert("No hay sesión activa");
-    return;
-  }
-
   try {
     const res = await fetch(`/api/pedidos/${idPedido}/cocina/estado`, {
       method: "PATCH",
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ estado: nuevoEstado })
     });
-    
+
     if (!res.ok) {
       const error = await res.json();
       throw new Error(error.error || "Error al cambiar estado");
     }
-    
-    // Recargar la lista después del cambio
+
     await cargarPedidosCocina();
     actualizarResumen();
-    
+
   } catch (error) {
     console.error("Error cambiando estado:", error);
     alert(error.message);
@@ -150,25 +141,20 @@ async function cambiarEstadoPedido(idPedido, nuevoEstado) {
 }
 
 async function actualizarResumen() {
-  const token = obtenerToken();
-  if (!token) return;
-
   try {
-    const res = await fetch("/api/pedidos/cocina/pendientes", {
-      headers: { "Authorization": `Bearer ${token}` }
-    });
+    const res = await fetch("/api/pedidos/cocina/pendientes");
     if (!res.ok) throw new Error("Error al obtener resumen");
-    
+
     const pedidos = await res.json();
     const enPreparacion = pedidos.filter(p => p.pedido_estado === "EnPreparacion").length;
     const listos = pedidos.filter(p => p.pedido_estado === "Listo").length;
-    
+
     const preparandoEl = document.getElementById("ordenesPreparando");
     const listosEl = document.getElementById("ordenesListos");
-    
+
     if (preparandoEl) preparandoEl.textContent = enPreparacion;
     if (listosEl) listosEl.textContent = listos;
-    
+
   } catch (error) {
     console.error("Error actualizando resumen:", error);
   }
@@ -177,12 +163,6 @@ async function actualizarResumen() {
 function iniciarPolling() {
   if (pollingInterval) clearInterval(pollingInterval);
   pollingInterval = setInterval(() => {
-    const token = obtenerToken();
-    if (!token) {
-      clearInterval(pollingInterval);
-      pollingInterval = null;
-      return;
-    }
     if (document.getElementById("ordenes")?.style.display !== "none") {
       cargarPedidosCocina();
     }
@@ -190,38 +170,48 @@ function iniciarPolling() {
   }, 10000);
 }
 
-function cargarUsuarioLogueado() {
-  const userName = localStorage.getItem("userName");
-  const userRole = localStorage.getItem("userRole");
-  if (userName) document.getElementById("userName").textContent = userName;
-  if (userRole) document.getElementById("userRole").textContent = userRole;
+async function cargarUsuarioLogueado() {
+  const usuario = await verificarSesion();
+  if (usuario) {
+    const userNameEl = document.getElementById("userName");
+    const userRoleEl = document.getElementById("userRole");
+    const bienvenidaEl = document.getElementById("bienvenidaUsuario");
+    if (userNameEl) userNameEl.textContent = usuario.nombre || "Usuario";
+    if (userRoleEl) userRoleEl.textContent = usuario.rol || "Cocina";
+    if (bienvenidaEl) bienvenidaEl.textContent = `Bienvenido, ${usuario.nombre || "usuario"}`;
+  }
 }
 
-// Inicializar cuando la página cargue
-document.addEventListener("DOMContentLoaded", () => {
-  cargarUsuarioLogueado();
+document.addEventListener("DOMContentLoaded", async () => {
+  const sesion = await verificarSesion();
+  if (!sesion) {
+    document.body.innerHTML = `
+      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;">
+        <h2>Tu sesión ha expirado</h2>
+        <p><a href="/" style="color:#c0392b;font-size:1.2rem;">Inicia sesión nuevamente</a></p>
+      </div>
+    `;
+    return;
+  }
+
+  await cargarUsuarioLogueado();
   mostrarMenu("ordenes");
   cargarPedidosCocina();
   actualizarResumen();
 
-  // Navegación sidebar sin onclick inline
   document.querySelectorAll(".nav-btn[data-view]").forEach(btn => {
     btn.addEventListener("click", () => mostrarMenu(btn.dataset.view));
   });
 
-  // Cerrar sesión
   const btnCerrar = document.getElementById("btn-cerrar-sesion");
   if (btnCerrar) btnCerrar.addEventListener("click", cerrarSesion);
 
-  // Hamburger menu móvil
   const btnHamburger = document.getElementById("btn-hamburger");
   if (btnHamburger) btnHamburger.addEventListener("click", toggleMenu);
 
-  // Backdrop
   const backdrop = document.getElementById("menuBackdrop");
   if (backdrop) backdrop.addEventListener("click", toggleMenu);
 
-  // Botón actualizar
   const btnActualizar = document.getElementById("btnActualizarPedidos");
   if (btnActualizar) {
     btnActualizar.addEventListener("click", () => {
@@ -231,4 +221,62 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   iniciarPolling();
+});
+
+window.cargarPedidosCocina = cargarPedidosCocina;
+
+async function verDetallePedido(idPedido) {
+    try {
+        const card = document.querySelector(`.card[data-id-pedido="${idPedido}"]`);
+        if (!card) {
+            alert("No se encontró el pedido");
+            return;
+        }
+
+        const numeroPedido = card.querySelector(".pedido-header h3")?.innerText || `Pedido #${idPedido}`;
+        const ubicacion = card.querySelector("p:first-of-type")?.innerText || "Mesa desconocida";
+        const estado = card.querySelector(".pedido-header span")?.innerText || "Desconocido";
+        const hora = card.querySelector("p:nth-of-type(2)")?.innerText || "Hora no disponible";
+        
+        const items = [];
+        card.querySelectorAll("ul li").forEach(li => {
+            items.push(li.innerText);
+        });
+        const platillosHtml = items.map(item => `<li>${item}</li>`).join("");
+        
+        // EXTRAER TOTAL DEL TEXTO DE LA TARJETA
+        let totalTexto = "Precio no disponible";
+        const textoCompleto = card.innerText;
+        const match = textoCompleto.match(/\$[\d,]+\.\d{2}/);
+        if (match) {
+            totalTexto = match[0];
+        }
+
+        const body = document.getElementById("modalDetalleBody");
+        if (!body) return;
+
+        body.innerHTML = `
+            <div class="detalle-pedido">
+                <p><strong>📋 ${numeroPedido}</strong></p>
+                <p><strong>🍽️ Ubicación:</strong> ${ubicacion}</p>
+                <p><strong>📌 Estado:</strong> ${estado}</p>
+                <p><strong>⏰ Hora:</strong> ${hora}</p>
+                <h4>🥘 Platillos:</h4>
+                <ul>${platillosHtml}</ul>
+                <p><strong>💰 ${totalTexto}</strong></p>
+            </div>
+        `;
+        document.getElementById("modalDetallePedido").style.display = "flex";
+    } catch (error) {
+        console.error("Error al mostrar detalle:", error);
+        alert("No se pudo mostrar el detalle del pedido");
+    }
+}
+
+function cerrarModalDetalle() {
+  document.getElementById("modalDetallePedido").style.display = "none";
+}
+
+document.getElementById("modalDetallePedido")?.addEventListener("click", function (e) {
+  if (e.target === this) cerrarModalDetalle();
 });

@@ -1,38 +1,22 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="en">
 
 <head>
-
     <meta charset="UTF-8">
-
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Cocina</title>
 
     <!-- Font Awesome -->
-    <link
-        rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-    >
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
-
-    <link
-        rel="preconnect"
-        href="https://fonts.gstatic.com"
-        crossorigin
-    >
-
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap"
-        rel="stylesheet"
-    >
+        rel="stylesheet">
 
-    <!-- CSS -->
+    <!-- CSS Específico de Cocina -->
     <link rel="stylesheet" href="../css/cocina.css">
 </head>
 
@@ -40,283 +24,170 @@
 
     <div class="dashboard">
 
-        <!-- SIDEBAR -->
+        <!-- BARRA LATERAL -->
         <div class="sidebar" id="sidebar">
 
             <h2>RESTAURANTE CUSCATLECO</h2>
 
             <div class="user-info" id="userInfo">
-
                 <div class="user-avatar">
                     <i class="fa-solid fa-fire-burner"></i>
                 </div>
-
                 <div class="user-details">
-
-                    <span
-                        class="user-name"
-                        id="userName"
-                    >
-                        Cargando...
-                    </span>
-
-                    <span
-                        class="user-role"
-                        id="userRole"
-                    >
-                        Cocina
-                    </span>
-
+                    <span class="user-name" id="userName">Cargando...</span>
+                    <span class="user-role" id="userRole">Cocina</span>
                 </div>
-
             </div>
 
-            <ul>
-
-                <li onclick="mostrarMenu('resumen')">
-                    <i class="fa-solid fa-chart-line"></i>
+            <nav aria-label="Navegación principal">
+              <ul>
+                <li>
+                  <button type="button" class="nav-btn" data-view="resumen">
+                    <i class="fa-solid fa-utensils" aria-hidden="true"></i>
                     Vista General
+                  </button>
                 </li>
-
-                <li onclick="mostrarMenu('ordenes')">
-                    <i class="fa-solid fa-utensils"></i>
+                <li>
+                  <button type="button" class="nav-btn" data-view="ordenes">
+                    <i class="fa-solid fa-fire-burner" aria-hidden="true"></i>
                     Preparar Pedidos
+                  </button>
                 </li>
-
-                <li onclick="cerrarSesion()">
-                    <i class="fa-solid fa-right-from-bracket"></i>
+                <li>
+                  <button type="button" class="nav-btn nav-btn--danger" id="btn-cerrar-sesion">
+                    <i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i>
                     Cerrar sesión
+                  </button>
                 </li>
-
-            </ul>
+              </ul>
+            </nav>
 
         </div>
 
-        <!-- BACKDROP -->
-        <div
-            class="backdrop"
-            id="menuBackdrop"
-            onclick="toggleMenu()"
-        ></div>
+        <div class="backdrop" id="menuBackdrop"></div>
 
-        <!-- CONTENIDO -->
+        <!-- CONTENIDO PRINCIPAL -->
         <div class="contenido">
 
-            <!-- HEADER MOBILE -->
             <div class="header-mobile">
-
-                <button
-                    class="hamburger"
-                    onclick="toggleMenu()"
-                >
+                <button class="hamburger" id="btn-hamburger" aria-label="Abrir menú">
                     <i class="fa-solid fa-bars"></i>
                 </button>
-
             </div>
 
             <!-- RESUMEN -->
             <div id="resumen">
 
                 <h1>Panel de Cocina</h1>
-
                 <p id="bienvenidaUsuario"></p>
 
                 <h2>Estadísticas</h2>
-
                 <div class="cards">
-
                     <div class="card">
-
                         <h3>En Preparación</h3>
-
-                        <p id="ordenesPreparando">
-                            0
-                        </p>
-
+                        <p id="ordenesPreparando">0</p>
                     </div>
-
                     <div class="card">
-
                         <h3>Listos</h3>
-
-                        <p id="ordenesListos">
-                            0
-                        </p>
-
+                        <p id="ordenesListos">0</p>
                     </div>
-
-                    <div class="card">
-
-                        <h3>Pendientes</h3>
-
-                        <p id="ordenesPendientes">
-                            0
-                        </p>
-
-                    </div>
-
                 </div>
 
             </div>
 
-            <!-- PEDIDOS -->
-            <div
-                id="ordenes"
-                style="display: none;"
-            >
+            <!-- ÓRDENES -->
+            <div id="ordenes" style="display: none;">
 
-                <div
-                    style="
-                        display: flex;
-                        justify-content: space-between;
-                        align-items: center;
-                        margin-bottom: 20px;
-                        flex-wrap: wrap;
-                        gap: 10px;
-                    "
-                >
+                <h1>Pedidos Pendientes para Cocina</h1>
 
-                    <h1>
-                        Gestión de Pedidos
-                    </h1>
-
-                    <button
-                        id="btnActualizarPedidos"
-                        style="
-                            background: #7a1d1d;
-                            color: white;
-                            border: none;
-                            padding: 10px 15px;
-                            border-radius: 8px;
-                            cursor: pointer;
-                            font-weight: bold;
-                        "
-                    >
-
-                        <i class="fa-solid fa-rotate-right"></i>
-
-                        Actualizar
-
+                <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center;">
+                    <button id="btnActualizarPedidos" class="btn-agregar">
+                        <i class="fa-solid fa-rotate"></i> Actualizar
                     </button>
-
                 </div>
 
-                <!-- FILTRO -->
-                <div
-                    style="
-                        display: flex;
-                        gap: 15px;
-                        margin-bottom: 20px;
-                        flex-wrap: wrap;
-                    "
-                >
-
-                    <select
-                        id="filtroEstadoPlatillos"
-                        style="
-                            width: 220px;
-                            padding: 10px;
-                            border-radius: 8px;
-                        "
-                    >
-
-                        <option value="todos">
-                            Todos
-                        </option>
-
-                        <option value="Pendiente">
-                            Pendientes
-                        </option>
-
-                        <option value="EnPreparacion">
-                            En preparación
-                        </option>
-
-                        <option value="Listo">
-                            Listos
-                        </option>
-
-                    </select>
-
-                </div>
-
-                <!-- LOADING -->
-                <div
-                    id="loadingPedidosCocina"
-                    style="
-                        display: none;
-                        margin-bottom: 15px;
-                        color: #555;
-                    "
-                >
-
-                    <i class="fa-solid fa-spinner fa-spin"></i>
-
-                    Cargando pedidos...
-
-                </div>
-
-                <!-- MENSAJE -->
-                <div
-                    id="mensajePedidosCocina"
-                    style="
-                        margin-bottom: 15px;
-                        color: #555;
-                    "
-                ></div>
-
-                <!-- TABLA -->
-                <div style="overflow-x: auto;">
-
-                    <table border="1">
-
-                        <thead>
-
-                            <tr>
-
-                                <th>Pedido</th>
-
-                                <th>Mesa</th>
-
-                                <th>Platillo</th>
-
-                                <th>Cantidad</th>
-
-                                <th>Notas</th>
-
-                                <th>Estado</th>
-
-                                <th>Acción</th>
-
-                            </tr>
-
-                        </thead>
-
-                        <tbody id="tablaOrdenesCocina">
-
-                            <!-- GENERADO DESDE JS -->
-
-                        </tbody>
-
-                    </table>
-
+                <div id="listaPedidosCocina" class="cards">
+                    <!-- Las tarjetas se generan con JavaScript -->
                 </div>
 
             </div>
 
         </div>
-
     </div>
 
-    <!-- SWEET ALERT -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- MODAL DETALLE PEDIDO -->
+    <style>
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-contenido {
+            background: #fff;
+            border-radius: 12px;
+            padding: 28px 32px;
+            max-width: 520px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+            font-family: 'Roboto', sans-serif;
+            position: relative;
+        }
+        .modal-contenido h2 {
+            font-family: 'Playfair Display', serif;
+            color: #2c1810;
+            margin-top: 0;
+            margin-bottom: 16px;
+            border-bottom: 2px solid #d4a574;
+            padding-bottom: 10px;
+        }
+        .modal-contenido .cerrar-modal {
+            position: absolute;
+            top: 12px; right: 16px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #888;
+        }
+        .modal-contenido .cerrar-modal:hover {
+            color: #c0392b;
+        }
+        #modalDetalleBody p {
+            margin: 6px 0;
+            font-size: 15px;
+            color: #333;
+        }
+        #modalDetalleBody h4 {
+            margin: 12px 0 6px;
+            color: #2c1810;
+        }
+        #modalDetalleBody ul {
+            margin: 4px 0 8px;
+            padding-left: 20px;
+        }
+        #modalDetalleBody ul li {
+            margin: 3px 0;
+            font-size: 14px;
+            color: #444;
+        }
+    </style>
 
-    <!-- ALERTAS -->
-    <script src="/js/alerts.js"></script>
+    <div class="modal-overlay" id="modalDetallePedido">
+        <div class="modal-contenido">
+            <button class="cerrar-modal" onclick="cerrarModalDetalle()">&times;</button>
+            <h2>Detalle del Pedido</h2>
+            <div id="modalDetalleBody"></div>
+        </div>
+    </div>
 
-    <!-- COCINA -->
-    <script src="../js/cocina.js"></script>
-
+    <script src="../js/cocina_pedidos.js"></script>
 </body>
 
-</html>
+</html> cocina.html
