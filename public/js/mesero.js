@@ -782,18 +782,24 @@ else if (esPreparacion) {
     backdrop.id = "modal-detalle-pedido";
 
     // 1. Generar la lista de platillos con soporte para múltiples esquemas de nombres (Corrige undefined y NaN)
+    // 1. Generar la lista de platillos con soporte para múltiples esquemas de nombres y notas por defecto
     const itemsHtml = (pedido.platillos || [])
         .map(item => {
-            // Soporta item.nombre, item.platillo_nombre, item.nombre_platillo
+            // 1. Identificar el nombre del platillo
             const nombrePlatillo = item.nombre || item.platillo_nombre || item.nombre_platillo || "Platillo";
             
-            // Soporta item.cantidad o item.det_cantidad
-            const cantidad = item.cantidad || item.det_cantidad || 0;
+            // 2. Identificar la cantidad (agregamos posibles nombres de tu base de datos como cantidad_platillo o cant)
+            const cantidad = item.cantidad || item.det_cantidad || item.cantidad_platillo || item.cant || 0;
             
-            // Soporta item.precio o item.precio_unitario
-            const precio = item.precio || item.precio_unitario || 0;
+            // 3. Identificar el precio (agregamos posibles nombres como precio_platillo o valor)
+            const precio = item.precio || item.precio_unitario || item.precio_platillo || item.precio_venta || 0;
             
             const subtotal = cantidad * precio;
+
+            // 4. Evaluar el texto de la nota u observación
+            const textoNota = (item.notas && item.notas.trim() !== "") 
+                ? `📝 <strong>Nota:</strong> ${item.notas}` 
+                : "📝 <strong>Nota:</strong> Sin notas u observaciones";
 
             return `
                 <div class="detalle-item">
@@ -804,11 +810,9 @@ else if (esPreparacion) {
                         <span>Precio unitario: $${Number(precio).toFixed(2)}</span>
                         <span>Subtotal: $${subtotal.toFixed(2)}</span>
                     </div>
-                    ${item.notas ? `
-                        <div class="detalle-nota">
-                            📝 <strong>Nota:</strong> ${item.notas}
-                        </div>
-                    ` : ""}
+                    <div class="detalle-nota">
+                        ${textoNota}
+                    </div>
                 </div>
             `;
         })
