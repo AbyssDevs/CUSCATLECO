@@ -191,10 +191,6 @@ function actualizarTipoPedidoCajero() {
 const ETIQUETA_BOTON_INICIAR = '<i class="fas fa-paper-plane"></i> Iniciar pedido';
 
 function obtenerBotonIniciarPedido(form) {
-  // menu.js engancha un efecto cosmético a #btn-enviar-pedido que lo
-  // renombra a "Enviar a cocina" (texto del flujo de mesero, ajeno al
-  // pedido "Para llevar" del cajero). Clonamos el botón para descartar
-  // ese listener externo y que la vista controle su propio estado.
   const original = document.getElementById("btn-enviar-pedido");
   if (!original) return null;
 
@@ -229,19 +225,15 @@ function configurarFormularioPedidoCajero() {
       return;
     }
 
-    // El backend espera { tipo: "Salon"|"Llevar", id_mesa, items:[{id_platillo,cantidad}] }.
     const items = window.pedidoActual.items.map((i) => ({
       id_platillo: i.id_platillo,
       cantidad: Number(i.cantidad) || 1,
     }));
 
     const payload = {
-      // Contrato real de /api/pedidos/iniciar:
-      tipo: tipoPedidoApi(), // "Para llevar" (UI) -> "Llevar" (API)
+      tipo: tipoPedidoApi(),
       id_mesa: mesaPedido,
       items,
-      // Datos del cliente: se envían para la integración aunque el backend
-      // aún no los persista (no hay columnas cliente/telefono/observaciones).
       cliente: nombreCliente,
       telefono: telefonoCliente,
       observaciones: observacionesPedido,
@@ -344,7 +336,7 @@ function renderCobrosTabla(pedidos = []) {
       const estadoPedido = (pedido.estado || "").toLowerCase().trim();
       
       // CUS-302: Bloqueo por estados de cocina exactos de Jira
-      const disabled = (
+      const disabledCobro = (
         estadoPedido === "pendiente" || 
         estadoPedido === "en preparación" || 
         estadoPedido === "en preparacion" || 
@@ -353,6 +345,11 @@ function renderCobrosTabla(pedidos = []) {
         estadoPedido === "listo para entregar" || 
         tieneFactura
       ) ? "disabled" : "";
+
+      // CRITERIO DE ACEPTACIÓN: Bloqueo físico del botón Cancelar si el estado es exactamente "facturado"
+      const esFacturado = estadoPedido === "facturado" || tieneFactura;
+      const disabledCancelar = esFacturado ? "disabled" : "";
+      const estiloDeshabilitado = esFacturado ? "style='opacity: 0.5; cursor: not-allowed; margin-left: 6px; background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px;'" : "style='margin-left: 6px; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;'";
 
       // Guardamos en memoria global para controlar la delegación del botón agregar platillo
       window.estadoPedidoActualCajero = estadoPedido;
@@ -368,9 +365,18 @@ function renderCobrosTabla(pedidos = []) {
           <td>${pedido.mesero || pedido.usuario || "--"}</td>
           <td>${totalMostrar}</td>
           <td>${pedido.estado || "--"}</td>
-          <td>
-            <button class="btn-completar" ${disabled}>
+          <td style="display: flex; gap: 4px; align-items: center;">
+            <button class="btn-completar" ${disabledCobro}>
               Facturar y Cobrar
+            </button>
+            <button class="btn-cancelar-pedido" 
+                    ${disabledCancelar} 
+                    ${estiloDeshabilitado}
+                    data-id="${pedido.id_pedido || pedido.id || ''}" 
+                    data-mesa="${pedido.mesa || 'Sin mesa'}" 
+                    data-tipo="${pedido.tipo || 'Llevar'}" 
+                    data-estado="${pedido.estado || ''}">
+              Cancelar
             </button>
           </td>
         </tr>
@@ -380,9 +386,6 @@ function renderCobrosTabla(pedidos = []) {
 }
 
 function inicializarDelegacionAgregarPlatillo() {
-  // Delegamos sobre toda la vista para capturar el clic tanto en la tabla
-  // (.menu-table-body) como en las tarjetas (.menu-card-list), aunque se
-  // re-rendericen dinámicamente.
   const contenedor = document.getElementById("tomar-pedido") || document;
 
   contenedor.addEventListener("click", (event) => {
@@ -397,10 +400,6 @@ function inicializarDelegacionAgregarPlatillo() {
     agregarPlatilloAlPedidoCajero(idPlatillo);
   });
 
-  // menu.js renderiza cada botón con onclick="agregarAlPedidoDesdeMenu(id)"
-  // (función del flujo de mesero). En el cajero el clic ya se maneja por la
-  // delegación de arriba, así que dejamos este global inofensivo para no
-  // agregar el platillo dos veces por clic.
   window.agregarAlPedidoDesdeMenu = function () {};
 }
 
@@ -423,4 +422,4 @@ function configurarCajeroPedido() {
 
 window.addEventListener("DOMContentLoaded", () => {
   configurarCajeroPedido();
-}); 
+});

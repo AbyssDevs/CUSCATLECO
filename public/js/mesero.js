@@ -637,7 +637,10 @@ document.addEventListener("DOMContentLoaded", () => {
     type="button"
     class="btn-cancelar-pedido"
     data-action="cancelar"
-    data-id="${pedido.id_pedido}">
+    data-id="${pedido.id_pedido}"
+    data-estado="${estado}"
+    data-mesa="${pedido.mesa_numero || ""}"
+    data-tipo="${pedido.pedido_tipo || ""}">
     <i class="fa-solid fa-trash"></i>
     Cancelar Pedido
 </button>
@@ -876,7 +879,12 @@ else if (esPreparacion) {
                         <button class="btn-editar-pedido-modal" data-id="${pedido.id_pedido}">
                             <i class="fa-solid fa-pen"></i> [Editar]
                         </button>
-                        <button class="btn-cancelar-pedido" data-pedido="${pedido.id_pedido}">
+                        <button class="btn-cancelar-pedido" 
+                                data-id="${pedido.id_pedido}"
+                                data-pedido="${pedido.id_pedido}"
+                                data-estado="${pedido.pedido_estado}"
+                                data-mesa="${pedido.mesa_numero || ""}"
+                                data-tipo="${pedido.pedido_tipo || ""}">
                             <i class="fa-solid fa-ban"></i> [Cancelar]
                         </button>
                     ` : ""}
@@ -913,36 +921,7 @@ else if (esPreparacion) {
         });
     }
 
-    const btnCancelar = backdrop.querySelector(".btn-cancelar-pedido");
-    if (btnCancelar) {
-        btnCancelar.addEventListener("click", async () => {
-            const result = await Swal.fire({
-                title: "¿Está seguro?",
-                text: "¿Desea cancelar este pedido?",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonText: "Cancelar Pedido",
-                cancelButtonText: "Volver",
-                confirmButtonColor: "#7a1d1d"
-            });
-            if (!result.isConfirmed) return;
 
-            try {
-                const res = await fetch(`/api/pedidos/${pedido.id_pedido}/cancelar`, {
-                    method: "DELETE"
-                });
-                const data = await res.json();
-
-                if (!res.ok) throw new Error(data.error || "No se pudo cancelar el pedido");
-
-                toast("success", "Pedido cancelado correctamente");
-                backdrop.remove();
-                if (typeof cargarMisPedidos === "function") cargarMisPedidos();
-            } catch (error) {
-                toast("error", error.message);
-            }
-        });
-    }
 
     const btnFactura = backdrop.querySelector(".btn-ver-factura");
     if (btnFactura) {
@@ -1490,53 +1469,7 @@ else if (esPreparacion) {
           abrirDetallePedido(Number(idPedido));
         }
 
-        if (action === "cancelar") {
 
-  const result = await Swal.fire({
-    title: "¿Está seguro?",
-    text: "¿Desea cancelar este pedido?",
-    icon: "warning",
-    showCancelButton: true,
-    confirmButtonText: "Cancelar Pedido",
-    cancelButtonText: "Volver",
-    confirmButtonColor: "#7a1d1d"
-  });
-
-  if (!result.isConfirmed) return;
-
-  try {
-
-    const res = await fetch(
-      `/api/pedidos/${idPedido}`,
-      {
-        method: "DELETE"
-      }
-    );
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(
-        data.error || "No se pudo cancelar el pedido"
-      );
-    }
-
-    toast(
-      "success",
-      data.message || "Pedido cancelado correctamente"
-    );
-
-    cargarMisPedidos();
-
-  } catch (error) {
-
-    toast(
-      "error",
-      error.message
-    );
-
-  }
-}
 
         if (action === "eliminar") {
           modal("info", "Aún no disponible", "La función de eliminar pedidos estará disponible pronto.");
