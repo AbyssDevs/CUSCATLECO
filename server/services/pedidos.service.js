@@ -281,14 +281,7 @@ export const iniciarPedido = async ({ id_mesa, tipo, userId, items }) => {
   return pedido;
 };
 
-  const pedido = await crearPedido({ tipo, id_mesa, userId, items });
 
-  if (tipo === "Salon") {
-    await cambiarEstadoMesa(id_mesa, "Ocupada", userId);
-  }
-
-  return pedido;
-};
 
 
 export const agregarPlatilloAPedido = async ({
@@ -1268,5 +1261,5 @@ export const obtenerDetallePedido = async (id_pedido) => {
   return {
     ...pedido,
     platillos: detalleRows
-  };
+ } };
 };
