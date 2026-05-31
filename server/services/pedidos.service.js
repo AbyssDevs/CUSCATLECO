@@ -282,6 +282,7 @@ export const iniciarPedido = async ({ id_mesa, tipo, userId, items }) => {
 };
 
 
+
 export const agregarPlatilloAPedido = async ({
   id_pedido,
   id_platillo,
@@ -1054,3 +1055,56 @@ export const cambiarEstadoPedidoCocina = async (
         : "Pedido marcado como listo"
   };
 };
+
+
+// Obtener detalle completo de un pedido
+export const obtenerDetallePedido = async (id_pedido) => {
+
+  // Datos generales del pedido
+  const [pedidoRows] = await db.query(`
+    SELECT 
+      p.id_pedido,
+      p.pedido_estado,
+      p.pedido_tipo,
+      p.pedido_total,
+      p.pedido_fecha_hora,
+      p.pedido_enviado_cocina_en,
+      p.pedido_listo_en,
+      p.pedido_entregado_en,
+      p.pedido_cancelado_en,
+      p.pedido_cancelado_motivo,
+      m.mesa_numero
+    FROM pedidos p
+    LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
+    WHERE p.id_pedido = ?
+  `, [id_pedido]);
+
+  if (pedidoRows.length === 0) {
+    throw Object.assign(
+      new Error("Pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const pedido = pedidoRows[0];
+
+
+  //  Platillos del pedido
+  const [detalleRows] = await db.query(`
+    SELECT 
+      dp.id_detalle,
+      dp.detalle_pedido_cantidad,
+      dp.detalle_pedido_precio_unitario,
+      dp.detalle_pedido_subtotal,
+      dp.detalle_pedido_notas,
+      pl.platillo_nombre
+    FROM detalle_pedido dp
+    JOIN platillos pl ON dp.id_platillo = pl.id_platillo
+    WHERE dp.id_pedido = ?
+  `, [id_pedido]);
+
+  // Armar respuesta completa
+  return {
+    ...pedido,
+    platillos: detalleRows
+ } };

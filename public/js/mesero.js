@@ -299,34 +299,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const confirmado = await confirmarInicioMesa(mesa);
     if (!confirmado) return;
 
-    try {
-      const res = await fetch("/api/pedidos/iniciar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          tipo: "Salon",
-          id_mesa: mesa.id_mesa,
-          items: []
-        })
-      });
+    pedidoActivo = {
+      id_mesa: mesa.id_mesa,
+      mesa_numero: mesa.mesa_numero,
+      mesa_ubicacion: mesa.mesa_ubicacion,
+      pedido_tipo: "Salon",
+      pedido_estado: "Pendiente"
+    };
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "No se pudo iniciar el pedido");
-
-      pedidoActivo = {
-        ...data,
-        id_mesa: mesa.id_mesa,
-        mesa_numero: mesa.mesa_numero,
-        mesa_ubicacion: mesa.mesa_ubicacion
-      };
-
-      mostrarFormularioPedido();
-      toast("success", "Pedido iniciado correctamente");
-      await cargarMesasPedido();
-    } catch (error) {
-      console.error(error);
-      toast("error", error.message);
-    }
+    mostrarFormularioPedido();
+    toast("success", "Mesa seleccionada");
   }
 
   async function confirmarInicioMesa(mesa) {
@@ -359,7 +341,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (info && pedidoActivo) {
       info.style.display = "flex";
       info.innerHTML = `
-        <span><strong>${pedidoActivo.pedido_numero || `Pedido #${pedidoActivo.id_pedido}`}</strong></span>
+        <span><strong>${pedidoActivo.pedido_numero || (pedidoActivo.id_pedido ? `Pedido #${pedidoActivo.id_pedido}` : "Nuevo Pedido")}</strong></span>
         <span>Estado: ${pedidoActivo.pedido_estado || "Pendiente"}</span>
         <span>Mesa ${pedidoActivo.mesa_numero}</span>
       `;
@@ -389,8 +371,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const menuPanel = document.querySelector(".pedido-menu-panel");
     const info = document.getElementById("pedido-activo-info");
 
-    // If we are NOT editing an existing order, we can clear pedidoActivo for "llevar".
-    // But if we are editing, we must keep it.
+    
     if (type === "llevar" && !window.pedidoEditandoId) {
       pedidoActivo = null;
     }
@@ -401,7 +382,7 @@ document.addEventListener("DOMContentLoaded", () => {
       if (menuPanel) menuPanel.style.display = "block";
       if (info) {
         if (pedidoActivo) {
-          mostrarFormularioPedido(); // Will show info properly
+          mostrarFormularioPedido(); 
         } else {
           info.style.display = "none";
           info.innerHTML = "";
@@ -1605,16 +1586,28 @@ else if (esPreparacion) {
 
     const isEditing = !!window.pedidoEditandoId;
 
-    const url = isEditing
-      ? `/api/pedidos/${pedidoActivo.id_pedido}/items`
-      : "/api/pedidos/crear";
+    let url;
+    let method;
+    let body;
 
-    const body = isEditing
-      ? { items, notas: notasGenerales }
-      : { tipo, id_mesa: null, items, notas: notasGenerales };
+    if (isEditing) {
+      url = `/api/pedidos/${pedidoActivo.id_pedido}/items`;
+      method = "PATCH";
+      body = { items, notas: notasGenerales };
+    } else {
+      if (tipo === "Salon") {
+        url = "/api/pedidos/iniciar";
+        method = "POST";
+        body = { tipo: "Salon", id_mesa: pedidoActivo.id_mesa, items, notas: notasGenerales };
+      } else {
+        url = "/api/pedidos/crear";
+        method = "POST";
+        body = { tipo: "Llevar", id_mesa: null, items, notas: notasGenerales };
+      }
+    }
 
     const res = await fetch(url, {
-      method: isEditing ? "PATCH" : "POST",
+      method: method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
