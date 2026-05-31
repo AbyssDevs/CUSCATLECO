@@ -446,6 +446,7 @@ const [detalleRows] = await db.query(
 
   const total = totalRows[0].total || 0;
 
+
   // Actualizar total en pedidos
   await db.query(
     `UPDATE pedidos
