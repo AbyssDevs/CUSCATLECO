@@ -429,7 +429,7 @@ function attachMenuControls() {
     event.preventDefault();
 
     const pedidoData = {
-      id: btnCancelar.getAttribute("data-id") || btnCancelar.getAttribute("data-id-pedido"),
+      id: btnCancelar.getAttribute("data-id") || btnCancelar.getAttribute("data-id-pedido") || btnCancelar.getAttribute("data-pedido"),
       mesa: btnCancelar.getAttribute("data-mesa") || null,
       tipo: btnCancelar.getAttribute("data-tipo") || "Salon",
       estado: btnCancelar.getAttribute("data-estado") || "Pendiente"
@@ -572,6 +572,57 @@ async function confirmarAnulacionPedido(pedido) {
     console.log("Anulación confirmada para el pedido ID:", pedido.id_pedido || pedido.id);
     console.log("Motivo proporcionado:", motivoCancelacion ? motivoCancelacion.trim() : "Ninguno");
     
-    // Aquí se acoplará el fetch a la API
+    const idPedido = pedido.id_pedido || pedido.id;
+    if (!idPedido) {
+      if (typeof toast === "function") {
+        toast("error", "No se encontró el ID del pedido a cancelar.");
+      }
+      return;
+    }
+
+    try {
+      const res = await fetch(`/api/pedidos/${idPedido}/cancelar`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          motivo: motivoCancelacion ? motivoCancelacion.trim() : ""
+        })
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "No se pudo cancelar el pedido");
+      }
+
+      if (typeof toast === "function") {
+        toast("success", data.message || "Pedido cancelado correctamente");
+      } else {
+        await Swal.fire("Éxito", data.message || "Pedido cancelado correctamente", "success");
+      }
+
+      // Cerrar modal de detalle si estuviera abierto
+      const modalExistente = document.getElementById("modal-detalle-pedido");
+      if (modalExistente) {
+        modalExistente.remove();
+      }
+
+      // Recargar la lista de pedidos activos del mesero
+      if (typeof window.cargarMisPedidos === "function") {
+        window.cargarMisPedidos();
+      } else if (typeof cargarMisPedidos === "function") {
+        cargarMisPedidos();
+      }
+
+    } catch (error) {
+      console.error(error);
+      if (typeof toast === "function") {
+        toast("error", error.message);
+      } else {
+        await Swal.fire("Error", error.message, "error");
+      }
+    }
   }
 }
