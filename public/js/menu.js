@@ -382,7 +382,6 @@ function updateSortHeaders() {
 }
 
 function attachMenuControls() {
-  // Use delegation or attach to all found elements
   const categorySelects = document.querySelectorAll(".menu-category-filter, #menuCategoryFilter");
   const searchInputs = document.querySelectorAll(".menu-search-input, #menuSearchInput");
   
@@ -403,12 +402,10 @@ function attachMenuControls() {
     );
   });
 
-  // Delegated event for sortable headers so it works for multiple tables
   document.addEventListener("click", (event) => {
     const header = event.target.closest("th.sortable");
     if (!header) return;
 
-    // Only process if header is in the active view
     const activeView = getActiveViewElement();
     if (!activeView.contains(header)) return;
 
@@ -424,11 +421,26 @@ function attachMenuControls() {
 
     loadMenu();
   });
+
+  // ─── ESCUCHADOR DELEGADO PARA CAPTURAR LA ACCIÓN DE CANCELAR PEDIDO ───
+  document.addEventListener("click", (event) => {
+    const btnCancelar = event.target.closest(".btn-cancelar-pedido, #btn-cancelar-orden, [data-action='cancelar-pedido']");
+    if (!btnCancelar) return;
+    event.preventDefault();
+
+    const pedidoData = {
+      id: btnCancelar.getAttribute("data-id") || btnCancelar.getAttribute("data-id-pedido"),
+      mesa: btnCancelar.getAttribute("data-mesa") || null,
+      tipo: btnCancelar.getAttribute("data-tipo") || "Salon",
+      estado: btnCancelar.getAttribute("data-estado") || "Pendiente"
+    };
+
+    confirmarAnulacionPedido(pedidoData);
+  });
 }
 
 window.addEventListener("DOMContentLoaded", () => {
   cargarUsuarioLogueado();
-
   attachMenuControls();
 
   const menuSection = document.querySelector("#menu-restaurante, #menuPlatillos");
@@ -446,84 +458,51 @@ window.addEventListener("DOMContentLoaded", () => {
 ========================================================= */
 
 document.addEventListener("DOMContentLoaded", () => {
-
-  // EFECTO LOADING BOTON ENVIAR PEDIDO
   const btnEnviar = document.getElementById("btn-enviar-pedido");
 
   if (btnEnviar) {
-
     btnEnviar.addEventListener("click", () => {
-
       if (btnEnviar.disabled) return;
 
       btnEnviar.innerHTML = `
         <i class="fas fa-spinner fa-spin"></i>
         Enviando...
       `;
-
       btnEnviar.style.opacity = "0.8";
 
       setTimeout(() => {
-
         btnEnviar.innerHTML = `
           <i class="fas fa-paper-plane"></i>
           Enviar a cocina
         `;
-
         btnEnviar.style.opacity = "1";
-
       }, 2500);
-
     });
-
   }
 
-
-  // Pedido nuevo = editable
   validarEstadoBotonesEliminarPlatillos("Pendiente");
 
-  // SCROLL SUAVE ENTRE VISTAS
   const sidebarItems = document.querySelectorAll(".sidebar li");
-
   sidebarItems.forEach(item => {
-
     item.addEventListener("click", () => {
-
       window.scrollTo({
         top: 0,
         behavior: "smooth"
       });
-
     });
-
   });
-
-
 });
 
-/**
- * Deshabilita los botones de eliminar platillos
- * cuando el pedido ya fue enviado a cocina.
- *
- * Estados permitidos para eliminar:
- * - Pendiente
- */
 function validarEstadoBotonesEliminarPlatillos(estadoPedido) {
   const container = document.getElementById("lista-platillos-pedido");
-
   if (!container) return;
 
   const botonesEliminar = container.querySelectorAll(".btn-eliminar");
-
-  const esPendiente =
-    estadoPedido &&
-    estadoPedido.trim().toLowerCase() === "pendiente";
+  const esPendiente = estadoPedido && estadoPedido.trim().toLowerCase() === "pendiente";
 
   botonesEliminar.forEach((btn) => {
-    // Deshabilitar botón
     btn.disabled = !esPendiente;
 
-    // Estilo visual
     if (!esPendiente) {
       btn.style.opacity = "0.5";
       btn.style.cursor = "not-allowed";
@@ -534,18 +513,65 @@ function validarEstadoBotonesEliminarPlatillos(estadoPedido) {
       btn.removeAttribute("title");
     }
 
-    // Protección extra
     btn.onclick = (event) => {
       if (!esPendiente) {
         event.preventDefault();
-
         if (typeof toast === "function") {
           toast("error", "No puedes eliminar un pedido enviado a cocina.");
         }
-
         return false;
       }
     };
   });
 }
 
+/* =========================================================
+   SUBTAREA JIRA: MOSTRAR MODAL DE CONFIRMACIÓN PARA ANULAR PEDIDO
+========================================================= */
+async function confirmarAnulacionPedido(pedido) {
+  // 1. Validación de Seguridad Estricta
+  const estadoActual = (pedido.estado || "").trim().toLowerCase();
+  if (estadoActual === "facturado") {
+    await Swal.fire({
+      icon: "error",
+      title: "Acción no permitida",
+      text: "No se puede cancelar un pedido que ya fue facturado o cerrado.",
+      confirmButtonColor: "#8b2f2f"
+    });
+    return;
+  }
+
+  // 2. Construcción dinámica del mensaje según el tipo de pedido
+  let textoMensaje = `¿Estás seguro de anular el pedido #${pedido.id_pedido || pedido.id || "X"} de Mesa ${pedido.mesa || "Y"}? Esta acción no se puede deshacer.`;
+  
+  if (pedido.tipo && pedido.tipo.trim().toLowerCase() === "para llevar") {
+    textoMensaje = `¿Estás seguro de anular el pedido #${pedido.id_pedido || pedido.id || "X"} de tipo Para llevar? Esta acción no se puede deshacer.`;
+  }
+
+  // 3. Lanzamiento del Modal de SweetAlert2 con campo de motivo (Máx 200 caracteres)
+  const { value: motivoCancelacion, isConfirmed } = await Swal.fire({
+    title: "Confirmar Anulación",
+    text: textoMensaje,
+    icon: "warning",
+    input: "textarea",
+    inputPlaceholder: "Escribe el motivo de la cancelación aquí (Opcional)...",
+    inputAttributes: {
+      maxlength: "200",
+      rows: "3"
+    },
+    showCancelButton: true,
+    confirmButtonText: "Sí, anular pedido",
+    cancelButtonText: "No, mantener pedido",
+    confirmButtonColor: "#dc3545",
+    cancelButtonColor: "#6c757d",
+    focusCancel: true
+  });
+
+  // 4. Espacio reservado para la integración futura con la API (Próxima Subtarea)
+  if (isConfirmed) {
+    console.log("Anulación confirmada para el pedido ID:", pedido.id_pedido || pedido.id);
+    console.log("Motivo proporcionado:", motivoCancelacion ? motivoCancelacion.trim() : "Ninguno");
+    
+    // Aquí se acoplará el fetch a la API
+  }
+}
