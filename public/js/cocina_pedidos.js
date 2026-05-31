@@ -53,14 +53,15 @@ function crearTarjetaPedido(pedido) {
 
   const platillosHtml = (pedido.platillos || []).map(p => {
     const notas = p.notas ? ` - ${p.notas}` : "";
-    return `<li>${p.cantidad}x ${p.nombre}${notas}</li>`;
+    const precio = p.precio ? ` - $${parseFloat(p.precio).toFixed(2)}` : "";
+    return `<li>${p.cantidad}x ${p.nombre}${precio}${notas}</li>`;
   }).join("") || "<li>Sin platillos</li>";
 
   let botonHtml = "";
   if (esPendiente) {
-    botonHtml = `<button class="btn-iniciar-preparacion" data-id="${pedido.id_pedido}">Iniciar preparación</button>`;
+    botonHtml = `<button class="btn-iniciar-preparacion" data-id="${pedido.id_pedido}" onclick="event.stopPropagation()">Iniciar preparación</button>`;
   } else if (esEnPreparacion) {
-    botonHtml = `<button class="btn-marcar-preparado" data-id="${pedido.id_pedido}">✓ Marcar como Listo</button>`;
+    botonHtml = `<button class="btn-marcar-preparado" data-id="${pedido.id_pedido}" onclick="event.stopPropagation()">✓ Marcar como Listo</button>`;
   }
 
   return `
@@ -95,7 +96,8 @@ async function cargarPedidosCocina() {
       throw new Error(`Error ${res.status}: ${res.statusText}`);
     }
 
-    const pedidos = await res.json();
+    let pedidos = await res.json();
+    pedidos = pedidos.filter(p => p.pedido_estado !== "Listo");
 
     if (!pedidos.length) {
       container.innerHTML = "<p>No hay pedidos pendientes</p>";
