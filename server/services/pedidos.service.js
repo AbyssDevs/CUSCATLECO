@@ -547,6 +547,7 @@ export const marcarPedidoEntregado = async (
     `
     SELECT
       id_pedido,
+      pedido_numero,
       pedido_estado
     FROM pedidos
     WHERE id_pedido = ?
@@ -583,10 +584,24 @@ export const marcarPedidoEntregado = async (
     [id_pedido]
   );
 
+  const [pedidoActualizado] = await db.query(
+    `
+    SELECT
+      pedido_numero,
+      pedido_estado,
+      pedido_entregado_en
+    FROM pedidos
+    WHERE id_pedido = ?
+    `,
+    [id_pedido]
+  );
+
   return {
-    id_pedido,
-    pedido_estado: "Entregado",
+    pedido_numero: pedidoActualizado[0].pedido_numero,
+    pedido_estado: pedidoActualizado[0].pedido_estado,
+    pedido_entregado_en: pedidoActualizado[0].pedido_entregado_en,
     message: "Pedido entregado correctamente"
   };
 
 };
+
