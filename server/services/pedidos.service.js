@@ -536,3 +536,57 @@ export const iniciarPedido = async ({
   return pedido;
 
 };
+
+
+//Marcar el pedido para llevar como entregado cuando esta listo,  desde el cajero
+export const marcarPedidoEntregado = async (
+  id_pedido
+) => {
+
+  const [rows] = await db.query(
+    `
+    SELECT
+      id_pedido,
+      pedido_estado
+    FROM pedidos
+    WHERE id_pedido = ?
+    `,
+    [id_pedido]
+  );
+
+  if (rows.length === 0) {
+    throw Object.assign(
+      new Error("Pedido no encontrado"),
+      { status: 404 }
+    );
+  }
+
+  const pedido = rows[0];
+
+  if (pedido.pedido_estado !== "Listo") {
+    throw Object.assign(
+      new Error(
+        "Solo un pedido Listo puede marcarse como Entregado"
+      ),
+      { status: 400 }
+    );
+  }
+
+  await db.query(
+    `
+    UPDATE pedidos
+    SET
+      pedido_estado = 'Entregado',
+      pedido_entregado_en = NOW()
+    WHERE id_pedido = ?
+    `,
+    [id_pedido]
+  );
+
+  return {
+    id_pedido,
+    pedido_estado: "Entregado",
+    message: "Pedido entregado correctamente"
+  };
+
+};
