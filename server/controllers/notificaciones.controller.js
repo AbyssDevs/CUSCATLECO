@@ -1,3 +1,5 @@
+import * as notificacionesService from "../services/notificaciones.service.js";
+
 export const marcarNotificacionLeida = async (
   req,
   res

@@ -1,3 +1,5 @@
+import db from "../config/db.js";
+
 export const marcarNotificacionLeida = async (
   id_notificacion
 ) => {
