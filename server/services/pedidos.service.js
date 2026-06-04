@@ -949,10 +949,10 @@ export const cambiarEstadoPedidoCocina = async (
 ) => {
 
   // Estados permitidos
- const estadosValidos = [
-  "EnPreparacion",
-  "Listo"
-];
+  const estadosValidos = [
+    "EnPreparacion",
+    "Listo"
+  ];
 
   if (!estadosValidos.includes(nuevoEstado)) {
     throw Object.assign(
@@ -988,7 +988,7 @@ export const cambiarEstadoPedidoCocina = async (
     );
   }
 
-  // No permitir facturados
+  // No permitir cerrados
   if (pedido.pedido_estado === "Cerrado") {
     throw Object.assign(
       new Error(
@@ -1000,8 +1000,8 @@ export const cambiarEstadoPedidoCocina = async (
 
   // Validaciones de flujo
   if (
-    nuevoEstado === "EnPreparacion"
-    && pedido.pedido_estado !== "Pendiente"
+    nuevoEstado === "EnPreparacion" &&
+    pedido.pedido_estado !== "Pendiente"
   ) {
     throw Object.assign(
       new Error(
@@ -1012,8 +1012,8 @@ export const cambiarEstadoPedidoCocina = async (
   }
 
   if (
-    nuevoEstado === "Preparado"
-    && pedido.pedido_estado !== "EnPreparacion"
+    nuevoEstado === "Listo" &&
+    pedido.pedido_estado !== "EnPreparacion"
   ) {
     throw Object.assign(
       new Error(
@@ -1031,7 +1031,7 @@ export const cambiarEstadoPedidoCocina = async (
 
   const params = [nuevoEstado];
 
-  // Registrar horas
+  // Registrar hora de preparación
   if (nuevoEstado === "EnPreparacion") {
 
     sql += `,
@@ -1040,8 +1040,16 @@ export const cambiarEstadoPedidoCocina = async (
 
   }
 
-  if (nuevoEstado === "Listo")
-    sql += `
+  // Registrar hora de listo
+  if (nuevoEstado === "Listo") {
+
+    sql += `,
+      pedido_listo_en = NOW()
+    `;
+
+  }
+
+  sql += `
     WHERE id_pedido = ?
   `;
 
@@ -1049,12 +1057,55 @@ export const cambiarEstadoPedidoCocina = async (
 
   await db.query(sql, params);
 
+  // Crear notificación al mesero cuando el pedido queda listo
+  if (nuevoEstado === "Listo") {
+
+    const [infoRows] = await db.query(
+      `SELECT
+          p.id_mesero,
+          m.mesa_numero
+       FROM pedidos p
+       LEFT JOIN mesas m
+         ON p.id_mesa = m.id_mesa
+       WHERE p.id_pedido = ?`,
+      [id_pedido]
+    );
+
+    if (infoRows.length > 0) {
+
+      const info = infoRows[0];
+
+      await db.query(
+        `INSERT INTO notificaciones (
+            id_usuario,
+            id_pedido,
+            notificacion_tipo,
+            notificacion_asunto,
+            notificacion_mensaje
+         )
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          info.id_mesero,
+          id_pedido,
+          "Pedido",
+          "Pedido listo",
+          `Pedido #${id_pedido} de Mesa ${
+            info.mesa_numero ?? "N/A"
+          } está listo para entregar`
+        ]
+      );
+
+    }
+
+  }
+
   return {
     message:
       nuevoEstado === "EnPreparacion"
         ? "Pedido marcado en preparación"
         : "Pedido marcado como listo"
   };
+
 };
 
 
