@@ -1,12 +1,49 @@
 document.addEventListener("DOMContentLoaded", () => {
 
-  const esVistaCajero =
-    window.location.pathname.includes("cajero");
+  // --- Configuración Global ---
+  // --- 1. SECCIÓN DE VARIABLES GLOBALES ---
+const esVistaCajero = window.location.pathname.includes("cajero");
 
-  let platillosDisponibles = [];
-  let mesasPedido = [];
-  let pedidoActivo = null;
-  let pedidoEnviado = false;
+let platillosDisponibles = [];
+let mesasPedido = [];
+let pedidoActivo = null;
+let pedidoEnviado = false;
+
+let notificacionesMesero = [];
+
+// CUS-268
+let pollingNotificaciones = null;
+let ultimaConsulta = new Date(Date.now() - 30 * 60000).toISOString(); 
+
+// --- AQUÍ ES DONDE DEBES PEGAR LA FUNCIÓN ---
+// Pégala justo aquí, entre las variables globales y tus funciones de renderizado
+async function iniciarPollingNotificaciones() {
+    if (pollingNotificaciones) clearInterval(pollingNotificaciones);
+
+    pollingNotificaciones = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/notificaciones/nuevas?desde=${ultimaConsulta}`);
+            
+            if (!response.ok) throw new Error("Error en el polling");
+
+            const nuevasNotificaciones = await response.json();
+
+            if (nuevasNotificaciones && nuevasNotificaciones.length > 0) {
+                ultimaConsulta = new Date().toISOString();
+                notificacionesMesero = [...nuevasNotificaciones, ...notificacionesMesero];
+                actualizarInterfazNotificaciones();
+                mostrarToastNotificacion(nuevasNotificaciones[0].mensaje);
+            }
+        } catch (error) {
+            console.error("Error en polling de notificaciones:", error);
+        }
+    }, 10000); 
+}
+
+// --- 2. LUEGO SIGUEN TUS FUNCIONES (renderNotificaciones, etc.) ---
+function renderNotificaciones(notificaciones = []) {
+    // ... tu código ...
+}
   // ============================================
   // CUS-130: Deshabilitar botones si pedido ya enviado a cocina
   // ============================================
@@ -70,30 +107,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   init();
 
-  async function init() {
+async function init() {
     setupEventListeners();
     await cargarPlatillos();
     await cargarMesasPedido();
+
     renderEstadoPedidoVacio();
+    renderNotificaciones(notificacionesMesero); // Render inicial con estado actual
+
+    // --- CUS-268: Inicio del Polling ---
+    setInterval(async () => {
+        // Aquí llamarás a tu función que consulta al servidor (ej. consultarNuevasNotificaciones())
+        // Por ahora, llamamos a la prueba para mantener la reactividad del CUS-266/267
+        recibirNotificacionPrueba(); 
+        console.log("Polling ejecutado: Notificaciones actualizadas.");
+    }, 10000); 
+
+    // Mantenemos tu prueba inicial de los 3 segundos
+    setTimeout(() => {
+        recibirNotificacionPrueba();
+    }, 3000);
+
     syncPedidoActualGlobal();
     actualizarEstadoBotonesMenu();
     aplicarTipoPedido("salon");
 
     if (vistaPedidosPendientesActiva()) {
-      cargarMisPedidos();
+        cargarMisPedidos();
     }
-  }
+}
 
-  async function cargarPlatillos() {
+async function cargarPlatillos() {
     try {
-      const res = await fetch("/api/platillos");
-      if (!res.ok) throw new Error("Error al cargar platillos");
-      platillosDisponibles = await res.json();
+        const res = await fetch("/api/platillos");
+        if (!res.ok) throw new Error("Error al cargar platillos");
+        platillosDisponibles = await res.json();
     } catch (error) {
-      console.error(error);
-      toast("error", "No se pudieron cargar los platillos");
+        console.error(error);
+        toast("error", "No se pudieron cargar los platillos");
     }
-  }
+}
 
   async function cargarMesasPedido() {
     asegurarFiltrosMesasPedido();
@@ -486,7 +539,83 @@ document.addEventListener("DOMContentLoaded", () => {
     if (estado === "EnPreparacion") return "estado-preparando";
     if (estado === "Listo") return "estado-completado";
     return `estado-${String(estado || "Pendiente").toLowerCase()}`;
-  }
+}
+
+function renderNotificaciones(notificaciones = []) {
+    const container = document.getElementById("notificacionesList");
+    if (!container) return;
+
+    // 1. Filtrar solo los últimos 30 minutos (CUS-272)
+    const hace30Minutos = new Date(Date.now() - 30 * 60000);
+    const recientes = notificaciones.filter(n => new Date(n.fecha) >= hace30Minutos);
+
+    if (recientes.length === 0) {
+        container.innerHTML = `<p class="empty">No hay notificaciones recientes</p>`;
+        return;
+    }
+
+    // 2. Renderizar con estados y clic para ir al detalle (CUS-270)
+    container.innerHTML = recientes.map(n => {
+        const fechaStr = new Date(n.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        return `
+            <div class="notificacion-item ${n.leida ? 'leida' : 'no-leida'}" 
+                 onclick="procesarClickNotificacion('${n.id_pedido || ''}')"
+                 style="cursor: pointer;">
+                <div class="notif-body">
+                    <p>${n.mensaje}</p>
+                    <small>${fechaStr}</small>
+                </div>
+                ${!n.leida ? '<span class="badge-nuevo">●</span>' : ''}
+            </div>
+        `;
+    }).join("");
+}
+
+function mostrarToastNotificacion(mensaje) {
+
+    if (typeof toast === "function") {
+
+        toast("info", mensaje);
+        return;
+    }
+
+    if (typeof Swal !== "undefined") {
+
+        Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "info",
+            title: mensaje,
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true
+        });
+    }
+}
+
+function recibirNotificacionPrueba() {
+
+    const notificacion = {
+        id: Date.now(),
+        mensaje: "Pedido #15 listo para entregar",
+        fecha: new Date(),
+        leida: false
+    };
+
+    notificacionesMesero.unshift(
+        notificacion
+    );
+
+    renderNotificaciones(
+        notificacionesMesero
+    );
+
+    mostrarToastNotificacion(
+        notificacion.mensaje
+    );
+}
+
 
   // ==================================================================
   // MIS PEDIDOS ACTIVOS — Module
@@ -1143,7 +1272,64 @@ else if (esPreparacion) {
     if (!tieneItems) {
       container.innerHTML = '<p class="pedido-empty-text">Agregue platillos desde el menú.</p>';
     }
-  }
+}
+
+/**
+ * Renderiza la lista de notificaciones y habilita la navegación al detalle del pedido.
+ */
+function renderNotificaciones(notificaciones = []) {
+    const container = document.getElementById("notificacionesList");
+    if (!container) return;
+
+    if (notificaciones.length === 0) {
+        container.innerHTML = `<p class="empty">No hay notificaciones</p>`;
+        return;
+    }
+
+    container.innerHTML = notificaciones.map(n => {
+        // Formateo de fecha
+        const fechaStr = n.fecha instanceof Date ? n.fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        
+        // Se añade evento onclick para procesar el clic
+        // Se asume que n tiene una propiedad 'id_pedido'
+        return `
+            <div class="notificacion-item ${n.leida ? 'leida' : 'no-leida'}" 
+                 onclick="procesarClickNotificacion('${n.id_pedido || ''}')"
+                 style="cursor: pointer;">
+                <div class="notif-body">
+                    <p>${n.mensaje}</p>
+                    <small>${fechaStr}</small>
+                </div>
+                ${!n.leida ? '<span class="badge-nuevo">●</span>' : ''}
+            </div>
+        `;
+    }).join("");
+}
+
+/**
+ * Puente para manejar el clic en la notificación:
+ * Marca como leída, refresca la UI y abre el detalle del pedido.
+ */
+window.procesarClickNotificacion = async function(idPedido) {
+    if (!idPedido) return;
+
+    // 1. Marcar como leída en el array global
+    notificacionesMesero = notificacionesMesero.map(n => 
+        String(n.id_pedido) === String(idPedido) ? { ...n, leida: true } : n
+    );
+    
+    // 2. Refrescar lista y badge
+    renderNotificaciones(notificacionesMesero);
+    if (typeof actualizarBadgeNotificaciones === 'function') {
+        actualizarBadgeNotificaciones();
+    }
+
+    // 3. Abrir el modal de detalle (función existente en tu código)
+    await abrirDetallePedido(idPedido);
+};
+
+// Asegúrate de llamar a esta inicialización dentro de tu función init()
+// renderNotificaciones(notificacionesMesero);
 
   function setupTipoPedidoSelector() {
     document.querySelectorAll(".pedido-type-btn").forEach((btn) => {
