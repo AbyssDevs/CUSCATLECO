@@ -807,8 +807,11 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
     }
   });
 
-  return Object.values(pedidosMap);
-};
+return Object.values(pedidosMap);
+}; // <--- Esta llave cierra "obtenerPedidosPendientesCocina"
+
+// AHORA AQUÍ EMPIEZA LA SIGUIENTE
+export const cambiarEstadoPedidoCocina = async (id_pedido, nuevoEstado) => {};
 
 // Cancelar pedido
 export const cancelarPedido = async (id_pedido, motivo, userId) => {
@@ -958,122 +961,51 @@ export const obtenerPedidosPendientesCocina = async () => {
 
   return Object.values(pedidosMap);
 };
-
 // CAMBIAR ESTADO PEDIDO COCINA
-export const cambiarEstadoPedidoCocina = async (
-  id_pedido,
-  nuevoEstado
-) => {
-
-  // Estados permitidos
-  const estadosValidos = [
-    "EnPreparacion",
-    "Listo"
-  ];
-
+export const cambiarEstadoPedidoCocina = async (id_pedido, nuevoEstado) => {
+  // 1. Estados permitidos
+  const estadosValidos = ["EnPreparacion", "Listo"];
   if (!estadosValidos.includes(nuevoEstado)) {
-    throw Object.assign(
-      new Error("Estado inválido"),
-      { status: 400 }
-    );
+    throw Object.assign(new Error("Estado inválido"), { status: 400 });
   }
 
-  // Buscar pedido
-  const [pedidoRows] = await db.query(
-    `SELECT pedido_estado
-     FROM pedidos
-     WHERE id_pedido = ?`,
-    [id_pedido]
-  );
-
-  if (pedidoRows.length === 0) {
-    throw Object.assign(
-      new Error("Pedido no encontrado"),
-      { status: 404 }
-    );
-  }
-
+  // 2. Buscar pedido y validar estados
+  const [pedidoRows] = await db.query(`SELECT pedido_estado FROM pedidos WHERE id_pedido = ?`, [id_pedido]);
+  if (pedidoRows.length === 0) throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+  
   const pedido = pedidoRows[0];
-
-  // No permitir anulados
-  if (pedido.pedido_estado === "Cancelado") {
-    throw Object.assign(
-      new Error(
-        "No se puede modificar un pedido cancelado"
-      ),
-      { status: 400 }
-    );
+  if (pedido.pedido_estado === "Cancelado" || pedido.pedido_estado === "Cerrado") {
+    throw Object.assign(new Error("No se puede modificar un pedido cancelado o cerrado"), { status: 400 });
   }
 
-  // No permitir cerrados
-  if (pedido.pedido_estado === "Cerrado") {
-    throw Object.assign(
-      new Error(
-        "No se puede modificar un pedido cerrado"
-      ),
-      { status: 400 }
-    );
-  }
-
-  // Validaciones de flujo
-  if (
-    nuevoEstado === "EnPreparacion" &&
-    pedido.pedido_estado !== "Pendiente"
-  ) {
-    throw Object.assign(
-      new Error(
-        "Solo pedidos pendientes pueden pasar a preparación"
-      ),
-      { status: 400 }
-    );
-  }
-
-  if (
-    nuevoEstado === "Listo" &&
-    pedido.pedido_estado !== "EnPreparacion"
-  ) {
-    throw Object.assign(
-      new Error(
-        "Solo pedidos en preparación pueden marcarse como listos"
-      ),
-      { status: 400 }
-    );
-  }
-
-  // Query dinámica
-  let sql = `
-    UPDATE pedidos
-    SET pedido_estado = ?
-  `;
-
+  // 3. Actualización en BD
+  let sql = `UPDATE pedidos SET pedido_estado = ?`;
   const params = [nuevoEstado];
-
-  // Registrar hora de preparación
-  if (nuevoEstado === "EnPreparacion") {
-
-    sql += `,
-      pedido_en_preparacion_en = NOW()
-    `;
-
-  }
-
-  // Registrar hora de listo
-  if (nuevoEstado === "Listo") {
-
-    sql += `,
-      pedido_listo_en = NOW()
-    `;
-
-  }
-
-  sql += `
-    WHERE id_pedido = ?
-  `;
-
+  if (nuevoEstado === "EnPreparacion") sql += `, pedido_en_preparacion_en = NOW()`;
+  if (nuevoEstado === "Listo") sql += `, pedido_listo_en = NOW()`;
+  sql += ` WHERE id_pedido = ?`;
   params.push(id_pedido);
 
   await db.query(sql, params);
-    
+   // Obtener información del pedido
+const [pedidoInfo] = await db.query(`
+  SELECT
+    p.id_pedido,
+    m.mesa_numero
+  FROM pedidos p
+  LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
+  WHERE p.id_pedido = ?
+`, [id_pedido]);
+
+if (pedidoInfo.length === 0) {
+  throw Object.assign(
+    new Error("Pedido no encontrado"),
+    { status: 404 }
+  );
+}
+
+ 
+
   // Crear notificación al mesero cuando el pedido queda listo
   if (nuevoEstado === "Listo") {
 
@@ -1113,19 +1045,12 @@ export const cambiarEstadoPedidoCocina = async (
       );
 
     }
-
   }
 
   return {
-    message:
-      nuevoEstado === "EnPreparacion"
-        ? "Pedido marcado en preparación"
-        : "Pedido marcado como listo"
+    message: nuevoEstado === "EnPreparacion" ? "Pedido marcado en preparación" : "Pedido marcado como listo"
   };
-
 };
-
-
 // Obtener detalle completo de un pedido
 export const obtenerDetallePedido = async (id_pedido) => {
 
