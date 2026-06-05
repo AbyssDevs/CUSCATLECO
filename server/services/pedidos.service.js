@@ -811,7 +811,7 @@ return Object.values(pedidosMap);
 }; // <--- Esta llave cierra "obtenerPedidosPendientesCocina"
 
 // AHORA AQUÍ EMPIEZA LA SIGUIENTE
-export const cambiarEstadoPedidoCocina = async (id_pedido, nuevoEstado) => {};
+
 
 // Cancelar pedido
 export const cancelarPedido = async (id_pedido, motivo, userId) => {

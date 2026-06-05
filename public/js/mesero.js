@@ -594,26 +594,21 @@ function mostrarToastNotificacion(mensaje) {
     }
 }
 
-function recibirNotificacionPrueba() {
+// Ahora la función recibe el mensaje real del servidor
+function recibirNotificacion(mensajeRecibido) {
 
     const notificacion = {
         id: Date.now(),
-        mensaje: "Pedido #15 listo para entregar",
+        mensaje: mensajeRecibido, // Usamos el mensaje dinámico
         fecha: new Date(),
         leida: false
     };
 
-    notificacionesMesero.unshift(
-        notificacion
-    );
+    notificacionesMesero.unshift(notificacion);
 
-    renderNotificaciones(
-        notificacionesMesero
-    );
+    renderNotificaciones(notificacionesMesero);
 
-    mostrarToastNotificacion(
-        notificacion.mensaje
-    );
+    mostrarToastNotificacion(notificacion.mensaje);
 }
 
 
