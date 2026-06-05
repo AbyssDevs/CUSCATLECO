@@ -790,8 +790,11 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
     }
   });
 
-  return Object.values(pedidosMap);
-};
+return Object.values(pedidosMap);
+}; // <--- Esta llave cierra "obtenerPedidosPendientesCocina"
+
+// AHORA AQUÍ EMPIEZA LA SIGUIENTE
+export const cambiarEstadoPedidoCocina = async (id_pedido, nuevoEstado) => {};
 
 // Cancelar pedido
 export const cancelarPedido = async (id_pedido, motivo, userId) => {
@@ -941,58 +944,34 @@ export const obtenerPedidosPendientesCocina = async () => {
 
   return Object.values(pedidosMap);
 };
-
 // CAMBIAR ESTADO PEDIDO COCINA
 export const cambiarEstadoPedidoCocina = async (id_pedido, nuevoEstado) => {
   // 1. Estados permitidos
   const estadosValidos = ["EnPreparacion", "Listo"];
-
   if (!estadosValidos.includes(nuevoEstado)) {
     throw Object.assign(new Error("Estado inválido"), { status: 400 });
   }
 
-  // 2. Buscar pedido
-  const [pedidoRows] = await db.query(
-    `SELECT pedido_estado FROM pedidos WHERE id_pedido = ?`,
-    [id_pedido]
-  );
-
-  if (pedidoRows.length === 0) {
-    throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
-  }
-
+  // 2. Buscar pedido y validar estados
+  const [pedidoRows] = await db.query(`SELECT pedido_estado FROM pedidos WHERE id_pedido = ?`, [id_pedido]);
+  if (pedidoRows.length === 0) throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+  
   const pedido = pedidoRows[0];
-
-  // 3. Validaciones de estado
-  if (pedido.pedido_estado === "Cancelado") {
-    throw Object.assign(new Error("No se puede modificar un pedido cancelado"), { status: 400 });
+  if (pedido.pedido_estado === "Cancelado" || pedido.pedido_estado === "Cerrado") {
+    throw Object.assign(new Error("No se puede modificar un pedido cancelado o cerrado"), { status: 400 });
   }
 
-  if (pedido.pedido_estado === "Cerrado") {
-    throw Object.assign(new Error("No se puede modificar un pedido cerrado"), { status: 400 });
-  }
-
-  if (nuevoEstado === "EnPreparacion" && pedido.pedido_estado !== "Pendiente") {
-    throw Object.assign(new Error("Solo pedidos pendientes pueden pasar a preparación"), { status: 400 });
-  }
-
-  if (nuevoEstado === "Listo" && pedido.pedido_estado !== "EnPreparacion") {
-    throw Object.assign(new Error("Solo pedidos en preparación pueden marcarse como listos"), { status: 400 });
-  }
-
-  // 4. Actualización del pedido
+  // 3. Actualización en BD
   let sql = `UPDATE pedidos SET pedido_estado = ?`;
   const params = [nuevoEstado];
-
   if (nuevoEstado === "EnPreparacion") sql += `, pedido_en_preparacion_en = NOW()`;
   if (nuevoEstado === "Listo") sql += `, pedido_listo_en = NOW()`;
-
   sql += ` WHERE id_pedido = ?`;
   params.push(id_pedido);
 
   await db.query(sql, params);
 
-  // 5. Obtener información necesaria para las notificaciones
+  // 4. Obtener información para notificaciones
   const [pedidoInfo] = await db.query(`
     SELECT p.id_pedido, p.id_mesero, m.mesa_numero
     FROM pedidos p
@@ -1000,13 +979,6 @@ export const cambiarEstadoPedidoCocina = async (id_pedido, nuevoEstado) => {
     WHERE p.id_pedido = ?
   `, [id_pedido]);
 
-  if (pedidoInfo.length === 0) {
-    throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
-  }
-
-  const info = pedidoInfo[0];
-
-  // 6. Notificar a Cocina
   const [cocineros] = await db.query(`
     SELECT u.id_usuario 
     FROM usuarios u
@@ -1015,160 +987,31 @@ export const cambiarEstadoPedidoCocina = async (id_pedido, nuevoEstado) => {
     WHERE r.rol_nombre = 'Cocina'
   `);
 
-  for (const cocinero of cocineros) {
-    await db.query(`
-      INSERT INTO notificaciones (id_usuario, id_pedido, notificacion_tipo, notificacion_asunto, notificacion_mensaje)
-      VALUES (?, ?, ?, ?, ?)
-    `, [
-      cocinero.id_usuario,
-      id_pedido,
-      "Pedido",
-      "Actualización de pedido",
-      `Pedido #${id_pedido} de Mesa ${info.mesa_numero ?? "N/A"} cambió a ${nuevoEstado}`
-    ]);
-  }
+  // 5. Enviar Notificaciones
+  if (pedidoInfo && pedidoInfo.length > 0) {
+    const mesaActual = pedidoInfo[0].mesa_numero ?? "N/A";
+    
+    // Notificar a cocina
+    for (const cocinero of cocineros) {
+      await db.query(`
+        INSERT INTO notificaciones (id_usuario, id_pedido, notificacion_tipo, notificacion_asunto, notificacion_mensaje)
+        VALUES (?, ?, ?, ?, ?)
+      `, [cocinero.id_usuario, id_pedido, "Pedido", "Actualización de pedido", `Pedido #${id_pedido} de Mesa ${mesaActual} cambió a ${nuevoEstado}`]);
+    }
 
-  // 7. Notificar al mesero si el pedido está listo
-  if (nuevoEstado === "Listo" && info.id_mesero) {
-    await db.query(`
-      INSERT INTO notificaciones (id_usuario, id_pedido, notificacion_tipo, notificacion_asunto, notificacion_mensaje)
-      VALUES (?, ?, ?, ?, ?)
-    `, [
-      info.id_mesero,
-      id_pedido,
-      "Pedido",
-      "Pedido listo",
-      `Pedido #${id_pedido} de Mesa ${info.mesa_numero ?? "N/A"} está listo para entregar`
-    ]);
+    // Notificar al mesero si está listo
+    if (nuevoEstado === "Listo" && pedidoInfo[0].id_mesero) {
+      await db.query(`
+        INSERT INTO notificaciones (id_usuario, id_pedido, notificacion_tipo, notificacion_asunto, notificacion_mensaje)
+        VALUES (?, ?, ?, ?, ?)
+      `, [pedidoInfo[0].id_mesero, id_pedido, "Pedido", "Pedido listo", `Pedido #${id_pedido} de Mesa ${mesaActual} está listo para entregar`]);
+    }
   }
 
   return {
     message: nuevoEstado === "EnPreparacion" ? "Pedido marcado en preparación" : "Pedido marcado como listo"
   };
 };
-
-// Obtener usuarios de cocina
-const [cocineros] = await db.query(`
-  SELECT id_usuario
-  FROM usuarios
-  WHERE rol = 'Cocinero'
-`);
-
-for (const cocinero of cocineros) {
-  await db.query(`
-    INSERT INTO notificaciones (
-      id_usuario,
-      id_pedido,
-      notificacion_tipo,
-      notificacion_asunto,
-      notificacion_mensaje
-    )
-    VALUES (?, ?, ?, ?, ?)
-  `, [
-    cocinero.id_usuario,
-    id_pedido,
-    "Pedido",
-    "Nuevo pedido",
-    `Nuevo pedido #${id_pedido} de Mesa ${pedidoInfo[0].mesa_numero ?? "N/A"}`
-  ]);
-}
-
-
-
-//Crear notificacion para cuando el mesero envie el pedido a cocina
-// Obtener información del pedido
-const [pedidoInfo] = await db.query(`
-  SELECT
-    p.id_pedido,
-    m.mesa_numero
-  FROM pedidos p
-  LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
-  WHERE p.id_pedido = ?
-`, [id_pedido]);
-
-// Obtener usuarios con rol Cocina
-const [cocineros] = await db.query(`
-  SELECT u.id_usuario
-  FROM usuarios u
-  INNER JOIN usuario_rol ur
-    ON u.id_usuario = ur.id_usuario
-  INNER JOIN roles r
-    ON ur.id_rol = r.id_rol
-  WHERE r.rol_nombre = 'Cocina'
-`);
-
-for (const cocinero of cocineros) {
-  await db.query(`
-    INSERT INTO notificaciones (
-      id_usuario,
-      id_pedido,
-      notificacion_tipo,
-      notificacion_asunto,
-      notificacion_mensaje
-    )
-    VALUES (?, ?, ?, ?, ?)
-  `, [
-    cocinero.id_usuario,
-    id_pedido,
-    "Pedido",
-    "Nuevo pedido",
-    `Nuevo pedido #${id_pedido} de Mesa ${pedidoInfo[0].mesa_numero ?? "N/A"}`
-  ]);
-}
-
-
-  // Crear notificación al mesero cuando el pedido queda listo
-  if (nuevoEstado === "Listo") {
-
-    const [infoRows] = await db.query(
-      `SELECT
-          p.id_mesero,
-          m.mesa_numero
-       FROM pedidos p
-       LEFT JOIN mesas m
-         ON p.id_mesa = m.id_mesa
-       WHERE p.id_pedido = ?`,
-      [id_pedido]
-    );
-
-    if (infoRows.length > 0) {
-
-      const info = infoRows[0];
-
-      await db.query(
-        `INSERT INTO notificaciones (
-            id_usuario,
-            id_pedido,
-            notificacion_tipo,
-            notificacion_asunto,
-            notificacion_mensaje
-         )
-         VALUES (?, ?, ?, ?, ?)`,
-        [
-          info.id_mesero,
-          id_pedido,
-          "Pedido",
-          "Pedido listo",
-          `Pedido #${id_pedido} de Mesa ${
-            info.mesa_numero ?? "N/A"
-          } está listo para entregar`
-        ]
-      );
-
-    }
-
-  }
-
-  return {
-    message:
-      nuevoEstado === "EnPreparacion"
-        ? "Pedido marcado en preparación"
-        : "Pedido marcado como listo"
-  };
-
-};
-
-
 // Obtener detalle completo de un pedido
 export const obtenerDetallePedido = async (id_pedido) => {
 
