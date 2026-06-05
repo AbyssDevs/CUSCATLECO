@@ -1,5 +1,6 @@
 import db from "../config/db.js";
 import { cambiarEstadoMesa } from "./mesas.service.js";
+import {crearNotificacionNuevoPedido } from "./notificaciones.service.js";
 
 const generarNumeroPedido = async (connection) => {
   const [[{ anio }]] = await connection.query(
@@ -669,18 +670,34 @@ export const enviarPedidoACocina = async (id_pedido, userId) => {
   }
 
   // DESPUÉS SE ACTUALIZA
-  await db.query(`
-    UPDATE pedidos
-    SET 
-      pedido_estado = 'EnPreparacion',
-      pedido_enviado_cocina_en = NOW()
-    WHERE id_pedido = ?
-  `, [id_pedido]);
+await db.query(`
+  UPDATE pedidos
+  SET 
+    pedido_estado = 'EnPreparacion',
+    pedido_enviado_cocina_en = NOW()
+  WHERE id_pedido = ?
+`, [id_pedido]);
 
-  return {
-    message: "Pedido enviado a cocina"
-  };
+// Obtener número de mesa
+const [pedidoInfo] = await db.query(`
+  SELECT m.mesa_numero
+  FROM pedidos p
+  LEFT JOIN mesas m
+    ON p.id_mesa = m.id_mesa
+  WHERE p.id_pedido = ?
+`, [id_pedido]);
+
+// Crear notificación para cocina
+await crearNotificacionNuevoPedido(
+  id_pedido,
+  pedidoInfo[0].mesa_numero
+);
+
+return {
+  message: "Pedido enviado a cocina"
 };
+};
+
 
 // Marcar pedido como entregado
 export const marcarPedidoEntregado = async (id_pedido, userId) => {
@@ -1056,93 +1073,7 @@ export const cambiarEstadoPedidoCocina = async (
   params.push(id_pedido);
 
   await db.query(sql, params);
-   // Obtener información del pedido
-const [pedidoInfo] = await db.query(`
-  SELECT
-    p.id_pedido,
-    m.mesa_numero
-  FROM pedidos p
-  LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
-  WHERE p.id_pedido = ?
-`, [id_pedido]);
-
-if (pedidoInfo.length === 0) {
-  throw Object.assign(
-    new Error("Pedido no encontrado"),
-    { status: 404 }
-  );
-}
-
-// Obtener usuarios de cocina
-const [cocineros] = await db.query(`
-  SELECT id_usuario
-  FROM usuarios
-  WHERE rol = 'Cocinero'
-`);
-
-for (const cocinero of cocineros) {
-  await db.query(`
-    INSERT INTO notificaciones (
-      id_usuario,
-      id_pedido,
-      notificacion_tipo,
-      notificacion_asunto,
-      notificacion_mensaje
-    )
-    VALUES (?, ?, ?, ?, ?)
-  `, [
-    cocinero.id_usuario,
-    id_pedido,
-    "Pedido",
-    "Nuevo pedido",
-    `Nuevo pedido #${id_pedido} de Mesa ${pedidoInfo[0].mesa_numero ?? "N/A"}`
-  ]);
-}
-
-
-
-//Crear notificacion para cuando el mesero envie el pedido a cocina
-// Obtener información del pedido
-const [pedidoInfo] = await db.query(`
-  SELECT
-    p.id_pedido,
-    m.mesa_numero
-  FROM pedidos p
-  LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
-  WHERE p.id_pedido = ?
-`, [id_pedido]);
-
-// Obtener usuarios con rol Cocina
-const [cocineros] = await db.query(`
-  SELECT u.id_usuario
-  FROM usuarios u
-  INNER JOIN usuario_rol ur
-    ON u.id_usuario = ur.id_usuario
-  INNER JOIN roles r
-    ON ur.id_rol = r.id_rol
-  WHERE r.rol_nombre = 'Cocina'
-`);
-
-for (const cocinero of cocineros) {
-  await db.query(`
-    INSERT INTO notificaciones (
-      id_usuario,
-      id_pedido,
-      notificacion_tipo,
-      notificacion_asunto,
-      notificacion_mensaje
-    )
-    VALUES (?, ?, ?, ?, ?)
-  `, [
-    cocinero.id_usuario,
-    id_pedido,
-    "Pedido",
-    "Nuevo pedido",
-    `Nuevo pedido #${id_pedido} de Mesa ${pedidoInfo[0].mesa_numero ?? "N/A"}`
-  ]);
-}
-
-
+    
   // Crear notificación al mesero cuando el pedido queda listo
   if (nuevoEstado === "Listo") {
 
