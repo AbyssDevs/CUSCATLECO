@@ -1056,6 +1056,92 @@ export const cambiarEstadoPedidoCocina = async (
   params.push(id_pedido);
 
   await db.query(sql, params);
+   // Obtener información del pedido
+const [pedidoInfo] = await db.query(`
+  SELECT
+    p.id_pedido,
+    m.mesa_numero
+  FROM pedidos p
+  LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
+  WHERE p.id_pedido = ?
+`, [id_pedido]);
+
+if (pedidoInfo.length === 0) {
+  throw Object.assign(
+    new Error("Pedido no encontrado"),
+    { status: 404 }
+  );
+}
+
+// Obtener usuarios de cocina
+const [cocineros] = await db.query(`
+  SELECT id_usuario
+  FROM usuarios
+  WHERE rol = 'Cocinero'
+`);
+
+for (const cocinero of cocineros) {
+  await db.query(`
+    INSERT INTO notificaciones (
+      id_usuario,
+      id_pedido,
+      notificacion_tipo,
+      notificacion_asunto,
+      notificacion_mensaje
+    )
+    VALUES (?, ?, ?, ?, ?)
+  `, [
+    cocinero.id_usuario,
+    id_pedido,
+    "Pedido",
+    "Nuevo pedido",
+    `Nuevo pedido #${id_pedido} de Mesa ${pedidoInfo[0].mesa_numero ?? "N/A"}`
+  ]);
+}
+
+
+
+//Crear notificacion para cuando el mesero envie el pedido a cocina
+// Obtener información del pedido
+const [pedidoInfo] = await db.query(`
+  SELECT
+    p.id_pedido,
+    m.mesa_numero
+  FROM pedidos p
+  LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
+  WHERE p.id_pedido = ?
+`, [id_pedido]);
+
+// Obtener usuarios con rol Cocina
+const [cocineros] = await db.query(`
+  SELECT u.id_usuario
+  FROM usuarios u
+  INNER JOIN usuario_rol ur
+    ON u.id_usuario = ur.id_usuario
+  INNER JOIN roles r
+    ON ur.id_rol = r.id_rol
+  WHERE r.rol_nombre = 'Cocina'
+`);
+
+for (const cocinero of cocineros) {
+  await db.query(`
+    INSERT INTO notificaciones (
+      id_usuario,
+      id_pedido,
+      notificacion_tipo,
+      notificacion_asunto,
+      notificacion_mensaje
+    )
+    VALUES (?, ?, ?, ?, ?)
+  `, [
+    cocinero.id_usuario,
+    id_pedido,
+    "Pedido",
+    "Nuevo pedido",
+    `Nuevo pedido #${id_pedido} de Mesa ${pedidoInfo[0].mesa_numero ?? "N/A"}`
+  ]);
+}
+
 
   // Crear notificación al mesero cuando el pedido queda listo
   if (nuevoEstado === "Listo") {
