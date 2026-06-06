@@ -8,18 +8,96 @@ async function apiFetch(url, options = {}) {
   return data;
 }
 
-const contenedorPedidos =
-  document.getElementById("contenedor-pedidos");
+const contenedorPedidos = document.getElementById("contenedor-pedidos");
+
+const LS_NOTIF = "cocina_notificaciones";
 
 let pedidosGlobal = [];
+let ultimaListaPedidos = [];
+let toastsActivos = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-  cargarPedidos();
+  inyectarEstilosNotificaciones();
+  actualizarBadge();
+  cargarPedidos(true);
   setupEventListeners();
   setInterval(async () => {
-    await cargarPedidos();
+    if (document.visibilityState === "visible") {
+      await cargarPedidos(false);
+    }
   }, 10000);
 });
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") {
+    mostrarNotificacionesAcumuladas();
+  }
+});
+
+function inyectarEstilosNotificaciones() {
+  const estilo = document.createElement("style");
+  estilo.textContent = `
+    .toast-notification {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 99999;
+      background: #1a1a2e;
+      color: white;
+      padding: 16px 24px;
+      border-radius: 12px;
+      box-shadow: 0 8px 30px rgba(0,0,0,0.2);
+      font-family: 'Roboto', Arial, sans-serif;
+      font-size: 14px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      transform: translateX(120%);
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      max-width: 360px;
+      border-left: 4px solid #f39c12;
+    }
+    .toast-notification.show {
+      transform: translateX(0);
+      pointer-events: auto;
+    }
+    .toast-notification .toast-icon {
+      font-size: 24px;
+    }
+    .toast-notification .toast-close {
+      margin-left: auto;
+      background: none;
+      border: none;
+      color: rgba(255,255,255,0.6);
+      cursor: pointer;
+      font-size: 18px;
+      padding: 0 4px;
+      pointer-events: auto;
+    }
+    .toast-notification .toast-close:hover {
+      color: white;
+    }
+    .badge-notificaciones {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #e74c3c;
+      color: white;
+      font-size: 12px;
+      font-weight: 700;
+      min-width: 22px;
+      height: 22px;
+      border-radius: 11px;
+      padding: 0 6px;
+      margin-left: 10px;
+      vertical-align: middle;
+      line-height: 1;
+    }
+  `;
+  document.head.appendChild(estilo);
+}
 
 function setupEventListeners() {
   const filtroEstado = document.getElementById("filtroEstadoPlatillos");
@@ -29,28 +107,132 @@ function setupEventListeners() {
     });
   }
 
+  window.addEventListener("storage", (e) => {
+    if (e.key === LS_NOTIF) {
+      actualizarBadge();
+    }
+  });
+
   const btnActualizar = document.getElementById("btnActualizarPedidos");
   if (btnActualizar) {
     btnActualizar.addEventListener("click", async () => {
-      await cargarPedidos();
+      localStorage.removeItem(LS_NOTIF);
+      actualizarBadge();
+      await cargarPedidos(true);
     });
   }
 }
 
-async function cargarPedidos() {
+async function cargarPedidos(esInicial = false) {
   try {
-    mostrarLoading();
+    if (!esInicial) mostrarLoading();
     const pedidos = await apiFetch("/pedidos/cocina/pendientes");
-    pedidosGlobal = pedidos.filter(p => p.pedido_estado !== "Listo");
+    const filtrados = pedidos.filter(p => p.pedido_estado !== "Listo");
+
+    if (!esInicial) {
+      const nuevos = compararListas(filtrados, ultimaListaPedidos);
+      nuevos.forEach(pedido => {
+        acumularNotificacion(pedido);
+      });
+    }
+
+    ultimaListaPedidos = [...filtrados];
+    pedidosGlobal = filtrados;
     actualizarDashboard();
     renderPedidos(filtrarPedidos());
   } catch (error) {
     console.error(error);
     contenedorPedidos.innerHTML = `
-      <div class="mensaje-error">
-        Error al cargar pedidos
-      </div>
+      <div class="mensaje-error">Error al cargar pedidos</div>
     `;
+  }
+}
+
+function compararListas(nuevaLista, viejaLista) {
+  const idsViejos = new Set(viejaLista.map(p => p.id_pedido));
+  return nuevaLista.filter(p => !idsViejos.has(p.id_pedido));
+}
+
+function acumularNotificacion(pedido) {
+  const mesa = pedido.mesa || pedido.mesa_numero || "N/A";
+  const mensaje = `🍽️ Nuevo pedido #${pedido.id_pedido} - Mesa ${mesa}`;
+
+  if (document.visibilityState === "visible") {
+    mostrarToast(mensaje);
+  } else {
+    const lista = JSON.parse(localStorage.getItem(LS_NOTIF) || "[]");
+    lista.push(mensaje);
+    localStorage.setItem(LS_NOTIF, JSON.stringify(lista));
+  }
+
+  actualizarBadge();
+}
+
+function mostrarNotificacionesAcumuladas() {
+  const lista = JSON.parse(localStorage.getItem(LS_NOTIF) || "[]");
+  if (lista.length === 0) return;
+
+  const resumen = lista.length === 1
+    ? lista[0]
+    : `🔔 ${lista.length} nuevos pedidos llegaron mientras no estabas`;
+
+  localStorage.removeItem(LS_NOTIF);
+  actualizarBadge();
+  mostrarToast(resumen, 6000);
+}
+
+function mostrarToast(mensaje, duracion = 5000) {
+  const toast = document.createElement("div");
+  toast.className = "toast-notification";
+  toast.innerHTML = `
+    <span class="toast-icon">🍽️</span>
+    <span class="toast-text">${mensaje.replace("🍽️ ", "")}</span>
+    <button class="toast-close">&times;</button>
+  `;
+
+  document.body.appendChild(toast);
+  toastsActivos++;
+
+  requestAnimationFrame(() => {
+    toast.classList.add("show");
+  });
+
+  toast.querySelector(".toast-close").addEventListener("click", () => {
+    cerrarToast(toast);
+  });
+
+  setTimeout(() => {
+    cerrarToast(toast);
+  }, duracion);
+}
+
+function cerrarToast(toast) {
+  toast.classList.remove("show");
+  setTimeout(() => {
+    if (toast.parentNode) toast.remove();
+    toastsActivos--;
+  }, 400);
+}
+
+function badgeCount() {
+  const lista = JSON.parse(localStorage.getItem(LS_NOTIF) || "[]");
+  return lista.length;
+}
+
+function actualizarBadge() {
+  const count = badgeCount();
+  let badge = document.getElementById("badge-notificaciones");
+  if (count > 0) {
+    if (!badge) {
+      badge = document.createElement("span");
+      badge.id = "badge-notificaciones";
+      badge.className = "badge-notificaciones";
+      const titulo = document.querySelector("#ordenes h1");
+      if (titulo) titulo.appendChild(badge);
+    }
+    badge.textContent = count;
+  } else {
+    if (badge) badge.remove();
   }
 }
 
@@ -95,9 +277,7 @@ function actualizarDashboard() {
 function renderPedidos(pedidos) {
   if (!pedidos || pedidos.length === 0) {
     contenedorPedidos.innerHTML = `
-      <div class="mensaje-info">
-        No hay pedidos pendientes
-      </div>
+      <div class="mensaje-info">No hay pedidos pendientes</div>
     `;
     return;
   }
@@ -224,7 +404,7 @@ async function cambiarEstado(id_pedido, estado, estadoActual) {
     });
 
     toast("success", estado === "EnPreparacion" ? "Pedido en preparación" : "Pedido marcado como listo");
-    await cargarPedidos();
+    await cargarPedidos(true);
 
   } catch (error) {
     console.error(error);
