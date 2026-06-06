@@ -1104,6 +1104,36 @@ export const obtenerDetallePedido = async (id_pedido) => {
  } };
 
 
+export const obtenerPedidosPendientesCajero = async () => {
+  const [rows] = await db.query(`
+    SELECT
+      p.id_pedido,
+      p.pedido_estado,
+      p.pedido_tipo,
+      p.pedido_total,
+      p.pedido_fecha_hora,
+      m.mesa_numero,
+      u.usuario_nombre AS mesero_nombre
+    FROM pedidos p
+    LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
+    LEFT JOIN usuarios u ON p.id_mesero = u.id_usuario
+    WHERE p.pedido_estado = 'Listo'
+    ORDER BY p.pedido_fecha_hora ASC
+  `);
+
+  return rows.map(row => ({
+    id_pedido: row.id_pedido,
+    pedido_estado: row.pedido_estado,
+    pedido_tipo: row.pedido_tipo,
+    pedido_total: row.pedido_total,
+    pedido_fecha_hora: row.pedido_fecha_hora,
+    mesa: row.pedido_tipo === "Llevar" ? "Para llevar" : (row.mesa_numero || "N/A"),
+    mesa_numero: row.mesa_numero,
+    mesero: row.mesero_nombre || "—"
+  }));
+};
+
+
 export const marcarPedidoListo = async (id_pedido, userId) => {
   const [rows] = await db.query(`SELECT pedido_estado, id_mesero FROM pedidos WHERE id_pedido = ?`, [id_pedido]);
   if (rows.length === 0) throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });

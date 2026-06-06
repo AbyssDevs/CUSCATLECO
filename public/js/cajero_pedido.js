@@ -327,13 +327,21 @@ function renderCobrosTabla(pedidos = []) {
   const tablaCobros = document.getElementById("tablaCobros");
   if (!tablaCobros) return;
 
+  if (pedidos.length === 0) {
+    tablaCobros.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">No hay pedidos pendientes</td></tr>`;
+    return;
+  }
+
   tablaCobros.innerHTML = pedidos
     .map((pedido) => {
-      // CUS-301: Validamos si tiene factura amarrada
+      const id = pedido.id_pedido || pedido.id || "--";
+      const mesa = pedido.mesa || pedido.mesa_numero || "Sin mesa";
+      const mesero = pedido.mesero || pedido.mesero_nombre || pedido.usuario || "--";
+      const total = (pedido.pedido_total !== undefined && pedido.pedido_total !== null) ? `$${parseFloat(pedido.pedido_total).toFixed(2)}` : (pedido.total !== undefined ? `$${parseFloat(pedido.total).toFixed(2)}` : "--");
+      const estado = pedido.pedido_estado || pedido.estado || "--";
       const tieneFactura = Boolean(pedido.factura_id || pedido.tieneFactura || pedido.id_factura);
       
-      // Pasamos el estado a minúsculas y limpiamos espacios para evitar fallos del backend
-      const estadoPedido = (pedido.estado || "").toLowerCase().trim();
+      const estadoPedido = estado.toLowerCase().trim();
       
       // CUS-302: Bloqueo por estados de cocina exactos de Jira
       const disabledCobro = (
@@ -341,30 +349,24 @@ function renderCobrosTabla(pedidos = []) {
         estadoPedido === "en preparación" || 
         estadoPedido === "en preparacion" || 
         estadoPedido === "preparado" ||
-        estadoPedido === "listo" || 
         estadoPedido === "listo para entregar" || 
         tieneFactura
       ) ? "disabled" : "";
 
-      // CRITERIO DE ACEPTACIÓN: Bloqueo físico del botón Cancelar si el estado es exactamente "facturado"
       const esFacturado = estadoPedido === "facturado" || tieneFactura;
       const disabledCancelar = esFacturado ? "disabled" : "";
       const estiloDeshabilitado = esFacturado ? "style='opacity: 0.5; cursor: not-allowed; margin-left: 6px; background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px;'" : "style='margin-left: 6px; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;'";
 
-      // Guardamos en memoria global para controlar la delegación del botón agregar platillo
       window.estadoPedidoActualCajero = estadoPedido;
       window.pedidoTieneFacturaActual = tieneFactura;
 
-      // Corrección del formato de moneda para que el cero (0) pinte bien como dinero
-      const totalMostrar = (pedido.total !== undefined && pedido.total !== null) ? `$${parseFloat(pedido.total).toFixed(2)}` : "--";
-
       return `
         <tr>
-          <td>${pedido.id_pedido || pedido.id || "--"}</td>
-          <td>${pedido.mesa || "Sin mesa"}</td>
-          <td>${pedido.mesero || pedido.usuario || "--"}</td>
-          <td>${totalMostrar}</td>
-          <td>${pedido.estado || "--"}</td>
+          <td>${id}</td>
+          <td>${mesa}</td>
+          <td>${mesero}</td>
+          <td>${total}</td>
+          <td>${estado}</td>
           <td style="display: flex; gap: 4px; align-items: center;">
             <button class="btn-completar" ${disabledCobro}>
               Facturar y Cobrar
@@ -420,6 +422,44 @@ function configurarCajeroPedido() {
   renderPedidoActualCajero();
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+async function cargarPedidosCajero() {
+  try {
+    const res = await fetch("/api/pedidos/cajero/pendientes");
+    if (!res.ok) throw new Error("Error al cargar pedidos");
+    const pedidos = await res.json();
+    renderCobrosTabla(pedidos);
+  } catch (error) {
+    console.error(error);
+    const tabla = document.getElementById("tablaCobros");
+    if (tabla) tabla.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">No hay pedidos pendientes</td></tr>`;
+  }
+}
+
+window.refrescarListaPedidos = cargarPedidosCajero;
+
+window.mostrarViews = function(id) {
+  document.querySelectorAll(".contenido > div").forEach(section => {
+    if (section.id === "cobros" || section.id === "menu-restaurante" || section.id === "tomar-pedido") {
+      section.style.display = section.id === id ? "block" : "none";
+    }
+  });
+  if (id === "cobros") cargarPedidosCajero();
+};
+
+window.toggleMenu = function() {
+  const sidebar = document.getElementById("sidebar");
+  const backdrop = document.getElementById("menuBackdrop");
+  sidebar.classList.toggle("show");
+  backdrop.classList.toggle("show");
+};
+
+window.cerrarSesion = function() {
+  localStorage.clear();
+  window.location.href = "/login.html";
+};
+
+document.addEventListener("DOMContentLoaded", () => {
   configurarCajeroPedido();
+  cargarPedidosCajero();
+  setInterval(cargarPedidosCajero, 15000);
 });

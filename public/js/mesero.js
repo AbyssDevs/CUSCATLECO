@@ -962,7 +962,14 @@ else if (esPreparacion) {
     if (pedido.pedido_estado === "EnPreparacion") estadoEmoji = "🟠";
     if (pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado") estadoEmoji = "🟢";
 
-    // 4. Construir la estructura semántica del modal
+    // 4. Calcular subtotal, IVA y total
+    const subtotalCalc = (pedido.platillos || []).reduce((sum, item) => {
+        return sum + (item.detalle_pedido_subtotal || (item.detalle_pedido_cantidad || 0) * (item.detalle_pedido_precio_unitario || 0));
+    }, 0);
+    const ivaCalc = subtotalCalc * 0.13;
+    const totalCalc = subtotalCalc + ivaCalc;
+
+    // 5. Construir la estructura semántica del modal
     backdrop.innerHTML = `
         <div class="detalle-modal">
             <div class="detalle-header">
@@ -979,7 +986,15 @@ else if (esPreparacion) {
                     <div><strong>Tipo:</strong> ${pedido.pedido_tipo || "Salón"}</div>
                     <div><strong>Estado:</strong> ${estadoEmoji} ${pedido.pedido_estado}</div>
                     <div><strong>Hora inicio:</strong> ${new Date(pedido.pedido_fecha_hora).toLocaleDateString()} ${new Date(pedido.pedido_fecha_hora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12:false})}</div>
-                    <div><strong>Subtotal:</strong> $${Number(pedido.pedido_total || 0).toFixed(2)}</div>
+                </div>
+            </div>
+
+            <div class="detalle-seccion">
+                <h3>Resumen de Cobro</h3>
+                <div class="detalle-info-general">
+                    <div><strong>Subtotal:</strong> $${subtotalCalc.toFixed(2)}</div>
+                    <div><strong>IVA (13%):</strong> $${ivaCalc.toFixed(2)}</div>
+                    <div><strong>Total a pagar:</strong> $${totalCalc.toFixed(2)}</div>
                 </div>
             </div>
 

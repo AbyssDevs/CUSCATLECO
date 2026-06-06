@@ -228,6 +228,16 @@ export const cambiarEstadoPedidoCocina = async (
 
 
 
+export const obtenerPedidosPendientesCajero = async (req, res) => {
+  try {
+    const data = await pedidosService.obtenerPedidosPendientesCajero();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 export const marcarPedidoListo = async (req, res) => {
   try {
     const data = await pedidosService.marcarPedidoListo(req.params.id, req.user.id);
