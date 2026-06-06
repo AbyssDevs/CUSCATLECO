@@ -275,8 +275,12 @@
     <script>
       async function confirmarFacturaPedido() {
         const pedidoId = window.pedidoIdSeleccionado || document.getElementById('idPedidoFactura')?.value || document.getElementById('pedidoIdFactura')?.value;
-        const nombreCliente = document.getElementById('nombreFacturaCliente')?.value?.trim() || null;
-        const nitCliente = document.getElementById('nitFacturaCliente')?.value?.trim() || null;
+        
+        // Obtener datos del cliente del modal o de variables globales
+        const nombreCliente = window.facturaData?.nombreCliente || 
+                            document.getElementById('nombreFacturaCliente')?.value?.trim() || null;
+        const nitCliente = window.facturaData?.nit || 
+                         document.getElementById('nitFacturaCliente')?.value?.trim() || null;
 
         if (!pedidoId) {
           await Swal.fire({

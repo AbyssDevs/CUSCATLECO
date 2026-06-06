@@ -189,6 +189,131 @@ function configurarCajeroPedido() {
   actualizarTipoPedidoCajero();
   configurarFormularioPedidoCajero();
   inicializarDelegacionAgregarPlatillo();
+  
+  // Manejador para botones "Facturar y Cobrar"
+  configurarBotonesFacturar();
+}
+
+// Función para configurar los botones de facturación
+function configurarBotonesFacturar() {
+  document.addEventListener('click', async (event) => {
+    const btnFacturar = event.target.closest('.btn-completar');
+    if (!btnFacturar) return;
+    
+    event.preventDefault();
+    
+    // Obtener ID del pedido de la fila
+    const fila = btnFacturar.closest('tr');
+    if (!fila) return;
+    
+    const idPedido = fila.querySelector('td:first-child')?.textContent.trim();
+    
+    if (!idPedido || idPedido === '--') {
+      await Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo identificar el pedido',
+      });
+      return;
+    }
+    
+    // Guardar ID del pedido seleccionado
+    window.pedidoIdSeleccionado = idPedido;
+    
+    // Mostrar modal de factura con SweetAlert2
+    const { value: formValues } = await Swal.fire({
+      title: 'Generar Factura',
+      html: `
+        <div style="text-align: left;">
+          <label for="swalNombreFactura" style="display: block; margin-bottom: 8px; font-weight: 600;">
+            Nombre del Cliente (Opcional)
+          </label>
+          <input type="text" id="swalNombreFactura" class="swal2-input" placeholder="Nombre del cliente" style="width: 90%; margin: 0 auto 15px;">
+          
+          <label for="swalNitFactura" style="display: block; margin-bottom: 8px; font-weight: 600;">
+            NIT/Cédula (Opcional)
+          </label>
+          <input type="text" id="swalNitFactura" class="swal2-input" placeholder="NIT o número de cédula" style="width: 90%; margin: 0 auto;">
+        </div>
+      `,
+      focusConfirm: false,
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar Factura',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        return {
+          nombre: document.getElementById('swalNombreFactura')?.value || null,
+          nit: document.getElementById('swalNitFactura')?.value || null,
+        };
+      },
+    });
+    
+    if (formValues) {
+      // Guardar los datos del cliente en variables globales
+      window.facturaData = {
+        nombreCliente: formValues.nombre,
+        nit: formValues.nit,
+      };
+      
+      // Llamar a la función de confirmación que está en el HTML
+      if (typeof confirmarFacturaPedido === 'function') {
+        await confirmarFacturaPedido();
+      }
+    }
+  });
+}
+
+// Función para refrescar la lista de pedidos pendientes de cobro
+async function refrescarListaPedidos() {
+  try {
+    // Obtener pedidos del servidor
+    const response = await fetch('/api/pedidos/activos');
+    
+    if (!response.ok) {
+      console.error('Error al obtener pedidos:', response.statusText);
+      return;
+    }
+
+    const pedidos = await response.json();
+    
+    // Renderizar la tabla de cobros
+    renderCobrosTabla(pedidos);
+    
+    // Recargar búsqueda si existe campo de búsqueda
+    const buscarMesa = document.getElementById('buscarMesaCobro');
+    if (buscarMesa) {
+      buscarMesa.value = '';
+    }
+  } catch (error) {
+    console.error('Error refrescando lista de pedidos:', error);
+  }
+}
+
+// Función para limpiar el modal de factura
+function limpiarModalFactura() {
+  const nombreFactura = document.getElementById('nombreFacturaCliente');
+  const nitFactura = document.getElementById('nitFacturaCliente');
+  const idPedidoFactura = document.getElementById('idPedidoFactura') || document.getElementById('pedidoIdFactura');
+  
+  if (nombreFactura) nombreFactura.value = '';
+  if (nitFactura) nitFactura.value = '';
+  if (idPedidoFactura) idPedidoFactura.value = '';
+  
+  window.pedidoIdSeleccionado = null;
+}
+
+// Función para cerrar el modal de factura
+function cerrarModalFactura() {
+  // Cerrar modal usando SweetAlert2 si está abierto
+  if (typeof Swal !== 'undefined') {
+    Swal.close();
+  }
+  
+  // Si existe un elemento modal HTML, ocultarlo
+  const modal = document.getElementById('modalFactura') || document.querySelector('[data-modal="factura"]');
+  if (modal) {
+    modal.style.display = 'none';
+  }
 }
 
 window.addEventListener("DOMContentLoaded", () => {
