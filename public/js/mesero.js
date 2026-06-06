@@ -1,19 +1,21 @@
 document.addEventListener("DOMContentLoaded", () => {
-
   // --- Configuración Global ---
   // --- 1. SECCIÓN DE VARIABLES GLOBALES ---
-const esVistaCajero = window.location.pathname.includes("cajero");
+  const esVistaCajero = window.location.pathname.includes("cajero");
 
-let platillosDisponibles = [];
-let mesasPedido = [];
-let pedidoActivo = null;
-let pedidoEnviado = false;
+  let platillosDisponibles = [];
+  let mesasPedido = [];
+  let pedidoActivo = null;
+  let pedidoEnviado = false;
 
-let notificacionesMesero = [];
+  let notificacionesMesero = [];
 
-// CUS-268
-let pollingNotificaciones = null;
-let ultimaConsulta = new Date(Date.now() - 30 * 60000).toISOString(); 
+  // CUS-268
+  let pollingNotificaciones = null;
+  // Cambia esto en la línea 15 temporalmente para probar:
+  let ultimaConsulta = new Date(Date.now() - 1440 * 60000).toISOString();
+  // Iniciar la búsqueda de notificaciones automáticamente al cargar la página
+  iniciarPollingNotificaciones();
 
 // --- AQUÍ ES DONDE DEBES PEGAR LA FUNCIÓN ---
 // Pégala justo aquí, entre las variables globales y tus funciones de renderizado
