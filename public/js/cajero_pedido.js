@@ -200,6 +200,9 @@ function configurarBotonesFacturar() {
     const btnFacturar = event.target.closest('.btn-completar');
     if (!btnFacturar) return;
     
+    // No ejecutar si el botón está deshabilitado
+    if (btnFacturar.disabled) return;
+    
     event.preventDefault();
     
     // Obtener ID del pedido de la fila
