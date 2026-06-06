@@ -263,6 +263,220 @@ function configurarBotonesFacturar() {
   });
 }
 
+// Función para descargar el PDF de la factura
+async function descargarPDFFactura() {
+  const facturaData = window.ultrafacturaGenerada;
+  
+  if (!facturaData) {
+    alert('No hay datos de factura para descargar');
+    return;
+  }
+  
+  try {
+    // Intentar descargar PDF desde el servidor
+    const facturaId = facturaData.numeroFactura;
+    const response = await fetch(`/api/facturas/pdf/${facturaId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/pdf',
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error('No se pudo descargar el PDF desde el servidor');
+    }
+    
+    // Obtener el blob y descargar
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `factura_${facturaId}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (error) {
+    console.error('Error descargando PDF:', error);
+    
+    // Si el servidor no tiene el endpoint, generar PDF desde HTML del ticket
+    generarYDescargarPDFLocal();
+  }
+}
+
+// Función para generar y descargar PDF localmente si el servidor no proporciona
+function generarYDescargarPDFLocal() {
+  const facturaData = window.ultrafacturaGenerada;
+  
+  if (!facturaData) {
+    alert('No hay datos de factura para generar PDF');
+    return;
+  }
+  
+  // Crear contenido HTML del PDF
+  const contenidoPDF = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Factura ${facturaData.numeroFactura}</title>
+      <style>
+        body {
+          font-family: Arial, sans-serif;
+          max-width: 800px;
+          margin: 0 auto;
+          padding: 20px;
+          background: white;
+          color: #333;
+        }
+        .factura-container {
+          border: 1px solid #ddd;
+          padding: 30px;
+          background: white;
+        }
+        .header {
+          text-align: center;
+          margin-bottom: 30px;
+          border-bottom: 2px solid #7a1d1d;
+          padding-bottom: 20px;
+        }
+        .header h1 {
+          margin: 0;
+          color: #7a1d1d;
+          font-size: 28px;
+        }
+        .header p {
+          margin: 5px 0;
+          color: #666;
+          font-size: 14px;
+        }
+        .factura-info {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 30px;
+          padding: 15px;
+          background: #f9f9f9;
+          border-radius: 5px;
+        }
+        .info-group {
+          padding: 10px;
+        }
+        .info-label {
+          font-weight: bold;
+          color: #7a1d1d;
+          margin-bottom: 5px;
+          font-size: 12px;
+          text-transform: uppercase;
+        }
+        .info-value {
+          font-size: 14px;
+          color: #333;
+        }
+        .resumen {
+          margin: 30px 0;
+          border-top: 1px solid #ddd;
+          border-bottom: 1px solid #ddd;
+          padding: 20px 0;
+        }
+        .resumen-linea {
+          display: flex;
+          justify-content: space-between;
+          margin: 10px 0;
+          font-size: 14px;
+        }
+        .resumen-linea.total {
+          font-weight: bold;
+          font-size: 18px;
+          color: #7a1d1d;
+          margin-top: 15px;
+          padding-top: 15px;
+          border-top: 2px solid #7a1d1d;
+        }
+        .pie {
+          text-align: center;
+          margin-top: 30px;
+          padding-top: 20px;
+          border-top: 1px solid #ddd;
+          font-size: 12px;
+          color: #666;
+        }
+        .fecha-hora {
+          text-align: center;
+          color: #999;
+          font-size: 11px;
+          margin-top: 10px;
+        }
+        @media print {
+          body { margin: 0; padding: 0; }
+          .factura-container { border: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="factura-container">
+        <div class="header">
+          <h1>FACTURA</h1>
+          <p>RESTAURANTE CUSCATLECO</p>
+        </div>
+        
+        <div class="factura-info">
+          <div class="info-group">
+            <div class="info-label">Número de Factura</div>
+            <div class="info-value">${facturaData.numeroFactura || 'N/A'}</div>
+          </div>
+          <div class="info-group">
+            <div class="info-label">Fecha</div>
+            <div class="info-value">${new Date().toLocaleDateString('es-SV')}</div>
+          </div>
+          <div class="info-group">
+            <div class="info-label">Cliente</div>
+            <div class="info-value">${facturaData.nombreCliente || 'Consumidor Final'}</div>
+          </div>
+          ${facturaData.nit ? `
+            <div class="info-group">
+              <div class="info-label">NIT/Cédula</div>
+              <div class="info-value">${facturaData.nit}</div>
+            </div>
+          ` : ''}
+        </div>
+        
+        ${facturaData.total ? `
+          <div class="resumen">
+            <div class="resumen-linea">
+              <span>Subtotal:</span>
+              <span>$${parseFloat(facturaData.total).toFixed(2)}</span>
+            </div>
+            <div class="resumen-linea total">
+              <span>Total a Pagar:</span>
+              <span>$${parseFloat(facturaData.total).toFixed(2)}</span>
+            </div>
+          </div>
+        ` : ''}
+        
+        <div class="pie">
+          <p>Gracias por su compra en Restaurante Cuscatleco</p>
+          <div class="fecha-hora">
+            Generado: ${new Date().toLocaleString('es-SV')}
+          </div>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  // Crear blob y descargar
+  const blob = new Blob([contenidoPDF], { type: 'text/html;charset=utf-8;' });
+  const link = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  link.setAttribute('href', url);
+  link.setAttribute('download', `factura_${facturaData.numeroFactura}.html`);
+  link.style.visibility = 'hidden';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
 // Función para imprimir el ticket de factura
 function imprimirTicketFactura() {
   const facturaData = window.ultrafacturaGenerada;

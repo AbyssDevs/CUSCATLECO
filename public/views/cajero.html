@@ -329,14 +329,22 @@
             showConfirmButton: true,
             confirmButtonText: 'Aceptar',
             didOpen: (modal) => {
-              // Agregar botón de impresión al modal
+              // Agregar botones de impresión y descarga al modal
               const popup = Swal.getPopup();
               if (popup) {
+                // Contenedor para los botones
+                const containerBotones = document.createElement('div');
+                containerBotones.style.cssText = `
+                  display: flex;
+                  gap: 10px;
+                  margin-top: 10px;
+                  justify-content: center;
+                `;
+                
+                // Botón Imprimir Ticket
                 const btnImprimir = document.createElement('button');
                 btnImprimir.innerHTML = '<i class="fas fa-print"></i> Imprimir Ticket';
                 btnImprimir.style.cssText = `
-                  margin-top: 10px;
-                  margin-right: 10px;
                   padding: 10px 15px;
                   background-color: #2980b9;
                   color: white;
@@ -345,6 +353,7 @@
                   cursor: pointer;
                   font-weight: bold;
                   transition: background 0.2s ease;
+                  font-size: 13px;
                 `;
                 btnImprimir.onmouseover = () => btnImprimir.style.backgroundColor = '#2471a3';
                 btnImprimir.onmouseout = () => btnImprimir.style.backgroundColor = '#2980b9';
@@ -354,10 +363,36 @@
                   }
                 };
                 
-                // Insertar botón después del título
+                // Botón Descargar PDF
+                const btnDescargar = document.createElement('button');
+                btnDescargar.innerHTML = '<i class="fas fa-download"></i> Descargar PDF';
+                btnDescargar.style.cssText = `
+                  padding: 10px 15px;
+                  background-color: #27ae60;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: bold;
+                  transition: background 0.2s ease;
+                  font-size: 13px;
+                `;
+                btnDescargar.onmouseover = () => btnDescargar.style.backgroundColor = '#219653';
+                btnDescargar.onmouseout = () => btnDescargar.style.backgroundColor = '#27ae60';
+                btnDescargar.onclick = async () => {
+                  if (typeof descargarPDFFactura === 'function') {
+                    await descargarPDFFactura();
+                  }
+                };
+                
+                // Agregar botones al contenedor
+                containerBotones.appendChild(btnImprimir);
+                containerBotones.appendChild(btnDescargar);
+                
+                // Insertar contenedor después del título
                 const titulo = popup.querySelector('.swal2-title');
                 if (titulo && titulo.parentNode) {
-                  titulo.parentNode.insertBefore(btnImprimir, titulo.nextSibling);
+                  titulo.parentNode.insertBefore(containerBotones, titulo.nextSibling);
                 }
               }
             },
