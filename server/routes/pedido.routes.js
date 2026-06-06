@@ -14,7 +14,8 @@ import {
     cancelarPedido,
     obtenerPedidosPendientesCocina,
     cambiarEstadoPedidoCocina,
-    obtenerDetallePedido
+    obtenerDetallePedido,
+    marcarPedidoListo
 } from '../controllers/pedidos.controller.js';
 
 import {
@@ -22,6 +23,8 @@ import {
     auditoriaMiddleware
 } from "../middlewares/auth.middleware.js";
 
+
+router.patch('/:id/estado', requirePermission('crear_pedido'), marcarPedidoListo);
 
 router.post('/iniciar', auditoriaMiddleware, requirePermission('crear_pedido'), iniciarPedido);
 

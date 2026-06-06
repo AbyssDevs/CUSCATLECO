@@ -1013,6 +1013,11 @@ else if (esPreparacion) {
                                 data-tipo="${pedido.pedido_tipo || ""}">
                             <i class="fa-solid fa-ban"></i> [Cancelar]
                         </button>
+                        ${pedido.pedido_estado === "EnPreparacion" ? `
+                        <button class="btn-marcar-listo" data-id="${pedido.id_pedido}">
+                            <i class="fa-solid fa-check-circle"></i> [Marcar como listo]
+                        </button>
+                        ` : ""}
                     ` : ""}
 
                     ${pedido.factura_id ? `
@@ -1061,6 +1066,14 @@ else if (esPreparacion) {
     if (btnGenerarFactura) {
         btnGenerarFactura.addEventListener("click", () => {
             console.log("Generar factura para pedido:", pedido.id_pedido);
+        });
+    }
+
+    const btnMarcarListo = backdrop.querySelector(".btn-marcar-listo");
+    if (btnMarcarListo) {
+        btnMarcarListo.addEventListener("click", async () => {
+            await marcarPedidoListo(pedido.id_pedido);
+            backdrop.remove();
         });
     }
 
@@ -1658,6 +1671,36 @@ window.procesarClickNotificacion = async function(idPedido) {
           modal("info", "Aún no disponible", "La función de eliminar pedidos estará disponible pronto.");
         }
       });
+    }
+  }
+
+  async function marcarPedidoListo(idPedido) {
+    const confirmar = await Swal.fire({
+      title: "¿Marcar pedido como listo?",
+      text: "El pedido pasará a estado 'Listo para entregar'",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, marcar listo",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#28a745"
+    });
+    if (!confirmar.isConfirmed) return;
+
+    try {
+      const res = await fetch(`/api/pedidos/${idPedido}/estado`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "Listo" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo marcar el pedido como listo");
+
+      toast("success", "Pedido listo para entregar");
+      cargarMisPedidos();
+      cargarMesasPedido();
+    } catch (error) {
+      console.error(error);
+      toast("error", error.message);
     }
   }
 

@@ -1102,3 +1102,30 @@ export const obtenerDetallePedido = async (id_pedido) => {
     ...pedido,
     platillos: detalleRows
  } };
+
+
+export const marcarPedidoListo = async (id_pedido, userId) => {
+  const [rows] = await db.query(`SELECT pedido_estado, id_mesero FROM pedidos WHERE id_pedido = ?`, [id_pedido]);
+  if (rows.length === 0) throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+
+  const pedido = rows[0];
+  if (pedido.pedido_estado !== "EnPreparacion") {
+    throw Object.assign(new Error("Solo se puede marcar como listo un pedido que esté en preparación"), { status: 400 });
+  }
+
+  await db.query(`UPDATE pedidos SET pedido_estado = 'Listo', pedido_listo_en = NOW() WHERE id_pedido = ?`, [id_pedido]);
+
+  const [infoRows] = await db.query(
+    `SELECT m.mesa_numero FROM pedidos p LEFT JOIN mesas m ON p.id_mesa = m.id_mesa WHERE p.id_pedido = ?`,
+    [id_pedido]
+  );
+
+  const mesaNumero = infoRows[0]?.mesa_numero ?? "N/A";
+  await db.query(
+    `INSERT INTO notificaciones (id_usuario, id_pedido, notificacion_tipo, notificacion_asunto, notificacion_mensaje)
+     VALUES (?, ?, 'Pedido', 'Pedido listo', ?)`,
+    [pedido.id_mesero, id_pedido, `Pedido #${id_pedido} de Mesa ${mesaNumero} está listo para entregar`]
+  );
+
+  return { message: "Pedido listo para entregar" };
+};
