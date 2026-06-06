@@ -499,13 +499,13 @@ async function cambiarEstado(
     }
 
     await apiFetch(
-      `/pedidos/cocina/${id_pedido}/estado`,
+      `/pedidos/${id_pedido}/cocina/estado`,
       {
-        method: "PUT",
+        method: "PATCH",
 
-        body: JSON.stringify({
-          nuevoEstado: estado
-        })
+        body: {
+          estado
+        }
       }
     );
 

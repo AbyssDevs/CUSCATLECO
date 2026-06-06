@@ -431,7 +431,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function obtenerGridMisPedidos() {
-    return document.getElementById("gridPedidosActivos") || null;
+    return document.getElementById("grid-pedidos-mesero") || null;
   }
 
   function vistaPedidosPendientesActiva() {
@@ -530,12 +530,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- UI state toggles ----------------------------------------------
   function toggleMisPedidosLoading(show) {
-    const el = document.getElementById("misPedidosLoading");
+    const el = document.getElementById("pedidosMeseroLoading");
     if (el) el.style.display = show ? "flex" : "none";
   }
 
   function toggleMisPedidosEmpty(show) {
-    const el = document.getElementById("misPedidosEmpty");
+    const el = document.getElementById("pedidosMeseroEmpty");
     if (el) el.style.display = show ? "flex" : "none";
   }
 
@@ -557,6 +557,14 @@ document.addEventListener("DOMContentLoaded", () => {
     const esListo = estado === "Listo";
     const esLlevar = (pedido.pedido_tipo || "").toLowerCase() === "llevar";
     const mesaTexto = obtenerTextoMesa(pedido);
+
+    const platillos = obtenerPlatillosPedido(pedido);
+    const subtotalCalculado = platillos.reduce((sum, p) => {
+      const precio = p.detalle_pedido_precio_unitario || p.precio || 0;
+      const cantidad = obtenerCantidadPlatilloPedido(p);
+      return sum + (precio * cantidad);
+    }, 0);
+    const subtotal = pedido.pedido_total || subtotalCalculado || 0;
 
     const card = document.createElement("div");
     card.className = "pedido-activo-card";
@@ -596,6 +604,9 @@ document.addEventListener("DOMContentLoaded", () => {
         <div class="pedido-card-actions">
           <button type="button" class="btn-editar-pedido" data-action="editar" data-id="${pedido.id_pedido}">
             <i class="fa-solid fa-pen-to-square"></i> Editar Pedido
+          </button>
+          <button type="button" class="btn-ver-detalle" data-action="detalle" data-id="${pedido.id_pedido}">
+            <i class="fa-solid fa-eye"></i> Ver Detalle
           </button>
           <button type="button" class="btn-eliminar-pedido" data-action="eliminar" data-id="${pedido.id_pedido}" style="background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5 !important;">
             <i class="fa-solid fa-trash"></i> Eliminar
@@ -644,7 +655,7 @@ document.addEventListener("DOMContentLoaded", () => {
         </div>
         <div class="pedido-card-subtotal">
           <span>Subtotal actual</span>
-          <span class="subtotal-valor">${formatPrice(pedido.pedido_total || 0)}</span>
+          <span class="subtotal-valor">${formatPrice(subtotal)}</span>
         </div>
       </div>
       ${readonlyHtml}
@@ -660,11 +671,87 @@ document.addEventListener("DOMContentLoaded", () => {
     return card;
   }
 
-  // --- Placeholder detalle -------------------------------------------
+  // --- Detalle del pedido (modal con subtotal, IVA y total) ----------
   function abrirDetallePedido(idPedido) {
-    // CUS-94 — placeholder for future detail view
-    console.log(`[CUS-94] abrirDetallePedido(${idPedido}) — pendiente de implementación`);
-    toast("info", `Detalle del pedido #${idPedido} próximamente disponible`);
+    const pedido = misPedidosData.find(p => String(p.id_pedido) === String(idPedido));
+    if (!pedido) {
+      toast("error", "No se encontró el pedido");
+      return;
+    }
+
+    const platillos = obtenerPlatillosPedido(pedido);
+    const mesaTexto = obtenerTextoMesa(pedido);
+    const tipo = (pedido.pedido_tipo || "salon").toLowerCase();
+    const ubicacion = tipo === "llevar" ? "Para llevar" : mesaTexto;
+
+    const subtotalGeneral = pedido.pedido_total || platillos.reduce((sum, p) => {
+      const precio = p.detalle_pedido_precio_unitario || p.precio || 0;
+      const cantidad = obtenerCantidadPlatilloPedido(p);
+      return sum + (precio * cantidad);
+    }, 0);
+    const iva = subtotalGeneral * 0.13;
+    const total = subtotalGeneral + iva;
+
+    let itemsHtml = "";
+    if (platillos.length > 0) {
+      itemsHtml = `<table class="detalle-platillos-tabla" style="width:100%; border-collapse:collapse; margin-bottom:16px;">
+        <thead>
+          <tr style="border-bottom:2px solid #ddd;">
+            <th style="text-align:left; padding:6px 8px;">Platillo</th>
+            <th style="text-align:center; padding:6px 8px;">Cant.</th>
+            <th style="text-align:right; padding:6px 8px;">Precio U.</th>
+            <th style="text-align:right; padding:6px 8px;">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${platillos.map(p => {
+            const nombre = obtenerNombrePlatilloPedido(p);
+            const cantidad = obtenerCantidadPlatilloPedido(p);
+            const precio = p.detalle_pedido_precio_unitario || p.precio || 0;
+            const subtotalItem = precio * cantidad;
+            return `<tr style="border-bottom:1px solid #eee;">
+              <td style="padding:6px 8px;">${escapeHtml(nombre)}</td>
+              <td style="text-align:center; padding:6px 8px;">${cantidad}</td>
+              <td style="text-align:right; padding:6px 8px;">$${formatPrice(precio)}</td>
+              <td style="text-align:right; padding:6px 8px;">$${formatPrice(subtotalItem)}</td>
+            </tr>`;
+          }).join("")}
+        </tbody>
+      </table>`;
+    }
+
+    const html = `
+      <div style="text-align:left; font-size:14px;">
+        <p><strong>Pedido #${idPedido}</strong> — ${escapeHtml(ubicacion)}</p>
+        <p style="margin-bottom:12px; color:#666;">${escapeHtml(obtenerStatusTexto(pedido.pedido_estado))}</p>
+        ${itemsHtml}
+        <hr style="border:none; border-top:1px solid #ddd; margin:12px 0;">
+        <div style="display:flex; justify-content:space-between; padding:4px 0;">
+          <span>Subtotal:</span>
+          <span>$${formatPrice(subtotalGeneral)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:4px 0;">
+          <span>IVA (13%):</span>
+          <span>$${formatPrice(iva)}</span>
+        </div>
+        <div style="display:flex; justify-content:space-between; padding:6px 0; font-weight:bold; font-size:16px; border-top:2px solid #333; margin-top:4px;">
+          <span>Total a pagar:</span>
+          <span>$${formatPrice(total)}</span>
+        </div>
+      </div>
+    `;
+
+    if (typeof Swal !== "undefined") {
+      Swal.fire({
+        icon: "info",
+        title: "Detalle del Pedido",
+        html,
+        width: "520px",
+        confirmButtonText: "Cerrar"
+      });
+    } else {
+      alert(`Pedido #${idPedido}\nSubtotal: $${subtotalGeneral}\nIVA: $${iva}\nTotal: $${total}`);
+    }
   }
 
   window.abrirDetallePedido = abrirDetallePedido;
@@ -891,7 +978,7 @@ document.addEventListener("DOMContentLoaded", () => {
         <button type="button" class="btn-disminuir-cantidad">
           <i class="fas fa-minus"></i>
         </button>
-        <input type="number" class="platillo-cantidad" value="${cantidad}" min="1" max="99">
+        <input type="number" name="platillo-cantidad" class="platillo-cantidad" value="${cantidad}" min="1" max="99">
         <button type="button" class="btn-aumentar-cantidad">
           <i class="fas fa-plus"></i>
         </button>

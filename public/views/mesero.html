@@ -262,7 +262,7 @@
                         <!-- FILTROS -->
                         <div class="menu-page-header pedido-menu-filters">
 
-                            <select class="menu-category-filter">
+                            <select id="menu-category-filter" class="menu-category-filter">
 
                                 <option value="">
                                     Todas las categorías
@@ -270,10 +270,11 @@
 
                             </select>
 
-                            <input type="number" placeholder="Cant." min="1" value="1" style="flex: 1;">
+                            <input type="number" name="cantidad-platillo" placeholder="Cant." min="1" value="1" style="flex: 1;">
                             <button type="button" class="btn-eliminar" title="Eliminar platillo"><i class="fa-solid fa-trash"></i></button>
 
                             <input
+                                id="menu-search-input"
                                 class="menu-search-input"
                                 type="text"
                                 placeholder="Buscar platillo..."
@@ -487,6 +488,23 @@
 
                     <!-- JS -->
 
+                </div>
+
+                <!-- CONTADOR -->
+                <div id="pedidosCount" style="margin-top: 8px; font-size: 14px; color: #666;"></div>
+
+                <!-- PAGINACION -->
+                <div id="pedidosPagination" style="display: none; justify-content: center; align-items: center; gap: 12px; margin-top: 16px;">
+                    <button id="btnPagAnterior" type="button" class="btn-pag">❮ Anterior</button>
+                    <span id="pagInfo" style="font-size: 14px; color: #555;">Página 1 de 1</span>
+                    <button id="btnPagSiguiente" type="button" class="btn-pag">Siguiente ❯</button>
+                </div>
+
+                <!-- BOTON ACTUALIZAR -->
+                <div style="text-align: center; margin-top: 12px;">
+                    <button id="btnActualizarPedidos" type="button" class="btn-refresh" title="Actualizar pedidos">
+                        <i class="fa-solid fa-rotate"></i> Actualizar
+                    </button>
                 </div>
 
             </div>
