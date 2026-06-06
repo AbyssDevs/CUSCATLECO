@@ -263,6 +263,121 @@ function configurarBotonesFacturar() {
   });
 }
 
+// Función para imprimir el ticket de factura
+function imprimirTicketFactura() {
+  const facturaData = window.ultrafacturaGenerada;
+  
+  if (!facturaData) {
+    alert('No hay datos de factura para imprimir');
+    return;
+  }
+  
+  // Crear contenido del ticket
+  const contenidoTicket = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Ticket Factura</title>
+      <style>
+        body {
+          font-family: 'Courier New', monospace;
+          width: 80mm;
+          margin: 0;
+          padding: 10px;
+          background: white;
+        }
+        .ticket {
+          text-align: center;
+          border: 1px dashed #333;
+          padding: 10px;
+        }
+        .header {
+          margin-bottom: 15px;
+          font-weight: bold;
+          font-size: 14px;
+        }
+        .numero-factura {
+          font-size: 16px;
+          font-weight: bold;
+          margin: 10px 0;
+        }
+        .fecha {
+          font-size: 11px;
+          margin: 5px 0;
+        }
+        .seccion {
+          margin: 15px 0;
+          border-top: 1px dashed #333;
+          border-bottom: 1px dashed #333;
+          padding: 8px 0;
+          font-size: 12px;
+        }
+        .linea {
+          display: flex;
+          justify-content: space-between;
+          margin: 3px 0;
+        }
+        .total {
+          font-weight: bold;
+          font-size: 14px;
+          margin-top: 10px;
+        }
+        .pie {
+          font-size: 10px;
+          margin-top: 15px;
+          text-align: center;
+          color: #666;
+        }
+        @media print {
+          body { margin: 0; padding: 0; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="ticket">
+        <div class="header">RESTAURANTE CUSCATLECO</div>
+        <div class="numero-factura">FACTURA #${facturaData.numeroFactura || 'N/A'}</div>
+        <div class="fecha">${new Date().toLocaleString('es-SV')}</div>
+        
+        <div class="seccion">
+          <strong>Cliente:</strong><br>
+          ${facturaData.nombreCliente || 'Consumidor Final'}
+          ${facturaData.nit ? '<br>NIT: ' + facturaData.nit : ''}
+        </div>
+        
+        ${facturaData.total ? `
+          <div class="seccion">
+            <div class="linea">
+              <span>Subtotal:</span>
+              <span>$${parseFloat(facturaData.total).toFixed(2)}</span>
+            </div>
+            <div class="linea" style="font-weight: bold; font-size: 14px;">
+              <span>Total:</span>
+              <span>$${parseFloat(facturaData.total).toFixed(2)}</span>
+            </div>
+          </div>
+        ` : ''}
+        
+        <div class="pie">
+          Gracias por su compra<br>
+          ${new Date().toLocaleDateString('es-SV')}
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  // Abrir en nueva ventana e imprimir
+  const ventana = window.open('', '_blank');
+  ventana.document.write(contenidoTicket);
+  ventana.document.close();
+  
+  setTimeout(() => {
+    ventana.print();
+  }, 250);
+}
+
 // Función para refrescar la lista de pedidos pendientes de cobro
 async function refrescarListaPedidos() {
   try {

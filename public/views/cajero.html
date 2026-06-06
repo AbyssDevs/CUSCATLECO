@@ -313,11 +313,54 @@
             throw new Error(errorMessage);
           }
 
+          const resultadoFactura = await response.json();
+          
+          // Guardar datos de la factura para impresión
+          window.ultrafacturaGenerada = {
+            numeroFactura: resultadoFactura.numeroFactura || resultadoFactura.id_factura,
+            nombreCliente: nombreCliente || 'Consumidor Final',
+            nit: nitCliente,
+            total: resultadoFactura.total,
+          };
+
           await Swal.fire({
             icon: 'success',
             title: 'Factura generada exitosamente',
-            timer: 2000,
-            showConfirmButton: false,
+            showConfirmButton: true,
+            confirmButtonText: 'Aceptar',
+            didOpen: (modal) => {
+              // Agregar botón de impresión al modal
+              const popup = Swal.getPopup();
+              if (popup) {
+                const btnImprimir = document.createElement('button');
+                btnImprimir.innerHTML = '<i class="fas fa-print"></i> Imprimir Ticket';
+                btnImprimir.style.cssText = `
+                  margin-top: 10px;
+                  margin-right: 10px;
+                  padding: 10px 15px;
+                  background-color: #2980b9;
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  cursor: pointer;
+                  font-weight: bold;
+                  transition: background 0.2s ease;
+                `;
+                btnImprimir.onmouseover = () => btnImprimir.style.backgroundColor = '#2471a3';
+                btnImprimir.onmouseout = () => btnImprimir.style.backgroundColor = '#2980b9';
+                btnImprimir.onclick = () => {
+                  if (typeof imprimirTicketFactura === 'function') {
+                    imprimirTicketFactura();
+                  }
+                };
+                
+                // Insertar botón después del título
+                const titulo = popup.querySelector('.swal2-title');
+                if (titulo && titulo.parentNode) {
+                  titulo.parentNode.insertBefore(btnImprimir, titulo.nextSibling);
+                }
+              }
+            },
           });
 
           if (typeof cerrarModalFactura === 'function') {
