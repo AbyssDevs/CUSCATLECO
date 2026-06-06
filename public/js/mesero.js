@@ -997,7 +997,9 @@ document.addEventListener("DOMContentLoaded", () => {
         ...item,
         id_platillo: Number(item.id_platillo)
       })),
-      notas: document.getElementById("pedido-notas-generales")?.value.trim() || ""
+      notas: document.getElementById("pedido-notas-generales")?.value.trim() || "",
+      cliente_nombre: document.getElementById("cliente-nombre")?.value.trim() || "",
+      cliente_nit: document.getElementById("cliente-nit")?.value.trim() || ""
     };
   }
 
@@ -1335,6 +1337,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const tipo = typeBtn.dataset.type === "salon" ? "Salon" : "Llevar";
     const items = obtenerItemsPedido();
     const notasGenerales = document.getElementById("pedido-notas-generales")?.value.trim() || "";
+    const clienteNombre = document.getElementById("cliente-nombre")?.value.trim() || "";
+    const clienteNit = document.getElementById("cliente-nit")?.value.trim() || "";
+
+    if (clienteNit && !/^\d{9}-\d$/.test(clienteNit)) {
+      toast("warning", "El NIT debe tener el formato #########-# (ej: 123456789-0)");
+      return;
+    }
 
     if (tipo === "Salon" && !pedidoActivo) {
       toast("warning", "Seleccione una mesa para iniciar el pedido");
@@ -1372,9 +1381,13 @@ document.addEventListener("DOMContentLoaded", () => {
         ? `/api/pedidos/${pedidoActivo.id_pedido}/items`
         : "/api/pedidos/crear";
 
-      const body = isEditing
-        ? { items, notas: notasGenerales }
-        : { tipo, id_mesa: pedidoActivo?.id_mesa || null, items, notas: notasGenerales };
+      const body = {
+        ...(isEditing
+          ? { items, notas: notasGenerales }
+          : { tipo, id_mesa: pedidoActivo?.id_mesa || null, items, notas: notasGenerales }),
+        ...(clienteNombre && { cliente_nombre: clienteNombre }),
+        ...(clienteNit && { cliente_nit: clienteNit })
+      };
 
       const res = await fetch(url, {
         method: isEditing ? "PATCH" : "POST",
