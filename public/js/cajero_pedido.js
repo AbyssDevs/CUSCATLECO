@@ -129,7 +129,7 @@ function renderCobrosTabla(pedidos = []) {
     .map((pedido) => {
       const tieneFactura = Boolean(pedido.factura_id || pedido.tieneFactura || pedido.id_factura);
       const estadoPedido = pedido.estado || "";
-      const disabled = (estadoPedido === "Pendiente" || estadoPedido === "En preparación" || estadoPedido === "En preparacion" || estadoPedido === "Listo" || estadoPedido === "Preparado" || tieneFactura) ? "disabled" : "";
+      const disabled = (estadoPedido === "Pendiente" || estadoPedido === "En preparación" || estadoPedido === "En preparacion" || estadoPedido === "Preparado" || tieneFactura) ? "disabled" : "";
 
       return `
         <tr>
