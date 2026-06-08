@@ -962,12 +962,10 @@ else if (esPreparacion) {
     if (pedido.pedido_estado === "EnPreparacion") estadoEmoji = "🟠";
     if (pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado") estadoEmoji = "🟢";
 
-    // 4. Calcular subtotal, IVA y total
-    const subtotalCalc = (pedido.platillos || []).reduce((sum, item) => {
-        return sum + (item.detalle_pedido_subtotal || (item.detalle_pedido_cantidad || 0) * (item.detalle_pedido_precio_unitario || 0));
-    }, 0);
-    const ivaCalc = subtotalCalc * 0.13;
-    const totalCalc = subtotalCalc + ivaCalc;
+    // 4. Calcular total (IVA ya incluido en los precios)
+    const totalCalc = Number((pedido.platillos || []).reduce((sum, item) => {
+        return sum + (Number(item.detalle_pedido_subtotal) || (Number(item.detalle_pedido_cantidad) || 0) * (Number(item.detalle_pedido_precio_unitario) || 0));
+    }, 0)) || 0;
 
     // 5. Construir la estructura semántica del modal
     backdrop.innerHTML = `
@@ -990,11 +988,9 @@ else if (esPreparacion) {
             </div>
 
             <div class="detalle-seccion">
-                <h3>Resumen de Cobro</h3>
+                <h3>Total a Pagar</h3>
                 <div class="detalle-info-general">
-                    <div><strong>Subtotal:</strong> $${subtotalCalc.toFixed(2)}</div>
-                    <div><strong>IVA (13%):</strong> $${ivaCalc.toFixed(2)}</div>
-                    <div><strong>Total a pagar:</strong> $${totalCalc.toFixed(2)}</div>
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #248a4c;"><strong>Total:</strong> $${totalCalc.toFixed(2)}</div>
                 </div>
             </div>
 
