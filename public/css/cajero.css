@@ -474,6 +474,61 @@ tr:hover {
     margin-top: 16px;
 }
 
+.factura-vista-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+}
+
+.factura-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    width: 100%;
+}
+
+.btn-descargar-factura {
+    background-color: #d32f2f;
+    color: white;
+    border: none;
+    padding: 10px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+}
+
+.btn-descargar-factura:hover {
+    background-color: #b71c1c;
+}
+
+.factura-detalle-wrap {
+    overflow-x: auto;
+    max-height: none;
+}
+
+.factura-detalle-tabla {
+    width: 100%;
+    min-width: 540px;
+}
+
+@media (max-width: 768px) {
+    .factura-vista-header,
+    .factura-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .factura-meta,
+    .factura-resumen {
+        grid-template-columns: 1fr;
+    }
+
+    .factura-detalle-tabla {
+        min-width: 100%;
+    }
+}
+
 @media (max-width: 640px) {
     .factura-form-grid,
     .factura-meta {

@@ -487,6 +487,7 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="/js/alerts.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/cajero_pedido.js"></script>
@@ -608,30 +609,38 @@
           event.preventDefault();
           const pedidoId = botonPdf.dataset.id || '';
           console.log('Descargar PDF pedido:', pedidoId);
-          if (pedidoId) {
-            fetch(`/api/facturas/pdf/${encodeURIComponent(pedidoId)}`)
-              .then((response) => {
-                if (!response.ok) throw new Error('No se pudo iniciar la descarga del PDF.');
-                return response.blob();
+          if (!pedidoId) return;
+
+          try {
+            const response = await fetch(`/api/facturas/${encodeURIComponent(pedidoId)}`);
+            const factura = await obtenerJson(response, 'No se pudo cargar la factura para generar el PDF.');
+            const tempContainer = document.createElement('div');
+            tempContainer.innerHTML = renderVistaFacturaHtml(factura);
+            const facturaElemento = tempContainer.querySelector('.factura-vista');
+
+            if (!facturaElemento || typeof html2pdf === 'undefined') {
+              throw new Error('No se pudo generar el PDF de la factura.');
+            }
+
+            const filename = `factura_${pedidoId}.pdf`;
+            html2pdf()
+              .set({
+                margin: 10,
+                filename,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2, useCORS: true },
+                jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+                pagebreak: { mode: ['css', 'legacy'] },
               })
-              .then((blob) => {
-                const url = URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = url;
-                link.download = `factura_${pedidoId}.pdf`;
-                document.body.appendChild(link);
-                link.click();
-                link.remove();
-                URL.revokeObjectURL(url);
-              })
-              .catch((error) => {
-                console.error('Error descargando PDF:', error);
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Error al descargar PDF',
-                  text: error?.message || 'No se pudo descargar el PDF de la factura.',
-                });
-              });
+              .from(facturaElemento)
+              .save();
+          } catch (error) {
+            console.error('Error descargando PDF:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error al descargar PDF',
+              text: error?.message || 'No se pudo descargar el PDF de la factura.',
+            });
           }
           return;
         }

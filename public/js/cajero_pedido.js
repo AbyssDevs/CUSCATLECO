@@ -367,35 +367,34 @@ function renderResumenFacturaHtml(data) {
 
 function renderVistaFacturaHtml(factura) {
   return `
-    <section class="factura-vista" data-factura-id="${escapeHtml(factura.id_factura)}">
-      <header class="factura-vista-header">
-        <div>
-          <p class="factura-leyenda">Consumidor Final</p>
-          <h2>${escapeHtml(factura.numero_factura)}</h2>
+    <div class="factura-vista-wrap">
+      <section class="factura-vista" data-factura-id="${escapeHtml(factura.id_factura)}">
+        <header class="factura-vista-header">
+          <div>
+            <p class="factura-leyenda">Consumidor Final</p>
+            <h2>${escapeHtml(factura.numero_factura)}</h2>
+          </div>
+          <div class="factura-fecha">${escapeHtml(formatoFechaHora(factura.fecha_emision))}</div>
+        </header>
+        <div class="factura-meta">
+          <div><span>Pedido</span><strong>${escapeHtml(factura.pedido_numero || factura.id_pedido)}</strong></div>
+          <div><span>Cajero</span><strong>${escapeHtml(factura.nombre_cajero || "N/A")}</strong></div>
+          ${factura.nombre_cliente ? `<div><span>Cliente</span><strong>${escapeHtml(factura.nombre_cliente)}</strong></div>` : ""}
+          ${factura.nit_cliente ? `<div><span>NIT</span><strong>${escapeHtml(factura.nit_cliente)}</strong></div>` : ""}
         </div>
-        <div class="factura-fecha">${escapeHtml(formatoFechaHora(factura.fecha_emision))}</div>
-      </header>
-      <div class="factura-meta">
-        <div><span>Pedido</span><strong>${escapeHtml(factura.pedido_numero || factura.id_pedido)}</strong></div>
-        <div><span>Cajero</span><strong>${escapeHtml(factura.nombre_cajero || "N/A")}</strong></div>
-        ${factura.nombre_cliente ? `<div><span>Cliente</span><strong>${escapeHtml(factura.nombre_cliente)}</strong></div>` : ""}
-        ${factura.nit_cliente ? `<div><span>NIT</span><strong>${escapeHtml(factura.nit_cliente)}</strong></div>` : ""}
-      </div>
-      ${renderDetalleFacturaHtml(factura.detalle)}
-      ${renderResumenFacturaHtml(factura)}
-      <div class="factura-leyendas">
-        <span>Consumidor Final</span>
-        <span>Documento no válido como crédito fiscal</span>
-      </div>
-      <div class="factura-futuro">
-        <button type="button" class="btn-factura-secundario" disabled>
-          <i class="fa-solid fa-print"></i> Imprimir
-        </button>
-        <button type="button" class="btn-factura-secundario" disabled>
-          <i class="fa-solid fa-file-pdf"></i> PDF
+        ${renderDetalleFacturaHtml(factura.detalle)}
+        ${renderResumenFacturaHtml(factura)}
+        <div class="factura-leyendas">
+          <span>Consumidor Final</span>
+          <span>Documento no válido como crédito fiscal</span>
+        </div>
+      </section>
+      <div class="factura-actions">
+        <button type="button" class="btn-descargar-factura">
+          <i class="fa-solid fa-file-pdf"></i> Descargar PDF
         </button>
       </div>
-    </section>
+    </div>
   `;
 }
 
@@ -404,7 +403,28 @@ async function mostrarFacturaEnPantalla(factura) {
     title: "Factura generada",
     html: renderVistaFacturaHtml(factura),
     width: 820,
-    confirmButtonText: "Cerrar",
+    showCloseButton: true,
+    showConfirmButton: false,
+    didOpen: () => {
+      const btnPdf = Swal.getHtmlContainer().querySelector(".btn-descargar-factura");
+      const facturaElemento = Swal.getHtmlContainer().querySelector(".factura-vista");
+      if (btnPdf && facturaElemento && typeof html2pdf !== "undefined") {
+        btnPdf.addEventListener("click", () => {
+          const filename = `factura_${escapeHtml(factura.id_factura || factura.pedido_numero || factura.id_pedido)}.pdf`;
+          html2pdf()
+            .set({
+              margin: 10,
+              filename,
+              image: { type: "jpeg", quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true },
+              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+              pagebreak: { mode: ["css", "legacy"] },
+            })
+            .from(facturaElemento)
+            .save();
+        });
+      }
+    },
   });
 }
 
