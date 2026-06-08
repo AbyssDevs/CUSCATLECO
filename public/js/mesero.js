@@ -1,12 +1,51 @@
 document.addEventListener("DOMContentLoaded", () => {
-
-  const esVistaCajero =
-    window.location.pathname.includes("cajero");
+  // --- Configuración Global ---
+  // --- 1. SECCIÓN DE VARIABLES GLOBALES ---
+  const esVistaCajero = window.location.pathname.includes("cajero");
 
   let platillosDisponibles = [];
   let mesasPedido = [];
   let pedidoActivo = null;
   let pedidoEnviado = false;
+
+  let notificacionesMesero = [];
+
+  // CUS-268
+  let pollingNotificaciones = null;
+  // Cambia esto en la línea 15 temporalmente para probar:
+  let ultimaConsulta = new Date(Date.now() - 1440 * 60000).toISOString();
+  // Iniciar la búsqueda de notificaciones automáticamente al cargar la página
+  iniciarPollingNotificaciones();
+
+// --- AQUÍ ES DONDE DEBES PEGAR LA FUNCIÓN ---
+// Pégala justo aquí, entre las variables globales y tus funciones de renderizado
+async function iniciarPollingNotificaciones() {
+    if (pollingNotificaciones) clearInterval(pollingNotificaciones);
+
+    pollingNotificaciones = setInterval(async () => {
+        try {
+            const response = await fetch(`/api/notificaciones/nuevas?desde=${ultimaConsulta}`);
+            
+            if (!response.ok) throw new Error("Error en el polling");
+
+            const nuevasNotificaciones = await response.json();
+
+            if (nuevasNotificaciones && nuevasNotificaciones.length > 0) {
+                ultimaConsulta = new Date().toISOString();
+                notificacionesMesero = [...nuevasNotificaciones, ...notificacionesMesero];
+                actualizarInterfazNotificaciones();
+                mostrarToastNotificacion(nuevasNotificaciones[0].mensaje);
+            }
+        } catch (error) {
+            console.error("Error en polling de notificaciones:", error);
+        }
+    }, 10000); 
+}
+
+// --- 2. LUEGO SIGUEN TUS FUNCIONES (renderNotificaciones, etc.) ---
+function renderNotificaciones(notificaciones = []) {
+    // ... tu código ...
+}
   // ============================================
   // CUS-130: Deshabilitar botones si pedido ya enviado a cocina
   // ============================================
@@ -70,30 +109,46 @@ document.addEventListener("DOMContentLoaded", () => {
 
   init();
 
-  async function init() {
+async function init() {
     setupEventListeners();
     await cargarPlatillos();
     await cargarMesasPedido();
+
     renderEstadoPedidoVacio();
+    renderNotificaciones(notificacionesMesero); // Render inicial con estado actual
+
+    // --- CUS-268: Inicio del Polling ---
+    setInterval(async () => {
+        // Aquí llamarás a tu función que consulta al servidor (ej. consultarNuevasNotificaciones())
+        // Por ahora, llamamos a la prueba para mantener la reactividad del CUS-266/267
+        recibirNotificacionPrueba(); 
+        console.log("Polling ejecutado: Notificaciones actualizadas.");
+    }, 10000); 
+
+    // Mantenemos tu prueba inicial de los 3 segundos
+    setTimeout(() => {
+        recibirNotificacionPrueba();
+    }, 3000);
+
     syncPedidoActualGlobal();
     actualizarEstadoBotonesMenu();
     aplicarTipoPedido("salon");
 
     if (vistaPedidosPendientesActiva()) {
-      cargarMisPedidos();
+        cargarMisPedidos();
     }
-  }
+}
 
-  async function cargarPlatillos() {
+async function cargarPlatillos() {
     try {
-      const res = await fetch("/api/platillos");
-      if (!res.ok) throw new Error("Error al cargar platillos");
-      platillosDisponibles = await res.json();
+        const res = await fetch("/api/platillos");
+        if (!res.ok) throw new Error("Error al cargar platillos");
+        platillosDisponibles = await res.json();
     } catch (error) {
-      console.error(error);
-      toast("error", "No se pudieron cargar los platillos");
+        console.error(error);
+        toast("error", "No se pudieron cargar los platillos");
     }
-  }
+}
 
   async function cargarMesasPedido() {
     asegurarFiltrosMesasPedido();
@@ -486,7 +541,78 @@ document.addEventListener("DOMContentLoaded", () => {
     if (estado === "EnPreparacion") return "estado-preparando";
     if (estado === "Listo") return "estado-completado";
     return `estado-${String(estado || "Pendiente").toLowerCase()}`;
-  }
+}
+
+function renderNotificaciones(notificaciones = []) {
+    const container = document.getElementById("notificacionesList");
+    if (!container) return;
+
+    // 1. Filtrar solo los últimos 30 minutos (CUS-272)
+    const hace30Minutos = new Date(Date.now() - 30 * 60000);
+    const recientes = notificaciones.filter(n => new Date(n.fecha) >= hace30Minutos);
+
+    if (recientes.length === 0) {
+        container.innerHTML = `<p class="empty">No hay notificaciones recientes</p>`;
+        return;
+    }
+
+    // 2. Renderizar con estados y clic para ir al detalle (CUS-270)
+    container.innerHTML = recientes.map(n => {
+        const fechaStr = new Date(n.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        
+        return `
+            <div class="notificacion-item ${n.leida ? 'leida' : 'no-leida'}" 
+                 onclick="procesarClickNotificacion('${n.id_pedido || ''}')"
+                 style="cursor: pointer;">
+                <div class="notif-body">
+                    <p>${n.mensaje}</p>
+                    <small>${fechaStr}</small>
+                </div>
+                ${!n.leida ? '<span class="badge-nuevo">●</span>' : ''}
+            </div>
+        `;
+    }).join("");
+}
+
+function mostrarToastNotificacion(mensaje) {
+
+    if (typeof toast === "function") {
+
+        toast("info", mensaje);
+        return;
+    }
+
+    if (typeof Swal !== "undefined") {
+
+        Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "info",
+            title: mensaje,
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true
+        });
+    }
+}
+
+// Ahora la función recibe el mensaje real del servidor
+function recibirNotificacion(mensajeRecibido) {
+
+    const notificacion = {
+        id: Date.now(),
+        mensaje: mensajeRecibido, // Usamos el mensaje dinámico
+        fecha: new Date(),
+        leida: false
+    };
+
+    notificacionesMesero.unshift(notificacion);
+
+    renderNotificaciones(notificacionesMesero);
+
+    mostrarToastNotificacion(notificacion.mensaje);
+}
+
 
   // ==================================================================
   // MIS PEDIDOS ACTIVOS — Module
@@ -836,7 +962,14 @@ else if (esPreparacion) {
     if (pedido.pedido_estado === "EnPreparacion") estadoEmoji = "🟠";
     if (pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado") estadoEmoji = "🟢";
 
-    // 4. Construir la estructura semántica del modal
+    // 4. Calcular subtotal, IVA y total
+    const subtotalCalc = (pedido.platillos || []).reduce((sum, item) => {
+        return sum + (item.detalle_pedido_subtotal || (item.detalle_pedido_cantidad || 0) * (item.detalle_pedido_precio_unitario || 0));
+    }, 0);
+    const ivaCalc = subtotalCalc * 0.13;
+    const totalCalc = subtotalCalc + ivaCalc;
+
+    // 5. Construir la estructura semántica del modal
     backdrop.innerHTML = `
         <div class="detalle-modal">
             <div class="detalle-header">
@@ -853,7 +986,15 @@ else if (esPreparacion) {
                     <div><strong>Tipo:</strong> ${pedido.pedido_tipo || "Salón"}</div>
                     <div><strong>Estado:</strong> ${estadoEmoji} ${pedido.pedido_estado}</div>
                     <div><strong>Hora inicio:</strong> ${new Date(pedido.pedido_fecha_hora).toLocaleDateString()} ${new Date(pedido.pedido_fecha_hora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12:false})}</div>
-                    <div><strong>Subtotal:</strong> $${Number(pedido.pedido_total || 0).toFixed(2)}</div>
+                </div>
+            </div>
+
+            <div class="detalle-seccion">
+                <h3>Resumen de Cobro</h3>
+                <div class="detalle-info-general">
+                    <div><strong>Subtotal:</strong> $${subtotalCalc.toFixed(2)}</div>
+                    <div><strong>IVA (13%):</strong> $${ivaCalc.toFixed(2)}</div>
+                    <div><strong>Total a pagar:</strong> $${totalCalc.toFixed(2)}</div>
                 </div>
             </div>
 
@@ -887,6 +1028,11 @@ else if (esPreparacion) {
                                 data-tipo="${pedido.pedido_tipo || ""}">
                             <i class="fa-solid fa-ban"></i> [Cancelar]
                         </button>
+                        ${pedido.pedido_estado === "EnPreparacion" ? `
+                        <button class="btn-marcar-listo" data-id="${pedido.id_pedido}">
+                            <i class="fa-solid fa-check-circle"></i> [Marcar como listo]
+                        </button>
+                        ` : ""}
                     ` : ""}
 
                     ${pedido.factura_id ? `
@@ -935,6 +1081,14 @@ else if (esPreparacion) {
     if (btnGenerarFactura) {
         btnGenerarFactura.addEventListener("click", () => {
             console.log("Generar factura para pedido:", pedido.id_pedido);
+        });
+    }
+
+    const btnMarcarListo = backdrop.querySelector(".btn-marcar-listo");
+    if (btnMarcarListo) {
+        btnMarcarListo.addEventListener("click", async () => {
+            await marcarPedidoListo(pedido.id_pedido);
+            backdrop.remove();
         });
     }
 
@@ -1143,7 +1297,64 @@ else if (esPreparacion) {
     if (!tieneItems) {
       container.innerHTML = '<p class="pedido-empty-text">Agregue platillos desde el menú.</p>';
     }
-  }
+}
+
+/**
+ * Renderiza la lista de notificaciones y habilita la navegación al detalle del pedido.
+ */
+function renderNotificaciones(notificaciones = []) {
+    const container = document.getElementById("notificacionesList");
+    if (!container) return;
+
+    if (notificaciones.length === 0) {
+        container.innerHTML = `<p class="empty">No hay notificaciones</p>`;
+        return;
+    }
+
+    container.innerHTML = notificaciones.map(n => {
+        // Formateo de fecha
+        const fechaStr = n.fecha instanceof Date ? n.fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+        
+        // Se añade evento onclick para procesar el clic
+        // Se asume que n tiene una propiedad 'id_pedido'
+        return `
+            <div class="notificacion-item ${n.leida ? 'leida' : 'no-leida'}" 
+                 onclick="procesarClickNotificacion('${n.id_pedido || ''}')"
+                 style="cursor: pointer;">
+                <div class="notif-body">
+                    <p>${n.mensaje}</p>
+                    <small>${fechaStr}</small>
+                </div>
+                ${!n.leida ? '<span class="badge-nuevo">●</span>' : ''}
+            </div>
+        `;
+    }).join("");
+}
+
+/**
+ * Puente para manejar el clic en la notificación:
+ * Marca como leída, refresca la UI y abre el detalle del pedido.
+ */
+window.procesarClickNotificacion = async function(idPedido) {
+    if (!idPedido) return;
+
+    // 1. Marcar como leída en el array global
+    notificacionesMesero = notificacionesMesero.map(n => 
+        String(n.id_pedido) === String(idPedido) ? { ...n, leida: true } : n
+    );
+    
+    // 2. Refrescar lista y badge
+    renderNotificaciones(notificacionesMesero);
+    if (typeof actualizarBadgeNotificaciones === 'function') {
+        actualizarBadgeNotificaciones();
+    }
+
+    // 3. Abrir el modal de detalle (función existente en tu código)
+    await abrirDetallePedido(idPedido);
+};
+
+// Asegúrate de llamar a esta inicialización dentro de tu función init()
+// renderNotificaciones(notificacionesMesero);
 
   function setupTipoPedidoSelector() {
     document.querySelectorAll(".pedido-type-btn").forEach((btn) => {
@@ -1475,6 +1686,36 @@ else if (esPreparacion) {
           modal("info", "Aún no disponible", "La función de eliminar pedidos estará disponible pronto.");
         }
       });
+    }
+  }
+
+  async function marcarPedidoListo(idPedido) {
+    const confirmar = await Swal.fire({
+      title: "¿Marcar pedido como listo?",
+      text: "El pedido pasará a estado 'Listo para entregar'",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, marcar listo",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#28a745"
+    });
+    if (!confirmar.isConfirmed) return;
+
+    try {
+      const res = await fetch(`/api/pedidos/${idPedido}/estado`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "Listo" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo marcar el pedido como listo");
+
+      toast("success", "Pedido listo para entregar");
+      cargarMisPedidos();
+      cargarMesasPedido();
+    } catch (error) {
+      console.error(error);
+      toast("error", error.message);
     }
   }
 

@@ -1,11 +1,11 @@
 import mysql from "mysql2/promise";
 //NOTA: Cambiar la contraseña por la suya propia
 const db = mysql.createPool({
-  host: "bonknhnhqfe8wgynsewv-mysql.services.clever-cloud.com",
+  host: "localhost",
   port: 3306,
-  user: "u6adl69crwijaeit",
-  password: "bv3pPePjPedFpEYF9CH6",
-  database: "bonknhnhqfe8wgynsewv",
+  user: "root",
+  password: "315412",
+  database: "cuscatleco",
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0

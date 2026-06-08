@@ -1,5 +1,6 @@
 import db from "../config/db.js";
 import { cambiarEstadoMesa } from "./mesas.service.js";
+import {crearNotificacionNuevoPedido } from "./notificaciones.service.js";
 
 const generarNumeroPedido = async (connection) => {
   const [[{ anio }]] = await connection.query(
@@ -669,18 +670,34 @@ export const enviarPedidoACocina = async (id_pedido, userId) => {
   }
 
   // DESPUÉS SE ACTUALIZA
-  await db.query(`
-    UPDATE pedidos
-    SET 
-      pedido_estado = 'EnPreparacion',
-      pedido_enviado_cocina_en = NOW()
-    WHERE id_pedido = ?
-  `, [id_pedido]);
+await db.query(`
+  UPDATE pedidos
+  SET 
+    pedido_estado = 'EnPreparacion',
+    pedido_enviado_cocina_en = NOW()
+  WHERE id_pedido = ?
+`, [id_pedido]);
 
-  return {
-    message: "Pedido enviado a cocina"
-  };
+// Obtener número de mesa
+const [pedidoInfo] = await db.query(`
+  SELECT m.mesa_numero
+  FROM pedidos p
+  LEFT JOIN mesas m
+    ON p.id_mesa = m.id_mesa
+  WHERE p.id_pedido = ?
+`, [id_pedido]);
+
+// Crear notificación para cocina
+await crearNotificacionNuevoPedido(
+  id_pedido,
+  pedidoInfo[0].mesa_numero
+);
+
+return {
+  message: "Pedido enviado a cocina"
 };
+};
+
 
 // Marcar pedido como entregado
 export const marcarPedidoEntregado = async (id_pedido, userId) => {
@@ -790,8 +807,11 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
     }
   });
 
-  return Object.values(pedidosMap);
-};
+return Object.values(pedidosMap);
+}; // <--- Esta llave cierra "obtenerPedidosPendientesCocina"
+
+// AHORA AQUÍ EMPIEZA LA SIGUIENTE
+
 
 // Cancelar pedido
 export const cancelarPedido = async (id_pedido, motivo, userId) => {
@@ -941,123 +961,96 @@ export const obtenerPedidosPendientesCocina = async () => {
 
   return Object.values(pedidosMap);
 };
-
 // CAMBIAR ESTADO PEDIDO COCINA
-export const cambiarEstadoPedidoCocina = async (
-  id_pedido,
-  nuevoEstado
-) => {
-
-  // Estados permitidos
- const estadosValidos = [
-  "EnPreparacion",
-  "Listo"
-];
-
+export const cambiarEstadoPedidoCocina = async (id_pedido, nuevoEstado) => {
+  // 1. Estados permitidos
+  const estadosValidos = ["EnPreparacion", "Listo"];
   if (!estadosValidos.includes(nuevoEstado)) {
-    throw Object.assign(
-      new Error("Estado inválido"),
-      { status: 400 }
-    );
+    throw Object.assign(new Error("Estado inválido"), { status: 400 });
   }
 
-  // Buscar pedido
-  const [pedidoRows] = await db.query(
-    `SELECT pedido_estado
-     FROM pedidos
-     WHERE id_pedido = ?`,
-    [id_pedido]
-  );
-
-  if (pedidoRows.length === 0) {
-    throw Object.assign(
-      new Error("Pedido no encontrado"),
-      { status: 404 }
-    );
-  }
-
+  // 2. Buscar pedido y validar estados
+  const [pedidoRows] = await db.query(`SELECT pedido_estado FROM pedidos WHERE id_pedido = ?`, [id_pedido]);
+  if (pedidoRows.length === 0) throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+  
   const pedido = pedidoRows[0];
-
-  // No permitir anulados
-  if (pedido.pedido_estado === "Cancelado") {
-    throw Object.assign(
-      new Error(
-        "No se puede modificar un pedido cancelado"
-      ),
-      { status: 400 }
-    );
+  if (pedido.pedido_estado === "Cancelado" || pedido.pedido_estado === "Cerrado") {
+    throw Object.assign(new Error("No se puede modificar un pedido cancelado o cerrado"), { status: 400 });
   }
 
-  // No permitir facturados
-  if (pedido.pedido_estado === "Cerrado") {
-    throw Object.assign(
-      new Error(
-        "No se puede modificar un pedido cerrado"
-      ),
-      { status: 400 }
-    );
-  }
-
-  // Validaciones de flujo
-  if (
-    nuevoEstado === "EnPreparacion"
-    && pedido.pedido_estado !== "Pendiente"
-  ) {
-    throw Object.assign(
-      new Error(
-        "Solo pedidos pendientes pueden pasar a preparación"
-      ),
-      { status: 400 }
-    );
-  }
-
-  if (
-    nuevoEstado === "Preparado"
-    && pedido.pedido_estado !== "EnPreparacion"
-  ) {
-    throw Object.assign(
-      new Error(
-        "Solo pedidos en preparación pueden marcarse como listos"
-      ),
-      { status: 400 }
-    );
-  }
-
-  // Query dinámica
-  let sql = `
-    UPDATE pedidos
-    SET pedido_estado = ?
-  `;
-
+  // 3. Actualización en BD
+  let sql = `UPDATE pedidos SET pedido_estado = ?`;
   const params = [nuevoEstado];
-
-  // Registrar horas
-  if (nuevoEstado === "EnPreparacion") {
-
-    sql += `,
-      pedido_en_preparacion_en = NOW()
-    `;
-
-  }
-
-  if (nuevoEstado === "Listo")
-    sql += `
-    WHERE id_pedido = ?
-  `;
-
+  if (nuevoEstado === "EnPreparacion") sql += `, pedido_en_preparacion_en = NOW()`;
+  if (nuevoEstado === "Listo") sql += `, pedido_listo_en = NOW()`;
+  sql += ` WHERE id_pedido = ?`;
   params.push(id_pedido);
 
   await db.query(sql, params);
+   // Obtener información del pedido
+const [pedidoInfo] = await db.query(`
+  SELECT
+    p.id_pedido,
+    m.mesa_numero
+  FROM pedidos p
+  LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
+  WHERE p.id_pedido = ?
+`, [id_pedido]);
+
+if (pedidoInfo.length === 0) {
+  throw Object.assign(
+    new Error("Pedido no encontrado"),
+    { status: 404 }
+  );
+}
+
+ 
+
+  // Crear notificación al mesero cuando el pedido queda listo
+  if (nuevoEstado === "Listo") {
+
+    const [infoRows] = await db.query(
+      `SELECT
+          p.id_mesero,
+          m.mesa_numero
+       FROM pedidos p
+       LEFT JOIN mesas m
+         ON p.id_mesa = m.id_mesa
+       WHERE p.id_pedido = ?`,
+      [id_pedido]
+    );
+
+    if (infoRows.length > 0) {
+
+      const info = infoRows[0];
+
+      await db.query(
+        `INSERT INTO notificaciones (
+            id_usuario,
+            id_pedido,
+            notificacion_tipo,
+            notificacion_asunto,
+            notificacion_mensaje
+         )
+         VALUES (?, ?, ?, ?, ?)`,
+        [
+          info.id_mesero,
+          id_pedido,
+          "Pedido",
+          "Pedido listo",
+          `Pedido #${id_pedido} de Mesa ${
+            info.mesa_numero ?? "N/A"
+          } está listo para entregar`
+        ]
+      );
+
+    }
+  }
 
   return {
-    message:
-      nuevoEstado === "EnPreparacion"
-        ? "Pedido marcado en preparación"
-        : "Pedido marcado como listo"
+    message: nuevoEstado === "EnPreparacion" ? "Pedido marcado en preparación" : "Pedido marcado como listo"
   };
 };
-
-
 // Obtener detalle completo de un pedido
 export const obtenerDetallePedido = async (id_pedido) => {
 
@@ -1109,3 +1102,60 @@ export const obtenerDetallePedido = async (id_pedido) => {
     ...pedido,
     platillos: detalleRows
  } };
+
+
+export const obtenerPedidosPendientesCajero = async () => {
+  const [rows] = await db.query(`
+    SELECT
+      p.id_pedido,
+      p.pedido_estado,
+      p.pedido_tipo,
+      p.pedido_total,
+      p.pedido_fecha_hora,
+      m.mesa_numero,
+      u.usuario_nombre AS mesero_nombre
+    FROM pedidos p
+    LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
+    LEFT JOIN usuarios u ON p.id_mesero = u.id_usuario
+    WHERE p.pedido_estado = 'Listo'
+    ORDER BY p.pedido_fecha_hora ASC
+  `);
+
+  return rows.map(row => ({
+    id_pedido: row.id_pedido,
+    pedido_estado: row.pedido_estado,
+    pedido_tipo: row.pedido_tipo,
+    pedido_total: row.pedido_total,
+    pedido_fecha_hora: row.pedido_fecha_hora,
+    mesa: row.pedido_tipo === "Llevar" ? "Para llevar" : (row.mesa_numero || "N/A"),
+    mesa_numero: row.mesa_numero,
+    mesero: row.mesero_nombre || "—"
+  }));
+};
+
+
+export const marcarPedidoListo = async (id_pedido, userId) => {
+  const [rows] = await db.query(`SELECT pedido_estado, id_mesero FROM pedidos WHERE id_pedido = ?`, [id_pedido]);
+  if (rows.length === 0) throw Object.assign(new Error("Pedido no encontrado"), { status: 404 });
+
+  const pedido = rows[0];
+  if (pedido.pedido_estado !== "EnPreparacion") {
+    throw Object.assign(new Error("Solo se puede marcar como listo un pedido que esté en preparación"), { status: 400 });
+  }
+
+  await db.query(`UPDATE pedidos SET pedido_estado = 'Listo', pedido_listo_en = NOW() WHERE id_pedido = ?`, [id_pedido]);
+
+  const [infoRows] = await db.query(
+    `SELECT m.mesa_numero FROM pedidos p LEFT JOIN mesas m ON p.id_mesa = m.id_mesa WHERE p.id_pedido = ?`,
+    [id_pedido]
+  );
+
+  const mesaNumero = infoRows[0]?.mesa_numero ?? "N/A";
+  await db.query(
+    `INSERT INTO notificaciones (id_usuario, id_pedido, notificacion_tipo, notificacion_asunto, notificacion_mensaje)
+     VALUES (?, ?, 'Pedido', 'Pedido listo', ?)`,
+    [pedido.id_mesero, id_pedido, `Pedido #${id_pedido} de Mesa ${mesaNumero} está listo para entregar`]
+  );
+
+  return { message: "Pedido listo para entregar" };
+};

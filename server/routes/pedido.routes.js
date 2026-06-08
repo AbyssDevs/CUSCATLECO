@@ -14,7 +14,9 @@ import {
     cancelarPedido,
     obtenerPedidosPendientesCocina,
     cambiarEstadoPedidoCocina,
-    obtenerDetallePedido
+    obtenerDetallePedido,
+    marcarPedidoListo,
+    obtenerPedidosPendientesCajero
 } from '../controllers/pedidos.controller.js';
 
 import {
@@ -22,6 +24,8 @@ import {
     auditoriaMiddleware
 } from "../middlewares/auth.middleware.js";
 
+
+router.patch('/:id/estado', requirePermission('crear_pedido'), marcarPedidoListo);
 
 router.post('/iniciar', auditoriaMiddleware, requirePermission('crear_pedido'), iniciarPedido);
 
@@ -45,9 +49,11 @@ router.get("/mis-pedidos",requirePermission("crear_pedido"), obtenerPedidosActiv
 
 router.patch("/:id/cancelar",requirePermission("crear_pedido"), cancelarPedido);
 
-router.get('/:id_pedido',requirePermission('crear_pedido'),obtenerDetallePedido);
-
 router.get("/cocina/pendientes",requirePermission("ver_pedidos"), obtenerPedidosPendientesCocina);
+
+router.get("/cajero/pendientes", auditoriaMiddleware, obtenerPedidosPendientesCajero);
+
+router.get('/:id_pedido',requirePermission('crear_pedido'),obtenerDetallePedido);
 
 router.patch("/:id/cocina/estado",requirePermission("ver_pedidos"), cambiarEstadoPedidoCocina);
 
