@@ -443,6 +443,12 @@ window.mostrarViews = function(id) {
       section.style.display = section.id === id ? "block" : "none";
     }
   });
+  
+  // Cargar platillos cuando se muestra la sección de tomar-pedido
+  if (id === "tomar-pedido" && typeof loadMenu === "function") {
+    loadMenu();
+  }
+  
   if (id === "cobros") cargarPedidosCajero();
 };
 
@@ -459,6 +465,11 @@ window.cerrarSesion = function() {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Cargar platillos del menú para el cajero
+  if (typeof loadMenu === "function") {
+    loadMenu();
+  }
+  
   configurarCajeroPedido();
   cargarPedidosCajero();
   setInterval(cargarPedidosCajero, 15000);
