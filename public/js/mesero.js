@@ -12,52 +12,93 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // CUS-268
   let pollingNotificaciones = null;
-  // Cambia esto en la línea 15 temporalmente para probar:
-  let ultimaConsulta = new Date(Date.now() - 1440 * 60000).toISOString();
-  // Iniciar la búsqueda de notificaciones automáticamente al cargar la página
+  let ultimaConsulta = new Date();
+  ultimaConsulta.setHours(0, 0, 0, 0);
+  ultimaConsulta = ultimaConsulta.toISOString();
   iniciarPollingNotificaciones();
 
-// --- AQUÍ ES DONDE DEBES PEGAR LA FUNCIÓN ---
-// Pégala justo aquí, entre las variables globales y tus funciones de renderizado
-async function iniciarPollingNotificaciones() {
-  if (pollingNotificaciones) clearInterval(pollingNotificaciones);
+  function esNotificacionDeHoy(fecha) {
+    const fechaNotificacion = new Date(fecha);
+    if (Number.isNaN(fechaNotificacion.getTime())) return false;
+    const hoy = new Date();
+    return fechaNotificacion.getFullYear() === hoy.getFullYear()
+      && fechaNotificacion.getMonth() === hoy.getMonth()
+      && fechaNotificacion.getDate() === hoy.getDate();
+  }
 
-  pollingNotificaciones = setInterval(async () => {
+  function fusionarNotificaciones(nuevasNotificaciones = [], existentes = []) {
+    const mapa = new Map();
+    existentes.forEach((n) => {
+      if (n && n.id_notificacion) {
+        mapa.set(String(n.id_notificacion), n);
+      }
+    });
+    nuevasNotificaciones.forEach((n) => {
+      if (n && n.id_notificacion) {
+        const existente = mapa.get(String(n.id_notificacion));
+        mapa.set(String(n.id_notificacion), existente ? { ...existente, ...n } : n);
+      }
+    });
+    return Array.from(mapa.values()).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  }
+
+  async function cargarNotificaciones(force = false) {
+    await fetchNotificaciones(force);
+  }
+
+  window.cargarNotificaciones = cargarNotificaciones;
+
+  async function fetchNotificaciones(force = false) {
     try {
-      const res = await fetch(`/api/notificaciones/nuevas?desde=${encodeURIComponent(ultimaConsulta)}`);
+      let desde = ultimaConsulta;
+      if (force) {
+        const inicioHoy = new Date();
+        inicioHoy.setHours(0, 0, 0, 0);
+        desde = inicioHoy.toISOString();
+      }
 
+      const res = await fetch(`/api/notificaciones/nuevas?desde=${encodeURIComponent(desde)}`);
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || `HTTP ${res.status}`);
       }
 
       const raw = await res.json();
+      if (!Array.isArray(raw)) return;
 
-      if (Array.isArray(raw) && raw.length > 0) {
-        const nuevasNotificaciones = raw.map(r => ({
+      const nuevasNotificaciones = raw
+        .map((r) => ({
           id_notificacion: r.id_notificacion,
           id_pedido: r.id_pedido,
           mensaje: r.notificacion_mensaje || r.mensaje,
           fecha: r.notificacion_fecha || r.fecha,
-          leida: !!r.notificacion_leida
-        }));
+          leida: !!r.notificacion_leida,
+        }))
+        .filter((n) => esNotificacionDeHoy(n.fecha));
 
+      if (nuevasNotificaciones.length > 0) {
         ultimaConsulta = new Date().toISOString();
-        notificacionesMesero = [...nuevasNotificaciones, ...notificacionesMesero];
-        if (typeof renderNotificaciones === 'function') renderNotificaciones(notificacionesMesero);
-        if (typeof actualizarBadgeNotificaciones === 'function') actualizarBadgeNotificaciones();
-        mostrarToastNotificacion(nuevasNotificaciones[0].mensaje || 'Nueva notificación');
+        notificacionesMesero = fusionarNotificaciones(nuevasNotificaciones, notificacionesMesero);
+        renderNotificaciones(notificacionesMesero);
+        actualizarBadgeNotificaciones();
+        mostrarToastNotificacion(nuevasNotificaciones[0].mensaje || "Nueva notificación");
+      } else if (force) {
+        // Forzar renderizado de estado aunque no haya nuevas notificaciones
+        renderNotificaciones(notificacionesMesero);
+        actualizarBadgeNotificaciones();
       }
     } catch (error) {
       console.error("Error en polling de notificaciones:", error);
     }
-  }, 10000);
-}
+  }
 
-// --- 2. LUEGO SIGUEN TUS FUNCIONES (renderNotificaciones, etc.) ---
-function renderNotificaciones(notificaciones = []) {
-    // ... tu código ...
-}
+  async function iniciarPollingNotificaciones() {
+    await fetchNotificaciones();
+    if (pollingNotificaciones) clearInterval(pollingNotificaciones);
+    pollingNotificaciones = setInterval(fetchNotificaciones, 10000);
+  }
+
+// --- 2. LUEGO SIGUEN TUS FUNCIONES ---
   // ============================================
   // CUS-130: Deshabilitar botones si pedido ya enviado a cocina
   // ============================================
@@ -128,6 +169,14 @@ async function init() {
 
     renderEstadoPedidoVacio();
     renderNotificaciones(notificacionesMesero); // Render inicial con estado actual
+
+    const btnActualizarNotificaciones = document.getElementById("btnActualizarNotificaciones");
+    if (btnActualizarNotificaciones) {
+      btnActualizarNotificaciones.addEventListener("click", (event) => {
+        event.preventDefault();
+        cargarNotificaciones(true);
+      });
+    }
 
     // Polling manejado por iniciarPollingNotificaciones() llamado al cargar el script
 
@@ -542,37 +591,6 @@ async function cargarPlatillos() {
     if (estado === "EnPreparacion") return "estado-preparando";
     if (estado === "Listo") return "estado-completado";
     return `estado-${String(estado || "Pendiente").toLowerCase()}`;
-}
-
-function renderNotificaciones(notificaciones = []) {
-    const container = document.getElementById("notificacionesList");
-    if (!container) return;
-
-    // 1. Filtrar solo los últimos 30 minutos (CUS-272)
-    const hace30Minutos = new Date(Date.now() - 30 * 60000);
-    const recientes = notificaciones.filter(n => new Date(n.fecha) >= hace30Minutos);
-
-    if (recientes.length === 0) {
-        container.innerHTML = `<p class="empty">No hay notificaciones recientes</p>`;
-        return;
-    }
-
-    // 2. Renderizar con estados y clic para ir al detalle (CUS-270)
-    container.innerHTML = recientes.map(n => {
-        const fechaStr = new Date(n.fecha).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        
-        return `
-            <div class="notificacion-item ${n.leida ? 'leida' : 'no-leida'}" 
-                 onclick="procesarClickNotificacion('${n.id_pedido || ''}')"
-                 style="cursor: pointer;">
-                <div class="notif-body">
-                    <p>${n.mensaje}</p>
-                    <small>${fechaStr}</small>
-                </div>
-                ${!n.leida ? '<span class="badge-nuevo">●</span>' : ''}
-            </div>
-        `;
-    }).join("");
 }
 
 function mostrarToastNotificacion(mensaje) {
@@ -1297,55 +1315,116 @@ else if (esPreparacion) {
 /**
  * Renderiza la lista de notificaciones y habilita la navegación al detalle del pedido.
  */
+function actualizarBadgeNotificaciones() {
+    const badge = document.getElementById("notificacionesBadge");
+    if (!badge) return;
+
+    const contadorNoLeidas = notificacionesMesero.filter((n) => !n.leida && esNotificacionDeHoy(n.fecha)).length;
+    if (contadorNoLeidas > 0) {
+        badge.textContent = contadorNoLeidas;
+        badge.style.display = "inline-block";
+    } else {
+        badge.style.display = "none";
+    }
+}
+
 function renderNotificaciones(notificaciones = []) {
     const container = document.getElementById("notificacionesList");
     if (!container) return;
 
-    if (notificaciones.length === 0) {
-        container.innerHTML = `<p class="empty">No hay notificaciones</p>`;
+    const notificacionesHoy = notificaciones
+        .filter((n) => esNotificacionDeHoy(n.fecha))
+        .filter((n, index, array) => array.findIndex((item) => String(item.id_notificacion) === String(n.id_notificacion)) === index)
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    if (notificacionesHoy.length === 0) {
+        container.innerHTML = `<p class="empty">No hay notificaciones del día</p>`;
+        actualizarBadgeNotificaciones();
         return;
     }
 
-    container.innerHTML = notificaciones.map(n => {
-        // Formateo de fecha
-        const fechaStr = n.fecha instanceof Date ? n.fecha.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
-        
-        // Se añade evento onclick para procesar el clic
-        // Se asume que n tiene una propiedad 'id_pedido'
+    container.innerHTML = notificacionesHoy.map((n) => {
+        const fecha = new Date(n.fecha);
+        const fechaStr = Number.isNaN(fecha.getTime())
+            ? ""
+            : fecha.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
         return `
-            <div class="notificacion-item ${n.leida ? 'leida' : 'no-leida'}" 
-                 onclick="procesarClickNotificacion('${n.id_pedido || ''}')"
+            <div class="notificacion-item ${n.leida ? "leida" : "no-leida"}" 
+                 onclick="procesarClickNotificacion('${n.id_notificacion}', '${n.id_pedido || ""}')"
                  style="cursor: pointer;">
                 <div class="notif-body">
                     <p>${n.mensaje}</p>
                     <small>${fechaStr}</small>
                 </div>
-                ${!n.leida ? '<span class="badge-nuevo">●</span>' : ''}
+                <div class="notif-actions">
+                    ${!n.leida ? `<button type="button" class="btn-marcar-leida" onclick="marcarNotificacionComoLeida(event, '${n.id_notificacion}')">Marcar leída</button>` : `<span class="badge-leida">Leída</span>`}
+                </div>
             </div>
         `;
     }).join("");
+
+    actualizarBadgeNotificaciones();
 }
 
-/**
- * Puente para manejar el clic en la notificación:
- * Marca como leída, refresca la UI y abre el detalle del pedido.
- */
-window.procesarClickNotificacion = async function(idPedido) {
-    if (!idPedido) return;
+async function marcarNotificacionLeidaApi(idNotificacion) {
+    if (!idNotificacion) return;
 
-    // 1. Marcar como leída en el array global
-    notificacionesMesero = notificacionesMesero.map(n => 
-        String(n.id_pedido) === String(idPedido) ? { ...n, leida: true } : n
-    );
-    
-    // 2. Refrescar lista y badge
-    renderNotificaciones(notificacionesMesero);
-    if (typeof actualizarBadgeNotificaciones === 'function') {
-        actualizarBadgeNotificaciones();
+    const res = await fetch(`/api/notificaciones/${encodeURIComponent(idNotificacion)}/leida`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
     }
 
-    // 3. Abrir el modal de detalle (función existente en tu código)
-    await abrirDetallePedido(idPedido);
+    return res.json();
+}
+
+window.marcarNotificacionComoLeida = async function(event, idNotificacion) {
+    if (event && typeof event.stopPropagation === "function") {
+        event.stopPropagation();
+    }
+
+    if (!idNotificacion) return;
+
+    notificacionesMesero = notificacionesMesero.map((n) =>
+        String(n.id_notificacion) === String(idNotificacion) ? { ...n, leida: true } : n
+    );
+
+    renderNotificaciones(notificacionesMesero);
+    actualizarBadgeNotificaciones();
+
+    try {
+        await marcarNotificacionLeidaApi(idNotificacion);
+    } catch (error) {
+        console.error("Error marcando notificación como leída:", error);
+        if (typeof toast === "function") {
+            toast("error", "No se pudo marcar la notificación como leída");
+        }
+    }
+};
+
+window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
+    if (!idNotificacion) return;
+
+    notificacionesMesero = notificacionesMesero.map((n) =>
+        String(n.id_notificacion) === String(idNotificacion) ? { ...n, leida: true } : n
+    );
+    renderNotificaciones(notificacionesMesero);
+    actualizarBadgeNotificaciones();
+
+    try {
+        await marcarNotificacionLeidaApi(idNotificacion);
+    } catch (error) {
+        console.warn("No se pudo actualizar la notificación en el servidor:", error);
+    }
+
+    if (idPedido && typeof abrirDetallePedido === "function") {
+        await abrirDetallePedido(idPedido);
+    }
 };
 
 // Asegúrate de llamar a esta inicialización dentro de tu función init()

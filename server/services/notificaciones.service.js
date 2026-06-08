@@ -78,7 +78,8 @@ export const obtenerNotificacionesNuevas = async (id_usuario, desdeIso) => {
        notificacion_fecha
      FROM notificaciones
      WHERE id_usuario = ?
-       AND notificacion_fecha > ?
+       AND DATE(notificacion_fecha) = CURRENT_DATE()
+       AND notificacion_fecha >= ?
      ORDER BY notificacion_fecha DESC`,
     [id_usuario, desde]
   );

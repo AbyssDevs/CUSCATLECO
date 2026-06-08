@@ -31,7 +31,7 @@ function cerrarSesion() {
 }
 
 function mostrarViews(seccion) {
-  const secciones = ["tomar-pedido", "menu-restaurante", "pedidos-pendientes", "cobros", "verMesas"];
+  const secciones = ["tomar-pedido", "menu-restaurante", "notificaciones", "pedidos-pendientes", "cobros", "verMesas"];
   secciones.forEach((id) => {
     const elemento = document.getElementById(id);
     if (elemento) elemento.style.display = "none";
@@ -46,6 +46,10 @@ function mostrarViews(seccion) {
 
   if (seccion === "menu-restaurante" || seccion === "tomar-pedido") {
     loadMenu();
+  }
+
+  if (seccion === "notificaciones" && typeof window.cargarNotificaciones === "function") {
+    window.cargarNotificaciones();
   }
 
   if (seccion === "verMesas" && typeof cargarMesas === "function") {
