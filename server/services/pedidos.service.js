@@ -1077,6 +1077,7 @@ export const obtenerDetallePedido = async (id_pedido) => {
   const [pedidoRows] = await db.query(`
     SELECT 
       p.id_pedido,
+      p.pedido_numero,
       p.pedido_observaciones,
       p.pedido_estado,
       p.pedido_tipo,
@@ -1133,22 +1134,31 @@ export const obtenerPedidosPendientesCajero = async () => {
       p.pedido_total,
       p.pedido_fecha_hora,
       m.mesa_numero,
-      u.usuario_nombre AS mesero_nombre
+      u.usuario_nombre AS mesero_nombre,
+      f.id_factura,
+      f.factura_correlativo
     FROM pedidos p
     LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
     LEFT JOIN usuarios u ON p.id_mesero = u.id_usuario
-    WHERE p.pedido_estado = 'Listo'
+    LEFT JOIN facturas f
+      ON f.id_pedido = p.id_pedido
+     AND f.factura_anulada = FALSE
+    WHERE p.pedido_estado IN ('Entregado', 'Cerrado')
     ORDER BY p.pedido_fecha_hora ASC
   `);
 
   return rows.map(row => ({
     id_pedido: row.id_pedido,
+    pedido_numero: row.pedido_numero,
     pedido_estado: row.pedido_estado,
     pedido_tipo: row.pedido_tipo,
     pedido_total: row.pedido_total,
     pedido_fecha_hora: row.pedido_fecha_hora,
     mesa: row.pedido_tipo === "Llevar" ? "Para llevar" : (row.mesa_numero || "N/A"),
     mesa_numero: row.mesa_numero,
+    id_factura: row.id_factura,
+    factura_id: row.id_factura,
+    factura_correlativo: row.factura_correlativo,
     mesero: row.mesero_nombre || "—"
   }));
 };

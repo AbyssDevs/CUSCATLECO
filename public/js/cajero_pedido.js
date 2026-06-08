@@ -293,39 +293,257 @@ function configurarFormularioPedidoCajero() {
   });
 }
 
-async function manejarRespuestaFactura(response) {
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatoDinero(value) {
+  return `$${(Number(value) || 0).toFixed(2)}`;
+}
+
+function formatoFechaHora(value) {
+  if (!value) return "--";
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return "--";
+  return fecha.toLocaleString("es-SV", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+async function obtenerJson(response, mensajeFallback) {
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
     const errorMessage =
       (errorBody && (errorBody.message || errorBody.error || JSON.stringify(errorBody))) ||
-      "No se pudo generar la factura.";
+      mensajeFallback;
     throw new Error(errorMessage);
   }
 
-  const resultado = await response.json();
+  return response.json();
+}
 
+function renderDetalleFacturaHtml(detalle = []) {
+  return `
+    <div class="factura-detalle-wrap">
+      <table class="factura-detalle-tabla">
+        <thead>
+          <tr>
+            <th>Platillo</th>
+            <th>Cant.</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${detalle.map((item) => `
+            <tr>
+              <td>${escapeHtml(item.nombre)}</td>
+              <td>${Number(item.cantidad) || 0}</td>
+              <td>${formatoDinero(item.precio_unitario)}</td>
+              <td>${formatoDinero(item.subtotal)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderResumenFacturaHtml(data) {
+  return `
+    <div class="factura-resumen">
+      <div><span>Subtotal sin IVA</span><strong>${formatoDinero(data.subtotal)}</strong></div>
+      <div><span>IVA 13% (informativo)</span><strong>${formatoDinero(data.iva)}</strong></div>
+      <div class="factura-total"><span>Total a pagar</span><strong>${formatoDinero(data.total)}</strong></div>
+    </div>
+  `;
+}
+
+function renderVistaFacturaHtml(factura) {
+  return `
+    <section class="factura-vista" data-factura-id="${escapeHtml(factura.id_factura)}">
+      <header class="factura-vista-header">
+        <div>
+          <p class="factura-leyenda">Consumidor Final</p>
+          <h2>${escapeHtml(factura.numero_factura)}</h2>
+        </div>
+        <div class="factura-fecha">${escapeHtml(formatoFechaHora(factura.fecha_emision))}</div>
+      </header>
+      <div class="factura-meta">
+        <div><span>Pedido</span><strong>${escapeHtml(factura.pedido_numero || factura.id_pedido)}</strong></div>
+        <div><span>Cajero</span><strong>${escapeHtml(factura.nombre_cajero || "N/A")}</strong></div>
+        ${factura.nombre_cliente ? `<div><span>Cliente</span><strong>${escapeHtml(factura.nombre_cliente)}</strong></div>` : ""}
+        ${factura.nit_cliente ? `<div><span>NIT</span><strong>${escapeHtml(factura.nit_cliente)}</strong></div>` : ""}
+      </div>
+      ${renderDetalleFacturaHtml(factura.detalle)}
+      ${renderResumenFacturaHtml(factura)}
+      <div class="factura-leyendas">
+        <span>Consumidor Final</span>
+        <span>Documento no válido como crédito fiscal</span>
+      </div>
+      <div class="factura-futuro">
+        <button type="button" class="btn-factura-secundario" disabled>
+          <i class="fa-solid fa-print"></i> Imprimir
+        </button>
+        <button type="button" class="btn-factura-secundario" disabled>
+          <i class="fa-solid fa-file-pdf"></i> PDF
+        </button>
+      </div>
+    </section>
+  `;
+}
+
+async function mostrarFacturaEnPantalla(factura) {
   await Swal.fire({
-    icon: "success",
-    title: "Factura generada exitosamente",
-    text: `Factura ${resultado.numeroFactura} emitida correctamente.`,
-    timer: 2000,
-    showConfirmButton: false,
+    title: "Factura generada",
+    html: renderVistaFacturaHtml(factura),
+    width: 820,
+    confirmButtonText: "Cerrar",
   });
+}
 
-  if (typeof limpiarModalFactura === "function") {
-    limpiarModalFactura();
+async function abrirModalFactura(pedidoId) {
+  try {
+    const previewResponse = await fetch(`/api/facturas/pedido/${encodeURIComponent(pedidoId)}/previsualizar`);
+    const preview = await obtenerJson(previewResponse, "No se pudo cargar el detalle del pedido.");
+
+    const result = await Swal.fire({
+      title: "Generar factura",
+      html: `
+        <div class="factura-modal">
+          <div class="factura-pedido-numero">
+            Pedido ${escapeHtml(preview.pedido.pedido_numero || preview.pedido.id_pedido)}
+          </div>
+          ${renderDetalleFacturaHtml(preview.detalle)}
+          ${renderResumenFacturaHtml(preview)}
+          <div class="factura-form-grid">
+            <label>
+              Nombre del cliente
+              <input id="nombreFacturaCliente" class="swal2-input factura-input" type="text" maxlength="100" autocomplete="off">
+            </label>
+            <label>
+              NIT
+              <input id="nitFacturaCliente" class="swal2-input factura-input" type="text" maxlength="20" autocomplete="off">
+            </label>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Confirmar factura",
+      cancelButtonText: "Cancelar",
+      width: 760,
+      focusConfirm: false,
+      preConfirm: async () => {
+        const nombreCliente = document.getElementById("nombreFacturaCliente")?.value.trim() || null;
+        const nitCliente = document.getElementById("nitFacturaCliente")?.value.trim() || null;
+
+        try {
+          const response = await fetch("/api/facturas/generar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id_pedido: pedidoId,
+              nombre_cliente: nombreCliente,
+              nit_cliente: nitCliente,
+            }),
+          });
+          return await obtenerJson(response, "No se pudo generar la factura.");
+        } catch (error) {
+          Swal.showValidationMessage(error.message);
+          return false;
+        }
+      },
+    });
+
+    if (!result.isConfirmed || !result.value) return;
+
+    toast("success", "Factura generada exitosamente");
+    await mostrarFacturaEnPantalla(result.value);
+    await cargarPedidosCajero();
+  } catch (error) {
+    console.error("Error generando factura:", error);
+    await Swal.fire({
+      icon: "error",
+      title: "Error al generar factura",
+      text: error?.message || "No se pudo generar la factura.",
+    });
   }
+}
 
-  if (typeof refrescarListaPedidos === "function") {
-    refrescarListaPedidos();
+async function verFacturaExistente(idFactura) {
+  try {
+    const response = await fetch(`/api/facturas/${encodeURIComponent(idFactura)}`);
+    const factura = await obtenerJson(response, "No se pudo cargar la factura.");
+    await mostrarFacturaEnPantalla(factura);
+  } catch (error) {
+    await Swal.fire({
+      icon: "error",
+      title: "Error al cargar factura",
+      text: error?.message || "No se pudo cargar la factura.",
+    });
   }
-
-  return resultado;
 }
 
 function renderCobrosTabla(pedidos = []) {
   const tablaCobros = document.getElementById("tablaCobros");
   if (!tablaCobros) return;
+
+  if (pedidos.length === 0) {
+    tablaCobros.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">No hay pedidos entregados o cerrados</td></tr>`;
+    return;
+  }
+
+  tablaCobros.innerHTML = pedidos
+    .map((pedido) => {
+      const id = pedido.id_pedido || pedido.id || "--";
+      const mesa = pedido.mesa || pedido.mesa_numero || "Sin mesa";
+      const mesero = pedido.mesero || pedido.mesero_nombre || pedido.usuario || "--";
+      const total = pedido.pedido_total !== undefined && pedido.pedido_total !== null
+        ? formatoDinero(pedido.pedido_total)
+        : pedido.total !== undefined
+          ? formatoDinero(pedido.total)
+          : "--";
+      const estado = pedido.pedido_estado || pedido.estado || "--";
+      const facturaId = pedido.factura_id || pedido.id_factura || "";
+      const tieneFactura = Boolean(facturaId || pedido.tieneFactura);
+      const esFacturable = (estado === "Entregado" || estado === "Cerrado") && !tieneFactura;
+
+      return `
+        <tr>
+          <td>${escapeHtml(pedido.pedido_numero || id)}</td>
+          <td>${escapeHtml(mesa)}</td>
+          <td>${escapeHtml(mesero)}</td>
+          <td>${total}</td>
+          <td>${escapeHtml(estado)}</td>
+          <td style="display: flex; gap: 4px; align-items: center;">
+            ${
+              esFacturable
+                ? `<button class="btn-completar btn-generar-factura" data-id="${escapeHtml(id)}">
+                    <i class="fa-solid fa-file-invoice-dollar"></i> Generar factura
+                  </button>`
+                : `<button class="btn-completar" disabled>
+                    <i class="fa-solid fa-file-invoice"></i> Factura generada
+                  </button>`
+            }
+            ${
+              facturaId
+                ? `<button class="btn-ver-factura-cajero" data-id-factura="${escapeHtml(facturaId)}" title="Ver factura">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>`
+                : ""
+            }
+          </td>
+        </tr>
+      `;
+    })
+    .join("");
+  return;
 
   if (pedidos.length === 0) {
     tablaCobros.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">No hay pedidos pendientes</td></tr>`;
@@ -416,6 +634,26 @@ function inicializarDelegacionAgregarPlatillo() {
   window.agregarAlPedidoDesdeMenu = function () {};
 }
 
+function inicializarFacturacionCajero() {
+  const tablaCobros = document.getElementById("tablaCobros");
+  if (!tablaCobros) return;
+
+  tablaCobros.addEventListener("click", async (event) => {
+    const btnGenerar = event.target.closest(".btn-generar-factura");
+    if (btnGenerar && !btnGenerar.disabled) {
+      event.preventDefault();
+      await abrirModalFactura(btnGenerar.dataset.id);
+      return;
+    }
+
+    const btnVer = event.target.closest(".btn-ver-factura-cajero");
+    if (btnVer && btnVer.dataset.idFactura) {
+      event.preventDefault();
+      await verFacturaExistente(btnVer.dataset.idFactura);
+    }
+  });
+}
+
 
 function configurarCajeroPedido() {
   const tipoButtons = document.querySelectorAll(".pedido-type-btn");
@@ -431,6 +669,7 @@ function configurarCajeroPedido() {
   configurarFormularioPedidoCajero();
   inicializarDelegacionAgregarPlatillo();
   inicializarControlesPedidoActual();
+  inicializarFacturacionCajero();
   renderPedidoActualCajero();
 }
 

@@ -18,6 +18,7 @@ import platillosRoutes from "./routes/platillos.routes.js";
 import mesasRoutes from "./routes/mesas.routes.js";
 import pedidosRoutes from "./routes/pedido.routes.js"
 import notificacionesRoutes from "./routes/notificaciones.route.js";
+import facturasRoutes from "./routes/facturas.routes.js";
 
 const app = express();
 const PORT = 3000;
@@ -91,6 +92,7 @@ app.use("/api/platillos", auditoriaMiddleware, platillosRoutes);
 app.use("/api/mesas", auditoriaMiddleware, mesasRoutes);
 app.use("/api/pedidos", pedidosRoutes)
 app.use("/api/notificaciones", notificacionesRoutes);
+app.use("/api/facturas", facturasRoutes);
 
 // Iniciar el servidor
 app.listen(PORT, () => {
