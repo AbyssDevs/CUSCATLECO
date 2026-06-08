@@ -63,3 +63,25 @@ export const crearNotificacionNuevoPedido = async (
   }
 
 };
+
+export const obtenerNotificacionesNuevas = async (id_usuario, desdeIso) => {
+  const desde = desdeIso || '1970-01-01 00:00:00';
+
+  const [rows] = await db.query(
+    `SELECT
+       id_notificacion,
+       id_pedido,
+       notificacion_tipo,
+       notificacion_asunto,
+       notificacion_mensaje,
+       notificacion_leida,
+       notificacion_fecha
+     FROM notificaciones
+     WHERE id_usuario = ?
+       AND notificacion_fecha > ?
+     ORDER BY notificacion_fecha DESC`,
+    [id_usuario, desde]
+  );
+
+  return rows;
+};

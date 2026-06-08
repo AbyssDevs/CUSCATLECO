@@ -58,6 +58,12 @@
                 </li>
                 <br>
 
+                <li onclick="mostrarViews('notificaciones')">
+                    <i class="fa-solid fa-bell"></i>
+                    Notificaciones
+                </li>
+                <br>
+
                 <li onclick="mostrarViews('verMesas')">
                     <i class="fas fa-border-all"></i>
                     Ver Mesas
@@ -102,35 +108,7 @@
                     <!-- COLUMNA IZQUIERDA -->
 <div class="pedido-left-column">
 
-    <!-- NOTIFICACIONES -->
-<div class="pedido-type-card glass-panel" id="notificacionesMesero">
-
-    <div class="notificaciones-header">
-
-        <h3>
-            <i class="fa-solid fa-bell"></i>
-            Notificaciones
-        </h3>
-
-        <!-- Badge -->
-        <span id="notificacionesBadge"
-              class="notificaciones-badge"
-              style="display:none;">
-            0
-        </span>
-
-    </div>
-
-    <div id="notificacionesList">
-
-        <p class="empty">
-            No hay notificaciones
-        </p>
-
-    </div>
-
-</div>
-
+    <!-- NOTIFICACIONES moved to its own view -->
     <!-- TIPO PEDIDO -->
     <div class="pedido-type-card glass-panel">
 
@@ -486,6 +464,39 @@
             </div>
 
             <!-- MIS PEDIDOS ACTIVOS -->
+            <!-- NOTIFICACIONES - VISTA DEDICADA -->
+            <div id="notificaciones" style="display: none;">
+                <h1>Notificaciones</h1>
+
+                <div class="pedido-type-card glass-panel" id="notificacionesMesero">
+
+                    <div class="notificaciones-header">
+
+                        <h3>
+                            <i class="fa-solid fa-bell"></i>
+                            Notificaciones
+                        </h3>
+
+                        <!-- Badge -->
+                        <span id="notificacionesBadge"
+                              class="notificaciones-badge"
+                              style="display:none;">
+                            0
+                        </span>
+
+                    </div>
+
+                    <div id="notificacionesList">
+
+                        <p class="empty">
+                            No hay notificaciones
+                        </p>
+
+                    </div>
+
+                </div>
+            </div>
+
             <div id="pedidos-pendientes" style="display: none;">
                 <div class="mis-pedidos-header">
                     <div class="mis-pedidos-title-group">

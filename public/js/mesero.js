@@ -20,26 +20,38 @@ document.addEventListener("DOMContentLoaded", () => {
 // --- AQUÍ ES DONDE DEBES PEGAR LA FUNCIÓN ---
 // Pégala justo aquí, entre las variables globales y tus funciones de renderizado
 async function iniciarPollingNotificaciones() {
-    if (pollingNotificaciones) clearInterval(pollingNotificaciones);
+  if (pollingNotificaciones) clearInterval(pollingNotificaciones);
 
-    pollingNotificaciones = setInterval(async () => {
-        try {
-            const response = await fetch(`/api/notificaciones/nuevas?desde=${ultimaConsulta}`);
-            
-            if (!response.ok) throw new Error("Error en el polling");
+  pollingNotificaciones = setInterval(async () => {
+    try {
+      const res = await fetch(`/api/notificaciones/nuevas?desde=${encodeURIComponent(ultimaConsulta)}`);
 
-            const nuevasNotificaciones = await response.json();
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
 
-            if (nuevasNotificaciones && nuevasNotificaciones.length > 0) {
-                ultimaConsulta = new Date().toISOString();
-                notificacionesMesero = [...nuevasNotificaciones, ...notificacionesMesero];
-                actualizarInterfazNotificaciones();
-                mostrarToastNotificacion(nuevasNotificaciones[0].mensaje);
-            }
-        } catch (error) {
-            console.error("Error en polling de notificaciones:", error);
-        }
-    }, 10000); 
+      const raw = await res.json();
+
+      if (Array.isArray(raw) && raw.length > 0) {
+        const nuevasNotificaciones = raw.map(r => ({
+          id_notificacion: r.id_notificacion,
+          id_pedido: r.id_pedido,
+          mensaje: r.notificacion_mensaje || r.mensaje,
+          fecha: r.notificacion_fecha || r.fecha,
+          leida: !!r.notificacion_leida
+        }));
+
+        ultimaConsulta = new Date().toISOString();
+        notificacionesMesero = [...nuevasNotificaciones, ...notificacionesMesero];
+        if (typeof renderNotificaciones === 'function') renderNotificaciones(notificacionesMesero);
+        if (typeof actualizarBadgeNotificaciones === 'function') actualizarBadgeNotificaciones();
+        mostrarToastNotificacion(nuevasNotificaciones[0].mensaje || 'Nueva notificación');
+      }
+    } catch (error) {
+      console.error("Error en polling de notificaciones:", error);
+    }
+  }, 10000);
 }
 
 // --- 2. LUEGO SIGUEN TUS FUNCIONES (renderNotificaciones, etc.) ---
@@ -117,18 +129,7 @@ async function init() {
     renderEstadoPedidoVacio();
     renderNotificaciones(notificacionesMesero); // Render inicial con estado actual
 
-    // --- CUS-268: Inicio del Polling ---
-    setInterval(async () => {
-        // Aquí llamarás a tu función que consulta al servidor (ej. consultarNuevasNotificaciones())
-        // Por ahora, llamamos a la prueba para mantener la reactividad del CUS-266/267
-        recibirNotificacionPrueba(); 
-        console.log("Polling ejecutado: Notificaciones actualizadas.");
-    }, 10000); 
-
-    // Mantenemos tu prueba inicial de los 3 segundos
-    setTimeout(() => {
-        recibirNotificacionPrueba();
-    }, 3000);
+    // Polling manejado por iniciarPollingNotificaciones() llamado al cargar el script
 
     syncPedidoActualGlobal();
     actualizarEstadoBotonesMenu();
