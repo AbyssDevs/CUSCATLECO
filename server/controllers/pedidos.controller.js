@@ -39,7 +39,10 @@ export const agregarItemsPedido = async (req, res) => {
   try {
     const data = await pedidosService.agregarItemsPedido({
       id_pedido: req.params.id,
-      items: req.body.items
+      items: req.body.items,
+      notas: req.body.notas,
+      observaciones: req.body.observaciones,
+      pedido_observaciones: req.body.pedido_observaciones
     });
 
     return res.status(200).json(data);

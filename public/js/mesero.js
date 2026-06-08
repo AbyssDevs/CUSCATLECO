@@ -909,12 +909,6 @@ else if (esPreparacion) {
             // 4. Subtotal real mapeado desde dp.detalle_pedido_subtotal
             const subtotal = item.detalle_pedido_subtotal || (cantidad * precio);
 
-            // 5. Notas reales mapeadas desde dp.detalle_pedido_notas
-            const notaReal = item.detalle_pedido_notas;
-            const textoNota = (notaReal && notaReal.trim() !== "") 
-                ? `📝 <strong>Nota:</strong> ${notaReal}` 
-                : "📝 <strong>Nota:</strong> Sin notas u observaciones";
-
             return `
                 <div class="detalle-item">
                     <div class="detalle-item-top">
@@ -923,9 +917,6 @@ else if (esPreparacion) {
                     <div class="detalle-item-bottom">
                         <span>Precio unitario: $${Number(precio).toFixed(2)}</span>
                         <span>Subtotal: $${Number(subtotal).toFixed(2)}</span>
-                    </div>
-                    <div class="detalle-nota">
-                        ${textoNota}
                     </div>
                 </div>
             `;
@@ -998,6 +989,13 @@ else if (esPreparacion) {
                 <h3>Platillos</h3>
                 <div class="detalle-items">
                     ${itemsHtml}
+                </div>
+            </div>
+
+            <div class="detalle-seccion">
+                <h3>Observaciones del pedido</h3>
+                <div class="detalle-info-general">
+                    <div>${pedido.pedido_observaciones ? escapeHtml(pedido.pedido_observaciones) : "Sin observaciones"}</div>
                 </div>
             </div>
 

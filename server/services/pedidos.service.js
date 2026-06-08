@@ -36,13 +36,15 @@ const generarNumeroPedido = async (connection) => {
 };
 
 // Crear pedido (numero correlativo, fecha y hora actual, estado "Pendiente")
-export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
+export const crearPedido = async ({ id_mesa, tipo, userId, items, notas, observaciones, pedido_observaciones }) => {
   if (tipo !== "Salon" && tipo !== "Llevar") {
     throw Object.assign(
       new Error("Tipo de pedido invalido"),
       { status: 400 }
     );
   }
+
+  const pedidoObservaciones = notas ?? observaciones ?? pedido_observaciones ?? null;
 
   let connection;
   let lockName;
@@ -62,7 +64,7 @@ export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
         (pedido_numero, id_mesa, id_mesero, pedido_tipo, pedido_estado, pedido_observaciones)
         VALUES (?, ?, ?, ?, ?, ?)
       `,
-      [pedidoNumero, mesaPedido, userId, tipo, "Pendiente", null]
+      [pedidoNumero, mesaPedido, userId, tipo, "Pendiente", pedidoObservaciones]
     );
    
 
@@ -138,7 +140,7 @@ export const crearPedido = async ({ id_mesa, tipo, userId, items }) => {
   }
 };
 
-export const agregarItemsPedido = async ({ id_pedido, items }) => {
+export const agregarItemsPedido = async ({ id_pedido, items, notas, observaciones, pedido_observaciones }) => {
   if (!id_pedido) {
     throw Object.assign(
       new Error("Debe enviar el id del pedido"),
@@ -214,14 +216,28 @@ export const agregarItemsPedido = async ({ id_pedido, items }) => {
       );
     }
 
-    await connection.query(
-      `
-        UPDATE pedidos
-        SET pedido_total = (SELECT COALESCE(SUM(detalle_pedido_subtotal), 0) FROM detalle_pedido WHERE id_pedido = ?)
-        WHERE id_pedido = ?
-      `,
-      [id_pedido, id_pedido]
-    );
+    const pedidoObservaciones = notas ?? observaciones ?? pedido_observaciones;
+
+    if (typeof pedidoObservaciones !== "undefined") {
+      await connection.query(
+        `
+          UPDATE pedidos
+          SET pedido_total = (SELECT COALESCE(SUM(detalle_pedido_subtotal), 0) FROM detalle_pedido WHERE id_pedido = ?),
+              pedido_observaciones = ?
+          WHERE id_pedido = ?
+        `,
+        [id_pedido, pedidoObservaciones === "" ? "" : pedidoObservaciones, id_pedido]
+      );
+    } else {
+      await connection.query(
+        `
+          UPDATE pedidos
+          SET pedido_total = (SELECT COALESCE(SUM(detalle_pedido_subtotal), 0) FROM detalle_pedido WHERE id_pedido = ?)
+          WHERE id_pedido = ?
+        `,
+        [id_pedido, id_pedido]
+      );
+    }
 
     await connection.commit();
 
@@ -239,7 +255,7 @@ export const agregarItemsPedido = async ({ id_pedido, items }) => {
 };
 
 // Iniciar pedido
-export const iniciarPedido = async ({ id_mesa, tipo, userId, items }) => {
+export const iniciarPedido = async ({ id_mesa, tipo, userId, items, notas, observaciones, pedido_observaciones }) => {
   if (tipo !== "Salon" && tipo !== "Llevar") {
     throw Object.assign(
       new Error("Tipo de pedido invalido"),
@@ -273,7 +289,7 @@ export const iniciarPedido = async ({ id_mesa, tipo, userId, items }) => {
     }
   }
 
-  const pedido = await crearPedido({ tipo, id_mesa, userId, items });
+  const pedido = await crearPedido({ tipo, id_mesa, userId, items, notas, observaciones, pedido_observaciones });
 
   if (tipo === "Salon") {
     await cambiarEstadoMesa(id_mesa, "Ocupada", userId);
@@ -1061,6 +1077,7 @@ export const obtenerDetallePedido = async (id_pedido) => {
   const [pedidoRows] = await db.query(`
     SELECT 
       p.id_pedido,
+      p.pedido_observaciones,
       p.pedido_estado,
       p.pedido_tipo,
       p.pedido_total,
