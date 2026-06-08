@@ -873,18 +873,21 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
     ]
   );
 
-  // Liberar mesa si era salón
-  if (
-    pedido.pedido_tipo === "Salon"
-    && pedido.id_mesa
-  ) {
 
+ // Liberar mesa si era salón
+  if (pedido.pedido_tipo === "Salon" && pedido.id_mesa) {
     await cambiarEstadoMesa(
       pedido.id_mesa,
       "Disponible",
       userId
     );
   }
+
+  //Notificar al cocinero si un pedido fue cancelado
+  emitirEvento("pedido_cancelado", {
+    id_pedido,
+    estadoAnterior
+  });
 
   return {
     message: "Pedido cancelado correctamente"
