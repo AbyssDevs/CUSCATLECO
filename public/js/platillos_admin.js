@@ -299,34 +299,89 @@ async function activarPlatillo(id) {
 }
 
 async function desactivarPlatillo(id) {
-    const platillo = menuState.items.find(item => item.id_platillo === id);
+
+    const platillo = menuState.items.find(
+        item => item.id_platillo === id
+    );
+
     if (!platillo) return;
 
-    const disponible = platillo.platillo_disponible === true || platillo.platillo_disponible === 1 || platillo.platillo_disponible === "1";
+    const disponible =
+        platillo.platillo_disponible === true ||
+        platillo.platillo_disponible === 1 ||
+        platillo.platillo_disponible === "1";
 
+    // Validar si ya está desactivado
     if (!disponible) {
         toast("error", "El platillo ya esta desactivado");
         return;
     }
 
+    // Modal de confirmación usando SweetAlert2
+    const resultado = await Swal.fire({
+        title: "Confirmar acción",
+        text: `¿Eliminar ${platillo.platillo_nombre} del pedido?`,
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#6c757d",
+        confirmButtonText: "Sí, desactivar",
+        cancelButtonText: "Cancelar"
+    });
+
+    // Si el usuario cancela
+    if (!resultado.isConfirmed) {
+        return;
+    }
+
     try {
-        const respuesta = await fetch(`/api/platillos/${id}/estado`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ platillo_disponible: false })
-        });
+
+        const respuesta = await fetch(
+            `/api/platillos/${id}/estado`,
+            {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    platillo_disponible: false
+                })
+            }
+        );
 
         const datos = await respuesta.json();
 
         if (respuesta.ok) {
-            toast("success", "Platillo desactivado correctamente");
+
+            // Alerta de éxito
+            Swal.fire({
+                icon: "success",
+                title: "Platillo desactivado",
+                text: `${platillo.platillo_nombre} fue desactivado correctamente`,
+                timer: 1600,
+                showConfirmButton: false
+            });
+
+            // Recargar menú
             loadMenu();
+
         } else {
-            toast("error", "Error: " + (datos.error || "No se pudo desactivar el platillo"));
+
+            toast(
+                "error",
+                "Error: " +
+                (datos.error || "No se pudo desactivar el platillo")
+            );
+
         }
+
     } catch (error) {
-        console.error("Error desactivando platillo:", error);
+
+        console.error(
+            "Error desactivando platillo:",
+            error
+        );
+
         toast("error", "Error de conexión");
     }
-
 }

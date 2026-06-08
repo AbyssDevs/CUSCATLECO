@@ -6,29 +6,302 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel Cajero</title>
 
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 
-    <!-- CSS Específico de Cajero -->
     <link rel="stylesheet" href="../css/cajero.css">
     <link rel="stylesheet" href="../css/menu.css">
+    
+    <style>
+      .btn-imprimir {
+        margin-left: 10px;
+        background: #8b2f2f;
+        border: 1px solid #7a2929;
+        color: #ffffff;
+        padding: 0.85rem 1rem;
+        border-radius: 8px;
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+      .btn-imprimir:hover {
+        background: #732525;
+        transform: translateY(-1px);
+      }
 
+      /* CSS de Control de alineación horizontal para que no se desarregle el contenedor de platillos */
+      .fila-platillo {
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        gap: 8px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        padding: 6px 0;
+        border-bottom: 1px solid #eee;
+      }
+      .fila-platillo select,
+      .fila-platillo input,
+      .fila-platillo button {
+        box-sizing: border-box !important;
+      }
+
+      /* =========================================================
+         LAYOUT FORMULARIO "TOMAR PEDIDO" DEL CAJERO
+         Paleta vino/guinda: #7a1d1d  ·  dorado: #c1a257
+         ========================================================= */
+
+      /* La clase global .card (cajero.css) fuerza width:220px y
+         text-align:center, lo que deforma el formulario. La
+         neutralizamos únicamente dentro de esta vista. */
+      #tomar-pedido .card {
+        width: 100%;
+        max-width: none;
+        text-align: left;
+        border-top: none;
+      }
+
+      /* Rejilla principal: columna de datos + panel del menú */
+      #tomar-pedido .tomar-pedido-layout {
+        display: grid;
+        grid-template-columns: minmax(340px, 480px) minmax(0, 1fr);
+        gap: 24px;
+        align-items: flex-start;
+        margin-top: 0;
+      }
+
+      /* Columna izquierda: contiene las dos tarjetas apiladas */
+      #tomar-pedido .pedido-left-column {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+        padding: 0;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+      }
+
+      /* Tarjetas (Datos del Cliente / Pedido Actual / Menú) */
+      #tomar-pedido .pedido-type-card,
+      #tomar-pedido .pedido-menu-panel {
+        background: #ffffff;
+        padding: 22px;
+        border-radius: 12px;
+        border: 1px solid #f0e6e6;
+        border-top: 3px solid #7a1d1d;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        box-sizing: border-box;
+        width: 100%;
+        max-width: none;
+        margin: 0;
+      }
+
+      #tomar-pedido .pedido-type-card h3,
+      #tomar-pedido .pedido-menu-panel h3 {
+        margin: 0 0 16px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #7a1d1d;
+        text-align: left;
+      }
+
+      /* Grupos de campo: label arriba del input, filas ordenadas */
+      #tomar-pedido .form-group {
+        display: flex;
+        flex-direction: column;
+        margin-bottom: 18px;
+      }
+
+      #tomar-pedido .form-group:last-child {
+        margin-bottom: 0;
+      }
+
+      #tomar-pedido .form-group label {
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 0.9rem;
+        color: #333;
+        text-align: left;
+      }
+
+      #tomar-pedido .form-group label small {
+        font-weight: 500;
+        font-size: 0.78rem;
+        color: #999;
+        margin-left: 4px;
+      }
+
+      /* Inputs y textarea del pedido: clase neutral (sin vínculo con la
+         búsqueda de menu.js), con ancho controlado y bordes consistentes */
+      #tomar-pedido .form-control-pedido {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 11px 14px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: 'Roboto', Arial, sans-serif;
+        color: #333;
+        background: #ffffff;
+        outline: none;
+        transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      #tomar-pedido textarea.form-control-pedido {
+        min-height: 90px;
+        resize: vertical;
+      }
+
+      #tomar-pedido .form-control-pedido:focus {
+        border-color: #7a1d1d;
+        box-shadow: 0 0 0 3px rgba(122, 29, 29, 0.12);
+      }
+
+      /* Filas de platillos dentro de "Pedido Actual" */
+      #platillos-container .fila-platillo {
+        gap: 12px;
+        padding: 10px 4px;
+      }
+
+      #platillos-container .fp-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        flex: 1;
+        min-width: 0;
+        text-align: left;
+      }
+
+      #platillos-container .fp-info strong {
+        color: #222;
+        font-size: 0.92rem;
+        overflow-wrap: anywhere;
+      }
+
+      #platillos-container .fp-info span {
+        color: #777;
+        font-size: 0.8rem;
+      }
+
+      #platillos-container .fp-cantidad {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      #platillos-container .fp-btn {
+        width: 28px;
+        height: 28px;
+        padding: 0;
+        font-size: 1rem;
+        line-height: 1;
+        font-weight: 700;
+        border-radius: 6px;
+        background: #7a1d1d;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+
+      #platillos-container .fp-btn:hover {
+        background: #661515;
+      }
+
+      #platillos-container .fp-num {
+        min-width: 20px;
+        text-align: center;
+        font-weight: 700;
+        color: #333;
+      }
+
+      #platillos-container .fp-total {
+        font-weight: 700;
+        color: #248a4c;
+        min-width: 64px;
+        text-align: right;
+      }
+
+      #platillos-container .fp-eliminar {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        border-radius: 6px;
+        background: #c53030;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+
+      #platillos-container .fp-eliminar:hover {
+        background: #e53935;
+      }
+
+      /* Estado vacío del pedido actual */
+      #tomar-pedido .pedido-items-empty {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 90px;
+        border: 1px dashed #d9c9c9;
+        border-radius: 8px;
+        background: #fbf7f7;
+        margin-bottom: 16px;
+      }
+
+      #tomar-pedido .pedido-empty-text {
+        margin: 0;
+        color: #777;
+        text-align: center;
+      }
+
+      /* Filtros del panel del menú */
+      #tomar-pedido .pedido-menu-filters {
+        margin-bottom: 16px;
+      }
+
+      /* Botón "Iniciar pedido" (paleta vino) */
+      #tomar-pedido .btn-enviar-pedido {
+        width: 100%;
+        padding: 14px;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #ffffff;
+        background: #7a1d1d;
+        border: none;
+        border-radius: 8px;
+        cursor: pointer;
+        opacity: 1;
+        transition: background 0.2s ease, transform 0.2s ease;
+      }
+
+      #tomar-pedido .btn-enviar-pedido:hover:not(:disabled) {
+        background: #661515;
+        transform: translateY(-1px);
+      }
+
+      #tomar-pedido .btn-enviar-pedido:disabled {
+        background: #c9b3b3;
+        cursor: not-allowed;
+        opacity: 0.7;
+        transform: none;
+      }
+
+      /* Responsive: una sola columna en pantallas medianas/chicas */
+      @media (max-width: 1024px) {
+        #tomar-pedido .tomar-pedido-layout {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
 </head>
 
 <body>
 
     <div class="dashboard">
 
-        <!-- BARRA LATERAL -->
         <div class="sidebar" id="sidebar">
-
             <h2>RESTAURANTE CUSCATLECO</h2>
 
             <div class="user-info" id="userInfo">
@@ -37,23 +310,20 @@
                 </div>
                 <div class="user-details">
                     <span class="user-name" id="userName">Cargando...</span>
-                    <!-- Role label as Cajero -->
                     <span class="user-role" id="userRole">Cajero</span>
                 </div>
             </div>
 
             <ul>
-                <li onclick="mostrarViews('cobros')"><i class="fa-solid fa-receipt"></i> Facturar y Cobrar</li><br>
-                <li onclick="mostrarViews('menu-restaurante')"><i class="fa-solid fa-book-open"></i> Ver el Menú</li><br>
-                <li onclick="mostrarViews('tomar-pedido')"><i class="fa-solid fa-plus"></i> Nuevo Pedido</li><br>
-                <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li><br>
+                <li onclick="mostrarViews('cobros')"><i class="fa-solid fa-receipt"></i> Facturar y Cobrar</li>
+                <li onclick="mostrarViews('menu-restaurante')"><i class="fa-solid fa-book-open"></i> Ver el Menú</li>
+                <li onclick="mostrarViews('tomar-pedido')"><i class="fa-solid fa-plus"></i> Nuevo Pedido</li>
+                <li onclick="cerrarSesion()"><i class="fa-solid fa-right-from-bracket"></i> Cerrar sesión</li>
             </ul>
-
         </div>
 
         <div class="backdrop" id="menuBackdrop" onclick="toggleMenu()"></div>
 
-        <!-- CONTENIDO PRINCIPAL -->
         <div class="contenido">
 
             <div class="header-mobile">
@@ -62,9 +332,7 @@
                 </button>
             </div>
 
-            <!-- COBROS (Dashboard principal) -->
             <div id="cobros">
-
                 <h1>Cobrar Órdenes</h1>
                 <p id="bienvenidaUsuario"></p>
                 <div style="display: flex; gap: 15px; margin-bottom: 20px;">
@@ -82,26 +350,10 @@
                             <th>Acción</th>
                         </tr>
                     </thead>
-                    <tbody id="tablaCobros">
-                        <!-- Ejemplo de render -->
-                        <!--
-                        <tr>
-                            <td>#1002</td>
-                            <td>Mesa 3</td>
-                            <td>Juan Perez</td>
-                            <td>$15.50</td>
-                            <td><span class="pendiente">Pendiente de Pago</span></td>
-                            <td>
-                                <button class="btn-completar">Facturar y Cobrar</button>
-                            </td>
-                        </tr>
-                        -->
-                    </tbody>
+                    <tbody id="tablaCobros"></tbody>
                 </table>
-
             </div>
 
-            <!-- VER MENÚ -->
             <div id="menu-restaurante" style="display: none;">
                 <h1>Menú del Restaurante</h1>
 
@@ -126,7 +378,6 @@
                             <th>Categoría</th>
                             <th>Descripción</th>
                             <th data-sort="precio" class="sortable">Precio <span class="sort-indicator"></span></th>
-                            
                         </tr>
                     </thead>
                     <tbody id="menuTableBody"></tbody>
@@ -135,46 +386,263 @@
                 <div id="menuCardList" class="menu-card-list"></div>
             </div>
 
-            <!-- TOMAR PEDIDO -->
             <div id="tomar-pedido" style="display: none;">
                 <h1>Tomar Pedido Nuevo</h1>
-                
-                <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 600px;">
-                    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
-                        <div style="flex: 1;">
-                            <label style="display: block; margin-bottom: 5px; font-weight: 500;">Número de Mesa</label>
-                            <input type="number" id="mesa_num" placeholder="Ej. 10" style="width: 100%; box-sizing: border-box;">
+
+                <div class="tomar-pedido-layout">
+
+                    <form id="formPedidoCajero" class="pedido-left-column card">
+
+                        <div class="pedido-type-card glass-panel card">
+                            <h3>Datos del Cliente</h3>
+
+                            <div class="form-group">
+                                <label for="nombreClienteCajero">Nombre del Cliente *</label>
+                                <input type="text" id="nombreClienteCajero" class="form-control-pedido" placeholder="Nombre del cliente">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="telefonoClienteCajero">Teléfono <small>Opcional</small></label>
+                                <input type="tel" id="telefonoClienteCajero" class="form-control-pedido" placeholder="Teléfono del cliente (Opcional)">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="observacionesPedidoCajero">Observaciones <small>Opcional</small></label>
+                                <textarea id="observacionesPedidoCajero" class="form-control-pedido" rows="4" placeholder="Notas especiales - Opcional"></textarea>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <h3 style="margin-top: 20px; border-bottom: 2px solid #eee; padding-bottom: 10px;">Seleccionar Platillos</h3>
-                    
-                    <div id="lista-platillos-pedido">
-                        <!-- Ejemplo de items a agregar -->
-                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-                            <select style="flex: 2;">
-                                <option value="">Seleccione un platillo...</option>
-                                <option value="1">Pupusas Revueltas</option>
-                                <option value="2">Pupusas de Queso</option>
-                                <option value="3">Sopa de Gallina</option>
+
+                        <div class="pedido-type-card glass-panel card" id="pedido-form-card">
+                            <h3>Pedido Actual</h3>
+
+                            <div id="platillos-container" class="pedido-items-empty">
+                                <p class="pedido-empty-text">
+                                    Agregue platillos desde el menú.
+                                </p>
+                            </div>
+
+                            <div class="form-group notas-generales-group">
+                                <label for="pedido-notas-generales">Notas generales</label>
+                                <textarea id="pedido-notas-generales" class="form-control-pedido" rows="3" placeholder="Escribe aquí notas generales para el pedido..."></textarea>
+                            </div>
+
+                            <div id="resumen-pedido" style="background: #f9f9f9; border: 1px solid #eee; border-radius: 8px; padding: 15px; margin: 15px 0;">
+                                <h4 style="margin: 0 0 10px 0; color: #555;">Resumen del Pedido</h4>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-weight: 600;">Subtotal:</span>
+                                    <span id="subtotal-pedido" style="font-weight: 700; font-size: 1.2rem; color: #2e7d32;">$0.00</span>
+                                </div>
+                            </div>
+
+                            <button id="btn-enviar-pedido" type="submit" title="Iniciar el pedido para llevar" class="btn-enviar-pedido">
+                                <i class="fas fa-paper-plane"></i> Iniciar pedido
+                            </button>
+                        </div>
+
+                    </form>
+
+                    <div class="pedido-menu-panel glass-panel card">
+                        <h3>Menú de Platillos</h3>
+
+                        <div class="menu-page-header pedido-menu-filters">
+                            <select class="menu-category-filter">
+                                <option value="">Todas las categorías</option>
                             </select>
-                            <input type="number" placeholder="Cant." min="1" value="1" style="flex: 1;">
-                            <button class="btn-eliminar"><i class="fa-solid fa-trash"></i></button>
+
+                            <input class="menu-search-input" type="text" placeholder="Buscar platillo..." autocomplete="off">
+
+                            <button type="button" id="btn-actualizar-menu" class="btn-refresh" title="Actualizar lista de platillos">
+                                <i class="fa-solid fa-rotate"></i> Actualizar
+                            </button>
                         </div>
+
+                        <div id="menuLoading" class="menu-loading">
+                            <span class="spinner"></span>
+                            <span>Cargando menú...</span>
+                        </div>
+
+                        <div id="menuEmpty" class="menu-empty"></div>
+
+                        <table class="menu-table pedido-menu-table modern-table">
+                            <thead>
+                                <tr>
+                                    <th>Imagen</th>
+                                    <th data-sort="nombre" class="sortable">Nombre <span class="sort-indicator"></span></th>
+                                    <th>Categoría</th>
+                                    <th>Descripción</th>
+                                    <th data-sort="precio" class="sortable">Precio <span class="sort-indicator"></span></th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody class="menu-table-body"></tbody>
+                        </table>
+
+                        <div id="menuCardList" class="menu-card-list"></div>
                     </div>
-                    
-                    <button class="btn-agregar" style="margin-top: 10px; margin-bottom: 20px;"><i class="fa-solid fa-plus"></i> Añadir otro platillo</button>
-                    
-                    <button style="width: 100%; padding: 15px; font-size: 16px;">Enviar Pedido a Cocina</button>
+
                 </div>
             </div>
 
         </div>
     </div>
+    
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/js/alerts.js"></script>
     <script src="../js/menu.js"></script>
+    <script src="../js/cajero_pedido.js"></script>
+    <script src="../js/empleados.js"></script>  
     
+    <script>
+      async function confirmarFacturaPedido() {
+        const pedidoId = window.pedidoIdSeleccionado || document.getElementById('idPedidoFactura')?.value || document.getElementById('pedidoIdFactura')?.value;
+        const nombreCliente = document.getElementById('nombreFacturaCliente')?.value?.trim() || null;
+        const nitCliente = document.getElementById('nitFacturaCliente')?.value?.trim() || null;
+
+        if (!pedidoId) {
+          await Swal.fire({
+            icon: 'error',
+            title: 'No se encontró el pedido',
+            text: 'No se pudo identificar el pedido a facturar.',
+          });
+          return;
+        }
+
+        const payload = {
+          pedido_id: pedidoId,
+          nombre_cliente: nombreCliente || null,
+          nit: nitCliente || null,
+          tipo: 'ConsumidorFinal',
+        };
+
+        try {
+          const response = await fetch('/api/facturas/generar', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+          });
+
+          if (!response.ok) {
+            const errorBody = await response.json().catch(() => null);
+            const errorMessage = (errorBody && (errorBody.message || errorBody.error || JSON.stringify(errorBody))) || 'No se pudo generar la factura.';
+            throw new Error(errorMessage);
+          }
+
+          await Swal.fire({
+            icon: 'success',
+            title: 'Factura generada exitosamente',
+            html: `
+              <div style="display: flex; gap: 10px; justify-content: center; margin-top: 12px;">
+                <button type="button" id="btnDescargarPDF" class="btn btn-secondary" data-id="${pedidoId || ''}">
+                  <i class="fas fa-file-pdf"></i> Descargar PDF
+                </button>
+                <button type="button" id="btnImprimirTicket" class="btn btn-imprimir" data-id="${pedidoId || ''}">
+                  <i class="fas fa-print"></i> Imprimir ticket
+                </button>
+              </div>
+            `,
+            showConfirmButton: false,
+            showCloseButton: true,
+          });
+
+          if (typeof cerrarModalFactura === 'function') cerrarModalFactura();
+          if (typeof limpiarModalFactura === 'function') limpiarModalFactura();
+          if (typeof refrescarListaPedidos === 'function') refrescarListaPedidos();
+          
+        } catch (error) {
+          console.error('Error generando factura:', error);
+          await Swal.fire({
+            icon: 'error',
+            title: 'Error al generar factura',
+            text: error?.message || 'Ocurrió un error al generar la factura.',
+          });
+        }
+      }
+
+      document.addEventListener('click', async (event) => {
+        // EVENTO DEL BOTÓN IMPRIMIR TICKET
+        const botonImprimir = event.target.closest('#btnImprimirTicket');
+        if (botonImprimir) {
+          event.preventDefault();
+          const pedidoId = botonImprimir.dataset.id || '';
+          console.log('Imprimiendo ticket del pedido:', pedidoId);
+          
+          if (!pedidoId) return;
+
+          try {
+            const response = await fetch(`/api/facturas/pdf/${encodeURIComponent(pedidoId)}`);
+            if (!response.ok) throw new Error('No se pudo obtener el formato de impresión.');
+            
+            const blob = await response.blob();
+            const blobUrl = URL.createObjectURL(blob);
+
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = blobUrl;
+            document.body.appendChild(iframe);
+
+            iframe.onload = function () {
+              iframe.contentWindow.focus();
+              iframe.contentWindow.print();
+              setTimeout(() => {
+                iframe.remove();
+                URL.revokeObjectURL(blobUrl);
+              }, 1000);
+            };
+
+          } catch (error) {
+            console.error('Error al mandar a la ticketera:', error);
+            Swal.fire({
+              icon: 'error',
+              title: 'Error de impresión',
+              text: 'No se pudo conectar con la impresora de tickets.',
+            });
+          }
+          return;
+        }
+
+        // EVENTO DEL BOTÓN DESCARGAR PDF
+        const botonPdf = event.target.closest('#btnDescargarPDF');
+        if (botonPdf) {
+          event.preventDefault();
+          const pedidoId = botonPdf.dataset.id || '';
+          console.log('Descargar PDF pedido:', pedidoId);
+          if (pedidoId) {
+            fetch(`/api/facturas/pdf/${encodeURIComponent(pedidoId)}`)
+              .then((response) => {
+                if (!response.ok) throw new Error('No se pudo iniciar la descarga del PDF.');
+                return response.blob();
+              })
+              .then((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `factura_${pedidoId}.pdf`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+              })
+              .catch((error) => {
+                console.error('Error descargando PDF:', error);
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error al descargar PDF',
+                  text: error?.message || 'No se pudo descargar el PDF de la factura.',
+                });
+              });
+          }
+          return;
+        }
+
+        // EVENTO DE CONFIRMAR FACTURA
+        const boton = event.target.closest('#btn-confirmar-factura, .btn-confirmar-factura, [data-action="confirmar-factura"]');
+        if (!boton) return;
+        event.preventDefault();
+        await confirmarFacturaPedido();
+      });
+    </script>
 </body>
 
 </html>
