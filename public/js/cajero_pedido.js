@@ -388,22 +388,34 @@ function renderCobrosTabla(pedidos = []) {
 }
 
 function inicializarDelegacionAgregarPlatillo() {
+  // Delegamos sobre toda la vista para capturar el clic tanto en la tabla
+  // (.menu-table-body) como en las tarjetas (.menu-card-list), aunque se
+  // re-rendericen dinámicamente.
   const contenedor = document.getElementById("tomar-pedido") || document;
+
 
   contenedor.addEventListener("click", (event) => {
     const button = event.target.closest(".btn-agregar");
     if (!button || button.disabled) return;
     event.preventDefault();
 
+
     const idPlatillo =
       button.getAttribute("data-id-platillo") || button.getAttribute("data-id");
     if (!idPlatillo) return;
 
+
     agregarPlatilloAlPedidoCajero(idPlatillo);
   });
 
+
+  // menu.js renderiza cada botón con onclick="agregarAlPedidoDesdeMenu(id)"
+  // (función del flujo de mesero). En el cajero el clic ya se maneja por la
+  // delegación de arriba, así que dejamos este global inofensivo para no
+  // agregar el platillo dos veces por clic.
   window.agregarAlPedidoDesdeMenu = function () {};
 }
+
 
 function configurarCajeroPedido() {
   const tipoButtons = document.querySelectorAll(".pedido-type-btn");
@@ -443,6 +455,8 @@ window.mostrarViews = function(id) {
       section.style.display = section.id === id ? "block" : "none";
     }
   });
+
+  window.activeViewId = id;
   
   // Cargar platillos cuando se muestra la sección de tomar-pedido
   if (id === "tomar-pedido" && typeof loadMenu === "function") {
