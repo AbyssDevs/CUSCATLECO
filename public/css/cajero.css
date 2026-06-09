@@ -13,6 +13,7 @@ h1, h2, h3, h4, th {
 /* DASHBOARD LAYOUT */
 .dashboard {
     display: flex;
+    min-height: 100vh;
     height: 100vh;
 }
 
@@ -26,6 +27,7 @@ h1, h2, h3, h4, th {
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
+    flex-shrink: 0;
 }
 
 .sidebar h2 {
@@ -109,6 +111,7 @@ h1, h2, h3, h4, th {
     overflow-y: auto;
     height: 100vh;
     box-sizing: border-box;
+    min-width: 0;
 }
 
 /* CARDS */
@@ -117,6 +120,7 @@ h1, h2, h3, h4, th {
     flex-wrap: wrap;
     gap: 25px;
     margin-top: 25px;
+    align-items: stretch;
 }
 
 .card {
@@ -152,6 +156,58 @@ h1, h2, h3, h4, th {
 }
 
 /* RESPONSIVE */
+@media (max-width: 1200px) {
+    .contenido {
+        padding: 32px;
+    }
+
+    th,
+    td {
+        padding: 13px 16px;
+    }
+
+    #tomar-pedido .tomar-pedido-layout {
+        grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+        gap: 18px;
+    }
+
+    #tomar-pedido .pedido-type-card,
+    #tomar-pedido .pedido-menu-panel {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 992px) {
+    .sidebar {
+        width: 240px;
+        padding: 26px 18px;
+    }
+
+    .sidebar h2 {
+        font-size: 18px;
+        margin-bottom: 24px;
+    }
+
+    .contenido {
+        padding: 28px;
+    }
+
+    #cobros table,
+    #menu-restaurante table,
+    #tomar-pedido table {
+        min-width: 620px;
+    }
+
+    #tomar-pedido .tomar-pedido-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .menu-page-header,
+    #tomar-pedido .pedido-menu-filters {
+        flex-wrap: wrap;
+    }
+}
+
 @media (max-width: 768px) {
     .header-mobile {
         display: block;
@@ -166,12 +222,50 @@ h1, h2, h3, h4, th {
         box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
     }
 
-    .sidebar.active {
+    .sidebar.active,
+    .sidebar.show {
         left: 0;
+    }
+
+    .backdrop.active,
+    .backdrop.show {
+        display: block;
+        opacity: 1;
     }
 
     .contenido {
         padding: 25px;
+    }
+
+    #cobros,
+    #menu-restaurante,
+    #tomar-pedido {
+        overflow-x: auto;
+    }
+
+    #cobros table,
+    #menu-restaurante table,
+    #tomar-pedido table {
+        min-width: 680px;
+    }
+
+    #buscarMesaCobro {
+        width: 100%;
+    }
+
+    .menu-page-header,
+    #tomar-pedido .pedido-menu-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .menu-page-header select,
+    .menu-page-header input,
+    .menu-page-header button,
+    #tomar-pedido .pedido-menu-filters select,
+    #tomar-pedido .pedido-menu-filters input,
+    #tomar-pedido .pedido-menu-filters button {
+        width: 100%;
     }
 
     .cards {
@@ -180,6 +274,133 @@ h1, h2, h3, h4, th {
 
     .card {
         width: 100%;
+    }
+}
+
+@media (max-width: 576px) {
+    .dashboard {
+        min-height: 100dvh;
+        height: auto;
+    }
+
+    .contenido {
+        padding: 18px;
+        height: auto;
+        min-height: 100dvh;
+    }
+
+    .sidebar {
+        width: 240px;
+    }
+
+    .header-mobile {
+        padding-bottom: 14px;
+    }
+
+    .hamburger {
+        width: 100%;
+        max-width: 52px;
+        padding: 9px 12px;
+        font-size: 18px;
+    }
+
+    h1 {
+        font-size: 1.45rem;
+        margin-bottom: 18px;
+    }
+
+    h2 {
+        font-size: 1.15rem;
+    }
+
+    th,
+    td {
+        padding: 10px 12px;
+        font-size: 0.92rem;
+    }
+
+    .btn-editar,
+    .btn-eliminar,
+    .btn-completar,
+    .btn-agregar,
+    .btn-ver-factura-cajero,
+    .btn-factura-secundario {
+        padding: 7px 10px;
+        font-size: 0.85rem;
+    }
+
+    #cobros table,
+    #menu-restaurante table,
+    #tomar-pedido table {
+        min-width: 560px;
+    }
+
+    .factura-form-grid,
+    .factura-meta {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 420px) {
+    .contenido {
+        padding: 14px;
+    }
+
+    .sidebar {
+        width: 220px;
+        padding: 22px 16px;
+    }
+
+    .sidebar h2 {
+        font-size: 17px;
+        padding-bottom: 12px;
+        margin-bottom: 20px;
+    }
+
+    .sidebar li {
+        padding: 10px 12px;
+        font-size: 0.95rem;
+    }
+
+    .user-info {
+        padding: 12px;
+    }
+
+    .user-avatar {
+        font-size: 1.7rem;
+    }
+
+    .user-name {
+        font-size: 0.85rem;
+    }
+
+    .user-role {
+        font-size: 0.68rem;
+    }
+
+    th,
+    td {
+        padding: 9px 10px;
+        font-size: 0.86rem;
+    }
+
+    #cobros table,
+    #menu-restaurante table,
+    #tomar-pedido table {
+        min-width: 520px;
+    }
+
+    .card {
+        padding: 20px;
+    }
+
+    .card p {
+        font-size: 28px;
+    }
+
+    .factura-vista-header,
+    .factura-actions {
+        gap: 12px;
     }
 }
 

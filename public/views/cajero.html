@@ -289,9 +289,45 @@
       }
 
       /* Responsive: una sola columna en pantallas medianas/chicas */
-      @media (max-width: 1024px) {
+      @media (max-width: 1200px) {
+        #tomar-pedido .tomar-pedido-layout {
+          grid-template-columns: minmax(280px, 1fr) minmax(0, 1.15fr);
+          gap: 18px;
+        }
+
+        #tomar-pedido .pedido-type-card,
+        #tomar-pedido .pedido-menu-panel {
+          padding: 20px;
+        }
+      }
+
+      @media (max-width: 992px) {
         #tomar-pedido .tomar-pedido-layout {
           grid-template-columns: 1fr;
+        }
+
+        #tomar-pedido .pedido-menu-panel {
+          position: static;
+        }
+      }
+
+      @media (max-width: 640px) {
+        #tomar-pedido .pedido-left-column {
+          gap: 16px;
+        }
+
+        #tomar-pedido .pedido-type-card,
+        #tomar-pedido .pedido-menu-panel {
+          padding: 18px;
+        }
+
+        #tomar-pedido .form-group {
+          margin-bottom: 14px;
+        }
+
+        #tomar-pedido .btn-enviar-pedido {
+          padding: 12px;
+          font-size: 1rem;
         }
       }
     </style>

@@ -729,7 +729,9 @@ window.toggleMenu = function() {
   const sidebar = document.getElementById("sidebar");
   const backdrop = document.getElementById("menuBackdrop");
   sidebar.classList.toggle("show");
+  sidebar.classList.toggle("active");
   backdrop.classList.toggle("show");
+  backdrop.classList.toggle("active");
 };
 
 window.cerrarSesion = function() {
