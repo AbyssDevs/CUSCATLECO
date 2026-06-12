@@ -1143,7 +1143,7 @@ export const obtenerPedidosPendientesCajero = async () => {
     LEFT JOIN facturas f
       ON f.id_pedido = p.id_pedido
      AND f.factura_anulada = FALSE
-    WHERE p.pedido_estado IN ('Entregado', 'Cerrado')
+    WHERE p.pedido_estado IN ('Listo', 'Entregado', 'Cerrado')
     ORDER BY p.pedido_fecha_hora ASC
   `);
 

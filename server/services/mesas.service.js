@@ -14,6 +14,9 @@ export const crearMesa = async (data, userId) => {
   if (mesa_capacidad <= 0) {
     throw Object.assign(new Error("La capacidad debe ser mayor que 0"), { status: 400 });
   }
+  if (mesa_capacidad > 10) {
+    throw Object.assign(new Error("La capacidad maxima permitida es de 10 personas"), { status: 400 });
+  }
 
   const [existe] = await db.query(
     "SELECT id_mesa FROM mesas WHERE mesa_numero = ?",

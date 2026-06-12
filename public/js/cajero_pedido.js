@@ -83,6 +83,8 @@ function actualizarEstadoBotonesMenuCajero() {
   });
 }
 window.actualizarEstadoBotonesMenu = actualizarEstadoBotonesMenuCajero;
+window.pedidosCajeroPendientes = [];
+window.filtroPedidoCajero = "";
 
 // Pinta la lista de platillos del pedido actual (o el estado vacío).
 function renderPedidoActualCajero() {
@@ -514,12 +516,35 @@ function renderCobrosTabla(pedidos = []) {
   const tablaCobros = document.getElementById("tablaCobros");
   if (!tablaCobros) return;
 
-  if (pedidos.length === 0) {
-    tablaCobros.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">No hay pedidos entregados o cerrados</td></tr>`;
+  const filtro = String(window.filtroPedidoCajero || "").trim().toLowerCase();
+  const pedidosFiltrados = filtro
+    ? pedidos.filter((pedido) => {
+        const texto = [
+          pedido.pedido_numero,
+          pedido.id_pedido,
+          pedido.pedido_estado,
+          pedido.estado,
+          pedido.mesa,
+          pedido.mesa_numero,
+          pedido.mesero,
+          pedido.mesero_nombre,
+          pedido.usuario,
+          pedido.pedido_tipo,
+        ]
+          .filter(Boolean)
+          .map((valor) => String(valor).toLowerCase())
+          .join(" ");
+
+        return texto.includes(filtro);
+      })
+    : pedidos;
+
+  if (pedidosFiltrados.length === 0) {
+    tablaCobros.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">No se encontraron pedidos que coincidan con la búsqueda</td></tr>`;
     return;
   }
 
-  tablaCobros.innerHTML = pedidos
+  tablaCobros.innerHTML = pedidosFiltrados
     .map((pedido) => {
       const id = pedido.id_pedido || pedido.id || "--";
       const mesa = pedido.mesa || pedido.mesa_numero || "Sin mesa";
@@ -532,7 +557,9 @@ function renderCobrosTabla(pedidos = []) {
       const estado = pedido.pedido_estado || pedido.estado || "--";
       const facturaId = pedido.factura_id || pedido.id_factura || "";
       const tieneFactura = Boolean(facturaId || pedido.tieneFactura);
+      const mostrarEntregar = estado === "Listo";
       const esFacturable = (estado === "Entregado" || estado === "Cerrado") && !tieneFactura;
+      const facturaGenerada = Boolean(facturaId) || tieneFactura;
 
       return `
         <tr>
@@ -541,88 +568,66 @@ function renderCobrosTabla(pedidos = []) {
           <td>${escapeHtml(mesero)}</td>
           <td>${total}</td>
           <td>${escapeHtml(estado)}</td>
-          <td style="display: flex; gap: 4px; align-items: center;">
-            ${
-              esFacturable
-                ? `<button class="btn-completar btn-generar-factura" data-id="${escapeHtml(id)}">
-                    <i class="fa-solid fa-file-invoice-dollar"></i> Generar factura
-                  </button>`
-                : `<button class="btn-completar" disabled>
-                    <i class="fa-solid fa-file-invoice"></i> Factura generada
-                  </button>`
-            }
-            ${
-              facturaId
-                ? `<button class="btn-ver-factura-cajero" data-id-factura="${escapeHtml(facturaId)}" title="Ver factura">
+          <td style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;">
+            ${mostrarEntregar ? `
+              <button class="btn-entregar-cajero btn-completar" data-id="${escapeHtml(id)}">
+                <i class="fa-solid fa-truck-fast"></i> Marcar como entregado
+              </button>
+            ` : ""}
+            ${esFacturable ? `
+              <button class="btn-completar btn-generar-factura" data-id="${escapeHtml(id)}">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Generar factura
+              </button>
+            ` : facturaGenerada ? `
+              <button class="btn-completar" disabled>
+                <i class="fa-solid fa-file-invoice"></i> Factura generada
+              </button>
+            ` : `
+              <button class="btn-completar" disabled>
+                <i class="fa-solid fa-clock"></i> Esperando factura
+              </button>
+            `}
+            ${facturaId ? `<button class="btn-ver-factura-cajero" data-id-factura="${escapeHtml(facturaId)}" title="Ver factura">
                     <i class="fa-solid fa-eye"></i>
-                  </button>`
-                : ""
-            }
+                  </button>` : ""}
           </td>
         </tr>
       `;
     })
     .join("");
-  return;
+}
 
-  if (pedidos.length === 0) {
-    tablaCobros.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">No hay pedidos pendientes</td></tr>`;
-    return;
+async function marcarPedidoEntregadoCajero(pedidoId) {
+  try {
+    const confirmation = await Swal.fire({
+      icon: "question",
+      title: "Confirmar entrega",
+      text: "¿Deseas marcar este pedido como entregado?",
+      showCancelButton: true,
+      confirmButtonText: "Sí, entregarlo",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!confirmation.isConfirmed) return;
+
+    const response = await fetch(`/api/pedidos/${encodeURIComponent(pedidoId)}/entregar`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await obtenerJson(response, "No se pudo marcar el pedido como entregado.");
+    toast("success", data.message || "Pedido entregado correctamente");
+    await cargarPedidosCajero();
+  } catch (error) {
+    console.error("Error al marcar pedido entregado:", error);
+    await Swal.fire({
+      icon: "error",
+      title: "Error al entregar pedido",
+      text: error?.message || "No se pudo marcar el pedido como entregado.",
+    });
   }
-
-  tablaCobros.innerHTML = pedidos
-    .map((pedido) => {
-      const id = pedido.id_pedido || pedido.id || "--";
-      const mesa = pedido.mesa || pedido.mesa_numero || "Sin mesa";
-      const mesero = pedido.mesero || pedido.mesero_nombre || pedido.usuario || "--";
-      const total = (pedido.pedido_total !== undefined && pedido.pedido_total !== null) ? `$${parseFloat(pedido.pedido_total).toFixed(2)}` : (pedido.total !== undefined ? `$${parseFloat(pedido.total).toFixed(2)}` : "--");
-      const estado = pedido.pedido_estado || pedido.estado || "--";
-      const tieneFactura = Boolean(pedido.factura_id || pedido.tieneFactura || pedido.id_factura);
-      
-      const estadoPedido = estado.toLowerCase().trim();
-      
-      // CUS-302: Bloqueo por estados de cocina exactos de Jira
-      const disabledCobro = (
-        estadoPedido === "pendiente" || 
-        estadoPedido === "en preparación" || 
-        estadoPedido === "en preparacion" || 
-        estadoPedido === "preparado" ||
-        estadoPedido === "listo para entregar" || 
-        tieneFactura
-      ) ? "disabled" : "";
-
-      const esFacturado = estadoPedido === "facturado" || tieneFactura;
-      const disabledCancelar = esFacturado ? "disabled" : "";
-      const estiloDeshabilitado = esFacturado ? "style='opacity: 0.5; cursor: not-allowed; margin-left: 6px; background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px;'" : "style='margin-left: 6px; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;'";
-
-      window.estadoPedidoActualCajero = estadoPedido;
-      window.pedidoTieneFacturaActual = tieneFactura;
-
-      return `
-        <tr>
-          <td>${id}</td>
-          <td>${mesa}</td>
-          <td>${mesero}</td>
-          <td>${total}</td>
-          <td>${estado}</td>
-          <td style="display: flex; gap: 4px; align-items: center;">
-            <button class="btn-completar" ${disabledCobro}>
-              Facturar y Cobrar
-            </button>
-            <button class="btn-cancelar-pedido" 
-                    ${disabledCancelar} 
-                    ${estiloDeshabilitado}
-                    data-id="${pedido.id_pedido || pedido.id || ''}" 
-                    data-mesa="${pedido.mesa || 'Sin mesa'}" 
-                    data-tipo="${pedido.tipo || 'Llevar'}" 
-                    data-estado="${pedido.estado || ''}">
-              Cancelar
-            </button>
-          </td>
-        </tr>
-      `;
-    })
-    .join("");
 }
 
 function inicializarDelegacionAgregarPlatillo() {
@@ -659,6 +664,13 @@ function inicializarFacturacionCajero() {
   if (!tablaCobros) return;
 
   tablaCobros.addEventListener("click", async (event) => {
+    const btnEntregar = event.target.closest(".btn-entregar-cajero");
+    if (btnEntregar && !btnEntregar.disabled) {
+      event.preventDefault();
+      await marcarPedidoEntregadoCajero(btnEntregar.dataset.id);
+      return;
+    }
+
     const btnGenerar = event.target.closest(".btn-generar-factura");
     if (btnGenerar && !btnGenerar.disabled) {
       event.preventDefault();
@@ -690,7 +702,18 @@ function configurarCajeroPedido() {
   inicializarDelegacionAgregarPlatillo();
   inicializarControlesPedidoActual();
   inicializarFacturacionCajero();
+  inicializarBusquedaCobro();
   renderPedidoActualCajero();
+}
+
+function inicializarBusquedaCobro() {
+  const inputBusqueda = document.getElementById("buscarMesaCobro");
+  if (!inputBusqueda) return;
+
+  inputBusqueda.addEventListener("input", (event) => {
+    window.filtroPedidoCajero = String(event.target.value || "");
+    renderCobrosTabla(window.pedidosCajeroPendientes);
+  });
 }
 
 async function cargarPedidosCajero() {
@@ -698,6 +721,7 @@ async function cargarPedidosCajero() {
     const res = await fetch("/api/pedidos/cajero/pendientes");
     if (!res.ok) throw new Error("Error al cargar pedidos");
     const pedidos = await res.json();
+    window.pedidosCajeroPendientes = pedidos;
     renderCobrosTabla(pedidos);
   } catch (error) {
     console.error(error);

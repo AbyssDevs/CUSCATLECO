@@ -452,6 +452,11 @@ async function crearMesa() {
     toast("error", "La capacidad debe ser mayor que 0.");
     return;
   }
+  
+  if (capacidad > 10) {
+    toast("error", "La capacidad maxima permitida es de 10 personas.");
+    return;
+  }
 
   if (bulkMode) {
     const cantidad = Number(document.getElementById("bulk_count_input").value);
