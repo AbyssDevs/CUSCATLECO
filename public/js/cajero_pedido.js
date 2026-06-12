@@ -258,7 +258,7 @@ function configurarFormularioPedidoCajero() {
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
         const errorMessage =
-          (errorBody && (errorBody.message || errorBody.error || JSON.stringify(errorBody))) ||
+          (errorBody && (errorBody.error || errorBody.message)) ||
           "No se pudo crear el pedido.";
         throw new Error(errorMessage);
       }
@@ -465,6 +465,11 @@ async function abrirModalFactura(pedidoId) {
         const nombreCliente = document.getElementById("nombreFacturaCliente")?.value.trim() || null;
         const nitCliente = document.getElementById("nitFacturaCliente")?.value.trim() || null;
 
+        if (nitCliente && !/^[0-9]{4}-[0-9]{6}-[0-9]{3}-[0-9]{1}$/.test(nitCliente)) {
+          Swal.showValidationMessage("Formato de NIT inválido. Use: XXXX-XXXXXX-XXX-X");
+          return false;
+        }
+
         try {
           const response = await fetch("/api/facturas/generar", {
             method: "POST",
@@ -477,7 +482,7 @@ async function abrirModalFactura(pedidoId) {
           });
           return await obtenerJson(response, "No se pudo generar la factura.");
         } catch (error) {
-          Swal.showValidationMessage(error.message);
+          Swal.showValidationMessage("Error al generar la factura. Verifique los datos e intente nuevamente.");
           return false;
         }
       },
@@ -760,7 +765,8 @@ window.toggleMenu = function() {
 
 window.cerrarSesion = function() {
   localStorage.clear();
-  window.location.href = "/login.html";
+  sessionStorage.clear();
+  window.location.href = "/logout";
 };
 
 document.addEventListener("DOMContentLoaded", () => {

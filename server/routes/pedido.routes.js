@@ -51,7 +51,7 @@ router.patch("/:id/cancelar",requirePermission("crear_pedido"), cancelarPedido);
 
 router.get("/cocina/pendientes",requirePermission("ver_pedidos"), obtenerPedidosPendientesCocina);
 
-router.get("/cajero/pendientes", auditoriaMiddleware, obtenerPedidosPendientesCajero);
+router.get("/cajero/pendientes", auditoriaMiddleware, requirePermission('generar_factura'), obtenerPedidosPendientesCajero);
 
 router.get('/:id_pedido',requirePermission('crear_pedido'),obtenerDetallePedido);
 

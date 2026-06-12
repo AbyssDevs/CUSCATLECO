@@ -408,7 +408,7 @@ async function cambiarEstado(id_pedido, estado, estadoActual) {
 
   } catch (error) {
     console.error(error);
-    toast("error", error.message || "Error al cambiar estado");
+    toast("error", "Error al cambiar estado del pedido");
   }
 }
 
@@ -442,5 +442,6 @@ function cerrarMenuMobile() {
 
 window.cerrarSesion = function() {
   localStorage.clear();
-  window.location.href = "/login.html";
+  sessionStorage.clear();
+  window.location.href = "/logout";
 };

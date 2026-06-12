@@ -27,6 +27,8 @@ function toggleMenu() {
 }
 
 function cerrarSesion() {
+  localStorage.clear();
+  sessionStorage.clear();
   window.location.href = "/logout";
 }
 
@@ -185,7 +187,7 @@ function renderMenu(items) {
 
           return `
             <tr ${!disponible && pedidoMode ? 'style="opacity: 0.6;"' : ''}>
-              <td><img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
+              <td><img src="${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
               <td>
                 <div style="display:flex; flex-direction:column; gap:6px;">
                   <strong>${item.platillo_nombre || "Sin nombre"}</strong>
@@ -242,7 +244,7 @@ function renderMenu(items) {
 
           return `
             <div class="menu-card" ${!disponible && pedidoMode ? 'style="opacity: 0.6;"' : ''}>
-              ${item.platillo_imagen_url ? `<img src="http://localhost:3000${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-card-img">` : `<div class="menu-card-img" style="background: #eee; display:flex; align-items:center; justify-content:center; color:#888;">Sin imagen</div>`}
+              ${item.platillo_imagen_url ? `<img src="${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-card-img">` : `<div class="menu-card-img" style="background: #eee; display:flex; align-items:center; justify-content:center; color:#888;">Sin imagen</div>`}
               <div class="menu-card-header">
                 <div>
                   <h3 class="menu-card-title">${item.platillo_nombre || "Sin nombre"}</h3>
@@ -287,7 +289,6 @@ async function ensureMenuCategories() {
     }
     menuState.categories = await response.json();
   } catch (error) {
-    console.warn("No se pudieron cargar categorías del menú:", error);
     menuState.categories = [];
   }
 }
@@ -461,33 +462,7 @@ window.addEventListener("DOMContentLoaded", () => {
   }
 });
 
-/* =========================================================
-   UX MEJORADA
-========================================================= */
-
 document.addEventListener("DOMContentLoaded", () => {
-  const btnEnviar = document.getElementById("btn-enviar-pedido");
-
-  if (btnEnviar) {
-    btnEnviar.addEventListener("click", () => {
-      if (btnEnviar.disabled) return;
-
-      btnEnviar.innerHTML = `
-        <i class="fas fa-spinner fa-spin"></i>
-        Enviando...
-      `;
-      btnEnviar.style.opacity = "0.8";
-
-      setTimeout(() => {
-        btnEnviar.innerHTML = `
-          <i class="fas fa-paper-plane"></i>
-          Enviar a cocina
-        `;
-        btnEnviar.style.opacity = "1";
-      }, 2500);
-    });
-  }
-
   validarEstadoBotonesEliminarPlatillos("Pendiente");
 
   const sidebarItems = document.querySelectorAll(".sidebar li");
@@ -575,10 +550,7 @@ async function confirmarAnulacionPedido(pedido) {
     focusCancel: true
   });
 
-  // 4. Espacio reservado para la integración futura con la API (Próxima Subtarea)
   if (isConfirmed) {
-    console.log("Anulación confirmada para el pedido ID:", pedido.id_pedido || pedido.id);
-    console.log("Motivo proporcionado:", motivoCancelacion ? motivoCancelacion.trim() : "Ninguno");
     
     const idPedido = pedido.id_pedido || pedido.id;
     if (!idPedido) {
@@ -627,9 +599,9 @@ async function confirmarAnulacionPedido(pedido) {
     } catch (error) {
       console.error(error);
       if (typeof toast === "function") {
-        toast("error", error.message);
+        toast("error", "Error al cancelar el pedido");
       } else {
-        await Swal.fire("Error", error.message, "error");
+        await Swal.fire("Error", "Error al cancelar el pedido", "error");
       }
     }
   }

@@ -1,4 +1,5 @@
 import * as notificacionesService from "../services/notificaciones.service.js";
+import { handleControllerError } from "../utils/errorHandler.js";
 
 export const marcarNotificacionLeida = async (
   req,
@@ -15,11 +16,7 @@ export const marcarNotificacionLeida = async (
     res.json(data);
 
   } catch (error) {
-
-    res.status(error.status || 500).json({
-      error: error.message
-    });
-
+    handleControllerError(res, error, "Error al marcar notificación como leída");
   }
 
 };
@@ -36,6 +33,6 @@ export const obtenerNotificacionesNuevas = async (req, res) => {
     const data = await notificacionesService.obtenerNotificacionesNuevas(userId, desde);
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ error: error.message });
+    handleControllerError(res, error, "Error al obtener notificaciones");
   }
 };

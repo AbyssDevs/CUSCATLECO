@@ -893,7 +893,7 @@ else if (esPreparacion) {
 
   } catch (error) {
     console.error(error);
-    toast("error", error.message);
+    toast("error", "Error al obtener detalle del pedido");
   }
 }
 
@@ -956,16 +956,7 @@ else if (esPreparacion) {
                 <span class="historial-texto">${h.descripcion}</span>
             </div>
         `).join("") 
-        : `
-            <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(0)}</span> - Pedido creado</div>
-            <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(1)}</span> - Enviado a cocina</div>
-            ${pedido.pedido_estado === "EnPreparacion" || pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" ? `
-                <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(5)}</span> - En preparación</div>
-            ` : ""}
-            ${pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" ? `
-                <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(15)}</span> - Listo para entregar</div>
-            ` : ""}
-        `;
+        : `<div class="historial-linea"><span class="historial-texto">No hay historial disponible</span></div>`;
 
     // 3. Indicador visual del estado actual (Círculo de color)
     let estadoEmoji = "🟡"; // Pendiente
@@ -1093,7 +1084,6 @@ else if (esPreparacion) {
     const btnGenerarFactura = backdrop.querySelector(".btn-generar-factura");
     if (btnGenerarFactura) {
         btnGenerarFactura.addEventListener("click", () => {
-            console.log("Generar factura para pedido:", pedido.id_pedido);
         });
     }
 
@@ -1602,7 +1592,7 @@ window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
               actualizarEstadoBotonesMenu();
             } catch (err) {
               console.error(err);
-              toast("error", err.message || "No se pudo eliminar el platillo");
+              toast("error", "No se pudo eliminar el platillo");
             }
           } else {
             row.remove();
@@ -1789,7 +1779,7 @@ window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
       cargarMesasPedido();
     } catch (error) {
       console.error(error);
-      toast("error", error.message);
+      toast("error", "Error al procesar el pedido");
     }
   }
 
@@ -1808,7 +1798,7 @@ window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
       cargarMesasPedido();
     } catch (error) {
       console.error(error);
-      toast("error", error.message);
+      toast("error", "Error al marcar pedido como entregado");
     }
   }
 
@@ -1841,7 +1831,7 @@ window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
       cargarMesasPedido();
     } catch (error) {
       console.error(error);
-      toast("error", error.message);
+      toast("error", "Error al marcar pedido como entregado");
     }
   }
   function obtenerItemsPedido() {
@@ -1858,6 +1848,13 @@ window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
   }
 
   async function enviarPedido() {
+  const btnEnviar = document.getElementById("btn-enviar-pedido");
+  if (btnEnviar) {
+    btnEnviar.disabled = true;
+    btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+  }
+
+  try {
   const typeBtn = document.querySelector(".pedido-type-btn.active");
   const tipo = typeBtn.dataset.type === "salon" ? "Salon" : "Llevar";
   const items = obtenerItemsPedido();
@@ -1872,8 +1869,6 @@ window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
     toast("warning", "Debe seleccionar al menos un platillo válido");
     return;
   }
-
-  try {
 
     // ==================================================
     // VALIDAR STOCK ANTES DE ENVIAR
@@ -1940,9 +1935,13 @@ window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
   } catch (error) {
 
     console.error(error);
+    toast("error", "Error al enviar pedido");
 
-    toast("error", error.message);
-
+  } finally {
+    if (btnEnviar) {
+      btnEnviar.disabled = false;
+      btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar a cocina';
+    }
   }
 }
 

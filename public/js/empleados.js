@@ -31,7 +31,7 @@ function mostrar(seccion) {
   document.getElementById("menuPlatillos").style.display = "none";
   document.getElementById("mesas").style.display = "none";
   document.getElementById("verMesas").style.display = "none";
-  // document.getElementById("ordenes").style.display = "none"; // Para un Sprint futuro
+
 
   document.getElementById(seccion).style.display = "block";
 
@@ -336,15 +336,10 @@ function limpiarFormulario() {
 }
 
 function cerrarSesion() {
+  localStorage.clear();
+  sessionStorage.clear();
   window.location.href = "/logout";
 }
-
-// Validación para el campo de teléfono para permitir solo números, limitar a 8 dígitos y agregar un guion después de los primeros 4 dígitos
-document
-  .getElementById("usuario_telefono")
-  .addEventListener("input", function () {
-    this.value = this.value.replace(/\D/g, "").slice(0, 8);
-  });
 
 document
   .getElementById("usuario_telefono")

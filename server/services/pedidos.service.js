@@ -755,7 +755,7 @@ if (result.affectedRows === 0) {
 
   // liberar mesa automáticamente
   if (pedido.id_mesa) {
-    await cambiarEstadoMesa(pedido.id_mesa, "Disponible");
+    await cambiarEstadoMesa(pedido.id_mesa, "Disponible", userId);
   }
 
   return {
@@ -824,9 +824,9 @@ export const obtenerPedidosActivosMesero = async (id_mesero) => {
   });
 
 return Object.values(pedidosMap);
-}; // <--- Esta llave cierra "obtenerPedidosPendientesCocina"
+};
 
-// AHORA AQUÍ EMPIEZA LA SIGUIENTE
+
 
 
 // Cancelar pedido
@@ -839,13 +839,13 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
         pedido_tipo,
         pedido_estado
      FROM pedidos
-     WHERE id_pedido = ?`,
-    [id_pedido]
+     WHERE id_pedido = ? AND id_mesero = ?`,
+    [id_pedido, userId]
   );
 
   if (pedidoRows.length === 0) {
     throw Object.assign(
-      new Error("Pedido no encontrado"),
+      new Error("Pedido no encontrado o no tienes permiso para cancelarlo"),
       { status: 404 }
     );
   }
@@ -900,10 +900,7 @@ export const cancelarPedido = async (id_pedido, motivo, userId) => {
   }
 
   //Notificar al cocinero si un pedido fue cancelado
-  emitirEvento("pedido_cancelado", {
-    id_pedido,
-    estadoAnterior
-  });
+  // emitirEvento("pedido_cancelado", { id_pedido, estadoAnterior }); // Función no implementada
 
   return {
     message: "Pedido cancelado correctamente"
@@ -1071,7 +1068,7 @@ if (pedidoInfo.length === 0) {
   };
 };
 // Obtener detalle completo de un pedido
-export const obtenerDetallePedido = async (id_pedido) => {
+export const obtenerDetallePedido = async (id_pedido, userId) => {
 
   // Datos generales del pedido
   const [pedidoRows] = await db.query(`
@@ -1091,8 +1088,8 @@ export const obtenerDetallePedido = async (id_pedido) => {
       m.mesa_numero
     FROM pedidos p
     LEFT JOIN mesas m ON p.id_mesa = m.id_mesa
-    WHERE p.id_pedido = ?
-  `, [id_pedido]);
+    WHERE p.id_pedido = ? AND (p.id_mesero = ? OR ? IS NULL)
+  `, [id_pedido, userId, userId]);
 
   if (pedidoRows.length === 0) {
     throw Object.assign(

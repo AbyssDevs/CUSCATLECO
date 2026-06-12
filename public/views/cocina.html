@@ -95,112 +95,12 @@
 
     </div>
 
-<
-    <script>
-        const pedidosCocina = [
-            { id: 1, mesa: 'Mesa 1', platillo: 'Pupusas Revueltas', cantidad: 3, pedido_estado: 'Pendiente' },
-            { id: 2, mesa: 'Mesa 2', platillo: 'Tamales de Elote', cantidad: 2, pedido_estado: 'En preparación' },
-            { id: 3, mesa: 'Mesa 3', platillo: 'Yuca Frita', cantidad: 1, pedido_estado: 'Pendiente' }
-        ];
-
-        const tablaOrdenesCocina = document.getElementById('tablaOrdenesCocina');
-        const filtroEstadoPlatillos = document.getElementById('filtroEstadoPlatillos');
-
-        function obtenerClaseEstado(estado) {
-            if (estado === 'Pendiente') return 'pendiente';
-            if (estado === 'En preparación') return 'preparando';
-            return 'completado';
-        }
-
-        function obtenerHoraActual() {
-            return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        }
-
-        function handleMarcarPreparado(event) {
-            const botonMarcar = event.target.closest('button.marcar-preparado');
-            if (!botonMarcar) return false;
-
-            const pedidoId = Number(botonMarcar.dataset.id);
-            if (Number.isNaN(pedidoId)) return false;
-
-            const pedido = pedidosCocina.find(item => item.id === pedidoId);
-            if (!pedido || pedido.pedido_estado !== 'En preparación') return false;
-
-            pedido.pedido_estado = 'Preparado';
-            pedido.horaFinPreparacion = obtenerHoraActual();
-            renderOrdenesCocina();
-
-            return true;
-        }
-
-        function obtenerPedidosVisibles() {
-            const estadoFiltro = filtroEstadoPlatillos.value;
-
-            return pedidosCocina.filter(pedido => {
-                if (pedido.pedido_estado === 'Preparado' || pedido.pedido_estado === 'Anulado') {
-                    return false;
-                }
-
-                if (estadoFiltro === 'pendiente') {
-                    return pedido.pedido_estado === 'Pendiente';
-                }
-
-                if (estadoFiltro === 'preparando') {
-                    return pedido.pedido_estado === 'En preparación';
-                }
-
-                return ['Pendiente', 'En preparación'].includes(pedido.pedido_estado);
-            });
-        }
-
-        function renderOrdenesCocina() {
-            tablaOrdenesCocina.innerHTML = obtenerPedidosVisibles()
-                .map(pedido => `
-                    <tr>
-                        <td>${pedido.mesa}</td>
-                        <td>${pedido.platillo}</td>
-                        <td>${pedido.cantidad}</td>
-                        <td><span class="${obtenerClaseEstado(pedido.pedido_estado)}">${pedido.pedido_estado}</span></td>
-                        <td>${pedido.pedido_estado === 'Pendiente'
-                            ? `<button class="btn-editar iniciar-preparacion" data-id="${pedido.id}">Iniciar preparación</button>`
-                            : pedido.pedido_estado === 'En preparación'
-                                ? `<button class="btn-completar marcar-preparado" data-id="${pedido.id}">Marcar como preparado</button>`
-                                : ''}</td>
-                    </tr>
-                `)
-                .join('');
-        }
-
-        tablaOrdenesCocina.addEventListener('click', event => {
-            const botonIniciar = event.target.closest('button.iniciar-preparacion');
-            if (botonIniciar) {
-                const pedidoId = Number(botonIniciar.dataset.id);
-                const pedido = pedidosCocina.find(item => item.id === pedidoId);
-                if (pedido && pedido.pedido_estado === 'Pendiente') {
-                    pedido.pedido_estado = 'En preparación';
-                    pedido.horaInicioPreparacion = obtenerHoraActual();
-                    renderOrdenesCocina();
-                }
-                return;
-            }
-
-            if (handleMarcarPreparado(event)) {
-                return;
-            }
-        });
-
-        filtroEstadoPlatillos.addEventListener('change', renderOrdenesCocina);
-
-        renderOrdenesCocina();
-    </script>
 
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="/js/alerts.js"></script>
   <script src="../js/cocina.js"></script>
-  <script src="../js/empleados.js"></script>
-
 
 </body>
 

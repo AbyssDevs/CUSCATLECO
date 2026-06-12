@@ -1,4 +1,5 @@
 import * as facturasService from "../services/facturas.service.js";
+import { handleControllerError } from "../utils/errorHandler.js";
 
 export const previsualizarFacturaConsumidorFinal = async (req, res) => {
   try {
@@ -8,9 +9,7 @@ export const previsualizarFacturaConsumidorFinal = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({
-      error: error.message || "Error al previsualizar la factura",
-    });
+    handleControllerError(res, error, "Error al previsualizar la factura");
   }
 };
 
@@ -26,9 +25,7 @@ export const generarFacturaConsumidorFinal = async (req, res) => {
 
     res.status(201).json(data);
   } catch (error) {
-    res.status(error.status || 500).json({
-      error: error.message || "Error al generar la factura",
-    });
+    handleControllerError(res, error, "Error al generar la factura");
   }
 };
 
@@ -37,8 +34,6 @@ export const obtenerFacturaPorId = async (req, res) => {
     const data = await facturasService.obtenerFacturaPorId(req.params.id_factura);
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({
-      error: error.message || "Error al obtener la factura",
-    });
+    handleControllerError(res, error, "Error al obtener la factura");
   }
 };

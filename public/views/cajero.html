@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
@@ -527,7 +527,7 @@
     <script src="/js/alerts.js"></script>
     <script src="../js/menu.js"></script>
     <script src="../js/cajero_pedido.js"></script>
-    <script src="../js/empleados.js"></script>  
+    
     
     <script>
       async function confirmarFacturaPedido() {
@@ -603,7 +603,6 @@
         if (botonImprimir) {
           event.preventDefault();
           const pedidoId = botonImprimir.dataset.id || '';
-          console.log('Imprimiendo ticket del pedido:', pedidoId);
           
           if (!pedidoId) return;
 
@@ -644,7 +643,6 @@
         if (botonPdf) {
           event.preventDefault();
           const pedidoId = botonPdf.dataset.id || '';
-          console.log('Descargar PDF pedido:', pedidoId);
           if (!pedidoId) return;
 
           try {

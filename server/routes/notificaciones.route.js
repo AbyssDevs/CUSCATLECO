@@ -8,6 +8,6 @@ import {
 import { requirePermission } from "../middlewares/auth.middleware.js";
 
 router.get('/nuevas', requirePermission('crear_pedido'), obtenerNotificacionesNuevas);
-router.patch('/:id/leida', marcarNotificacionLeida);
+router.patch('/:id/leida', requirePermission('crear_pedido'), marcarNotificacionLeida);
 
 export default router;
