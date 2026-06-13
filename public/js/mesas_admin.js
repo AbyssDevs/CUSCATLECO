@@ -48,6 +48,7 @@ function esAdministrador() {
 }
 
 async function eliminarMesa(mesaId) {
+  if (!mesaId) return;
   if (!esAdministrador()) {
     toast("error", "No tienes permiso para eliminar mesas.");
     return;

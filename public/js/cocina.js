@@ -1,4 +1,5 @@
 async function apiFetch(url, options = {}) {
+  if (!url) throw new Error("URL no válida");
   const res = await fetch(`/api${url}`, {
     headers: { "Content-Type": "application/json" },
     ...options
@@ -369,6 +370,7 @@ function activarEventosEstado() {
       const id_pedido = boton.dataset.id;
       const estado = boton.dataset.estado;
       const estadoActual = boton.dataset.estadoActual;
+      if (!id_pedido) return;
       await cambiarEstado(id_pedido, estado, estadoActual);
     });
   });

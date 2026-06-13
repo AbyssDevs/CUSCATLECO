@@ -672,6 +672,7 @@ function inicializarFacturacionCajero() {
     const btnEntregar = event.target.closest(".btn-entregar-cajero");
     if (btnEntregar && !btnEntregar.disabled) {
       event.preventDefault();
+      if (!btnEntregar.dataset.id) return;
       await marcarPedidoEntregadoCajero(btnEntregar.dataset.id);
       return;
     }
@@ -679,6 +680,7 @@ function inicializarFacturacionCajero() {
     const btnGenerar = event.target.closest(".btn-generar-factura");
     if (btnGenerar && !btnGenerar.disabled) {
       event.preventDefault();
+      if (!btnGenerar.dataset.id) return;
       await abrirModalFactura(btnGenerar.dataset.id);
       return;
     }

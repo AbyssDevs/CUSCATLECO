@@ -187,7 +187,7 @@ function renderMenu(items) {
 
           return `
             <tr ${!disponible && pedidoMode ? 'style="opacity: 0.6;"' : ''}>
-              <td><img src="${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img"></td>
+              <td>${item.platillo_imagen_url ? `<img src="${item.platillo_imagen_url}" alt="${item.platillo_nombre}" class="menu-item-img">` : `<span style="color:#999;">Sin imagen</span>`}</td>
               <td>
                 <div style="display:flex; flex-direction:column; gap:6px;">
                   <strong>${item.platillo_nombre || "Sin nombre"}</strong>

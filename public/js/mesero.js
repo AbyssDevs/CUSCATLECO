@@ -1090,6 +1090,7 @@ else if (esPreparacion) {
     const btnMarcarListo = backdrop.querySelector(".btn-marcar-listo");
     if (btnMarcarListo) {
         btnMarcarListo.addEventListener("click", async () => {
+            if (!pedido.id_pedido) return;
             await marcarPedidoListo(pedido.id_pedido);
             backdrop.remove();
         });
@@ -1731,6 +1732,8 @@ window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
 
         const action = btn.dataset.action;
         const idPedido = btn.dataset.id;
+
+        if (!idPedido) return;
 
         if (action === "entregado") {
           await marcarPedidoEntregadoConAnimacion(idPedido, btn.closest(".pedido-activo-card"));
