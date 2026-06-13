@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
@@ -41,7 +41,7 @@
 
             <ul>
                 <li onclick="mostrar('resumen')"><i class="fa-solid fa-chart-line"></i> Resumen</li><br>
-                <!-- <li onclick="mostrar('ordenes')">Ver órdenes</li> -->
+
                 <li onclick="mostrar('registrarEmpleado')"><i class="fa-solid fa-user-plus"></i> Añadir Empleados</li>
                 <li onclick="mostrar('empleados')"><i class="fa-solid fa-users"></i> Ver Empleados</li><br>
                 <li onclick="mostrar('registrarPlatillo')"><i class="fas fa-utensils"></i> Añadir Platillo</li>
@@ -145,7 +145,7 @@
 
                     <div class="form-group">
                         <label for="mesa_capacidad">Capacidad de la mesa (personas):</label>
-                        <input type="number" id="mesa_capacidad" name="mesa_capacidad" placeholder="Capacidad de la mesa (personas)" min="1">
+                        <input type="number" id="mesa_capacidad" name="mesa_capacidad" placeholder="Capacidad de la mesa (personas)" min="1" max="10">
                     </div>
 
                     <div class="form-group">
@@ -307,9 +307,10 @@
                         <input type="checkbox" id="platillo_disponible" checked>
                     </div>
                     <button type="button" id="btnRegistrarPlatillo" class="btn-registrar-platillo" onclick="registrarPlatillo()">Crear Platillo</button>
-                </div>
-
+                </form>
             </div>
+
+        </div>
 
             <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
             <script src="/js/alerts.js"></script>

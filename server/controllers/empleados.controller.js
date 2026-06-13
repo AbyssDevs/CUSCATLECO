@@ -1,4 +1,5 @@
 import * as empleadosService from "../services/empleados.service.js";
+import { handleControllerError } from "../utils/errorHandler.js";
 
 // 🔹 CREAR
 export const crearEmpleado = async (req, res) => {
@@ -6,8 +7,7 @@ export const crearEmpleado = async (req, res) => {
     const resultado = await empleadosService.crearEmpleado(req.body);
     res.json(resultado);
   } catch (error) {
-    console.error(error);
-    res.status(400).json({ error: error.message });
+    handleControllerError(res, error, "Error al crear empleado");
   }
 };
 

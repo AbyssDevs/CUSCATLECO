@@ -216,7 +216,7 @@ function editarPlatillo(id) {
     const preview = document.getElementById('previewImagen');
     if (preview && previewContainer) {
         if (platillo.platillo_imagen_url) {
-            preview.src = `http://localhost:3000${platillo.platillo_imagen_url}`;
+            preview.src = `${platillo.platillo_imagen_url}`;
             previewContainer.style.display = 'block';
         } else {
             previewContainer.style.display = 'none';

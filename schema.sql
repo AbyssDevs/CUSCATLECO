@@ -220,6 +220,7 @@ CREATE TABLE facturas (
     factura_fecha_emision DATETIME DEFAULT CURRENT_TIMESTAMP,
     factura_enviada_correo BOOLEAN DEFAULT FALSE,
     factura_anulada BOOLEAN DEFAULT FALSE,
+    UNIQUE KEY uk_facturas_id_pedido (id_pedido),
     FOREIGN KEY (id_pedido) REFERENCES pedidos (id_pedido),
     FOREIGN KEY (id_cajero) REFERENCES usuarios (id_usuario)
 );
@@ -286,7 +287,7 @@ CREATE INDEX idx_auditoria_fecha ON auditoria_log (fecha_hora);
 
 CREATE INDEX idx_auditoria_entidad ON auditoria_log (modulo, entidad_id);
 
--- . DATOS INICIALES (SEED)
+-- DATOS INICIALES (SEED)
 
 
 -- Roles del sistema

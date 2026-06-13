@@ -223,9 +223,34 @@
     </div>
 
     <div class="button-group">
-      <a href="/dashboard" class="btn btn-primary">Ir a mi dashboard</a> <!-- Este enlace debería redirigir al dashboard correspondiente según el rol, pero no esta programado aun. -->
+      <button id="btnDashboard" class="btn btn-primary" style="display:none;">Ir a mi dashboard</button>
       <a href="/" class="btn btn-outline">Volver al login</a>
     </div>
+
+  <script>
+    (async () => {
+      try {
+        const res = await fetch("/api/usuario");
+        if (!res.ok) throw new Error("No session");
+        const user = await res.json();
+
+        const btnDashboard = document.getElementById("btnDashboard");
+        const rutas = {
+          Administrador: "/admin",
+          Mesero: "/mesero",
+          Cocina: "/cocina",
+          Cajero: "/cajero"
+        };
+        const ruta = rutas[user.rol];
+        if (ruta) {
+          btnDashboard.style.display = "inline-block";
+          btnDashboard.addEventListener("click", () => { window.location.href = ruta; });
+        }
+      } catch (e) {
+        // No session
+      }
+    })();
+  </script>
 
     <div class="footer">
       ⚡ Restaurante Sabor Cuscatleco - Sistema POS

@@ -1,12 +1,104 @@
 document.addEventListener("DOMContentLoaded", () => {
-
-  const esVistaCajero =
-    window.location.pathname.includes("cajero");
+  // --- Configuración Global ---
+  // --- 1. SECCIÓN DE VARIABLES GLOBALES ---
+  const esVistaCajero = window.location.pathname.includes("cajero");
 
   let platillosDisponibles = [];
   let mesasPedido = [];
   let pedidoActivo = null;
   let pedidoEnviado = false;
+
+  let notificacionesMesero = [];
+
+  // CUS-268
+  let pollingNotificaciones = null;
+  let ultimaConsulta = new Date();
+  ultimaConsulta.setHours(0, 0, 0, 0);
+  ultimaConsulta = ultimaConsulta.toISOString();
+  iniciarPollingNotificaciones();
+
+  function esNotificacionDeHoy(fecha) {
+    const fechaNotificacion = new Date(fecha);
+    if (Number.isNaN(fechaNotificacion.getTime())) return false;
+    const hoy = new Date();
+    return fechaNotificacion.getFullYear() === hoy.getFullYear()
+      && fechaNotificacion.getMonth() === hoy.getMonth()
+      && fechaNotificacion.getDate() === hoy.getDate();
+  }
+
+  function fusionarNotificaciones(nuevasNotificaciones = [], existentes = []) {
+    const mapa = new Map();
+    existentes.forEach((n) => {
+      if (n && n.id_notificacion) {
+        mapa.set(String(n.id_notificacion), n);
+      }
+    });
+    nuevasNotificaciones.forEach((n) => {
+      if (n && n.id_notificacion) {
+        const existente = mapa.get(String(n.id_notificacion));
+        mapa.set(String(n.id_notificacion), existente ? { ...existente, ...n } : n);
+      }
+    });
+    return Array.from(mapa.values()).sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+  }
+
+  async function cargarNotificaciones(force = false) {
+    await fetchNotificaciones(force);
+  }
+
+  window.cargarNotificaciones = cargarNotificaciones;
+
+  async function fetchNotificaciones(force = false) {
+    try {
+      let desde = ultimaConsulta;
+      if (force) {
+        const inicioHoy = new Date();
+        inicioHoy.setHours(0, 0, 0, 0);
+        desde = inicioHoy.toISOString();
+      }
+
+      const res = await fetch(`/api/notificaciones/nuevas?desde=${encodeURIComponent(desde)}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+
+      const raw = await res.json();
+      if (!Array.isArray(raw)) return;
+
+      const nuevasNotificaciones = raw
+        .map((r) => ({
+          id_notificacion: r.id_notificacion,
+          id_pedido: r.id_pedido,
+          mensaje: r.notificacion_mensaje || r.mensaje,
+          fecha: r.notificacion_fecha || r.fecha,
+          leida: !!r.notificacion_leida,
+        }))
+        .filter((n) => esNotificacionDeHoy(n.fecha));
+
+      if (nuevasNotificaciones.length > 0) {
+        ultimaConsulta = new Date().toISOString();
+        notificacionesMesero = fusionarNotificaciones(nuevasNotificaciones, notificacionesMesero);
+        renderNotificaciones(notificacionesMesero);
+        actualizarBadgeNotificaciones();
+        mostrarToastNotificacion(nuevasNotificaciones[0].mensaje || "Nueva notificación");
+      } else if (force) {
+        // Forzar renderizado de estado aunque no haya nuevas notificaciones
+        renderNotificaciones(notificacionesMesero);
+        actualizarBadgeNotificaciones();
+      }
+    } catch (error) {
+      console.error("Error en polling de notificaciones:", error);
+    }
+  }
+
+  async function iniciarPollingNotificaciones() {
+    await fetchNotificaciones();
+    if (pollingNotificaciones) clearInterval(pollingNotificaciones);
+    pollingNotificaciones = setInterval(fetchNotificaciones, 10000);
+  }
+
+// --- 2. LUEGO SIGUEN TUS FUNCIONES ---
   // ============================================
   // CUS-130: Deshabilitar botones si pedido ya enviado a cocina
   // ============================================
@@ -70,30 +162,43 @@ document.addEventListener("DOMContentLoaded", () => {
 
   init();
 
-  async function init() {
+async function init() {
     setupEventListeners();
     await cargarPlatillos();
     await cargarMesasPedido();
+
     renderEstadoPedidoVacio();
+    renderNotificaciones(notificacionesMesero); // Render inicial con estado actual
+
+    const btnActualizarNotificaciones = document.getElementById("btnActualizarNotificaciones");
+    if (btnActualizarNotificaciones) {
+      btnActualizarNotificaciones.addEventListener("click", (event) => {
+        event.preventDefault();
+        cargarNotificaciones(true);
+      });
+    }
+
+    // Polling manejado por iniciarPollingNotificaciones() llamado al cargar el script
+
     syncPedidoActualGlobal();
     actualizarEstadoBotonesMenu();
     aplicarTipoPedido("salon");
 
     if (vistaPedidosPendientesActiva()) {
-      cargarMisPedidos();
+        cargarMisPedidos();
     }
-  }
+}
 
-  async function cargarPlatillos() {
+async function cargarPlatillos() {
     try {
-      const res = await fetch("/api/platillos");
-      if (!res.ok) throw new Error("Error al cargar platillos");
-      platillosDisponibles = await res.json();
+        const res = await fetch("/api/platillos");
+        if (!res.ok) throw new Error("Error al cargar platillos");
+        platillosDisponibles = await res.json();
     } catch (error) {
-      console.error(error);
-      toast("error", "No se pudieron cargar los platillos");
+        console.error(error);
+        toast("error", "No se pudieron cargar los platillos");
     }
-  }
+}
 
   async function cargarMesasPedido() {
     asegurarFiltrosMesasPedido();
@@ -486,7 +591,47 @@ document.addEventListener("DOMContentLoaded", () => {
     if (estado === "EnPreparacion") return "estado-preparando";
     if (estado === "Listo") return "estado-completado";
     return `estado-${String(estado || "Pendiente").toLowerCase()}`;
-  }
+}
+
+function mostrarToastNotificacion(mensaje) {
+
+    if (typeof toast === "function") {
+
+        toast("info", mensaje);
+        return;
+    }
+
+    if (typeof Swal !== "undefined") {
+
+        Swal.fire({
+            toast: true,
+            position: "top-end",
+            icon: "info",
+            title: mensaje,
+            showConfirmButton: false,
+            timer: 4000,
+            timerProgressBar: true
+        });
+    }
+}
+
+// Ahora la función recibe el mensaje real del servidor
+function recibirNotificacion(mensajeRecibido) {
+
+    const notificacion = {
+        id: Date.now(),
+        mensaje: mensajeRecibido, // Usamos el mensaje dinámico
+        fecha: new Date(),
+        leida: false
+    };
+
+    notificacionesMesero.unshift(notificacion);
+
+    renderNotificaciones(notificacionesMesero);
+
+    mostrarToastNotificacion(notificacion.mensaje);
+}
+
 
   // ==================================================================
   // MIS PEDIDOS ACTIVOS — Module
@@ -748,7 +893,7 @@ else if (esPreparacion) {
 
   } catch (error) {
     console.error(error);
-    toast("error", error.message);
+    toast("error", "Error al obtener detalle del pedido");
   }
 }
 
@@ -783,12 +928,6 @@ else if (esPreparacion) {
             // 4. Subtotal real mapeado desde dp.detalle_pedido_subtotal
             const subtotal = item.detalle_pedido_subtotal || (cantidad * precio);
 
-            // 5. Notas reales mapeadas desde dp.detalle_pedido_notas
-            const notaReal = item.detalle_pedido_notas;
-            const textoNota = (notaReal && notaReal.trim() !== "") 
-                ? `📝 <strong>Nota:</strong> ${notaReal}` 
-                : "📝 <strong>Nota:</strong> Sin notas u observaciones";
-
             return `
                 <div class="detalle-item">
                     <div class="detalle-item-top">
@@ -797,9 +936,6 @@ else if (esPreparacion) {
                     <div class="detalle-item-bottom">
                         <span>Precio unitario: $${Number(precio).toFixed(2)}</span>
                         <span>Subtotal: $${Number(subtotal).toFixed(2)}</span>
-                    </div>
-                    <div class="detalle-nota">
-                        ${textoNota}
                     </div>
                 </div>
             `;
@@ -820,23 +956,19 @@ else if (esPreparacion) {
                 <span class="historial-texto">${h.descripcion}</span>
             </div>
         `).join("") 
-        : `
-            <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(0)}</span> - Pedido creado</div>
-            <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(1)}</span> - Enviado a cocina</div>
-            ${pedido.pedido_estado === "EnPreparacion" || pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" ? `
-                <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(5)}</span> - En preparación</div>
-            ` : ""}
-            ${pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" ? `
-                <div class="historial-linea"><span class="historial-hora">${formatearHoraRelativa(15)}</span> - Listo para entregar</div>
-            ` : ""}
-        `;
+        : `<div class="historial-linea"><span class="historial-texto">No hay historial disponible</span></div>`;
 
     // 3. Indicador visual del estado actual (Círculo de color)
     let estadoEmoji = "🟡"; // Pendiente
     if (pedido.pedido_estado === "EnPreparacion") estadoEmoji = "🟠";
     if (pedido.pedido_estado === "Listo" || pedido.pedido_estado === "Entregado" || pedido.pedido_estado === "Facturado") estadoEmoji = "🟢";
 
-    // 4. Construir la estructura semántica del modal
+    // 4. Calcular total (IVA ya incluido en los precios)
+    const totalCalc = Number((pedido.platillos || []).reduce((sum, item) => {
+        return sum + (Number(item.detalle_pedido_subtotal) || (Number(item.detalle_pedido_cantidad) || 0) * (Number(item.detalle_pedido_precio_unitario) || 0));
+    }, 0)) || 0;
+
+    // 5. Construir la estructura semántica del modal
     backdrop.innerHTML = `
         <div class="detalle-modal">
             <div class="detalle-header">
@@ -853,7 +985,13 @@ else if (esPreparacion) {
                     <div><strong>Tipo:</strong> ${pedido.pedido_tipo || "Salón"}</div>
                     <div><strong>Estado:</strong> ${estadoEmoji} ${pedido.pedido_estado}</div>
                     <div><strong>Hora inicio:</strong> ${new Date(pedido.pedido_fecha_hora).toLocaleDateString()} ${new Date(pedido.pedido_fecha_hora).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12:false})}</div>
-                    <div><strong>Subtotal:</strong> $${Number(pedido.pedido_total || 0).toFixed(2)}</div>
+                </div>
+            </div>
+
+            <div class="detalle-seccion">
+                <h3>Total a Pagar</h3>
+                <div class="detalle-info-general">
+                    <div style="font-size: 1.3rem; font-weight: bold; color: #248a4c;"><strong>Total:</strong> $${totalCalc.toFixed(2)}</div>
                 </div>
             </div>
 
@@ -861,6 +999,13 @@ else if (esPreparacion) {
                 <h3>Platillos</h3>
                 <div class="detalle-items">
                     ${itemsHtml}
+                </div>
+            </div>
+
+            <div class="detalle-seccion">
+                <h3>Observaciones del pedido</h3>
+                <div class="detalle-info-general">
+                    <div>${pedido.pedido_observaciones ? escapeHtml(pedido.pedido_observaciones) : "Sin observaciones"}</div>
                 </div>
             </div>
 
@@ -887,6 +1032,11 @@ else if (esPreparacion) {
                                 data-tipo="${pedido.pedido_tipo || ""}">
                             <i class="fa-solid fa-ban"></i> [Cancelar]
                         </button>
+                        ${pedido.pedido_estado === "EnPreparacion" ? `
+                        <button class="btn-marcar-listo" data-id="${pedido.id_pedido}">
+                            <i class="fa-solid fa-check-circle"></i> [Marcar como listo]
+                        </button>
+                        ` : ""}
                     ` : ""}
 
                     ${pedido.factura_id ? `
@@ -934,7 +1084,15 @@ else if (esPreparacion) {
     const btnGenerarFactura = backdrop.querySelector(".btn-generar-factura");
     if (btnGenerarFactura) {
         btnGenerarFactura.addEventListener("click", () => {
-            console.log("Generar factura para pedido:", pedido.id_pedido);
+        });
+    }
+
+    const btnMarcarListo = backdrop.querySelector(".btn-marcar-listo");
+    if (btnMarcarListo) {
+        btnMarcarListo.addEventListener("click", async () => {
+            if (!pedido.id_pedido) return;
+            await marcarPedidoListo(pedido.id_pedido);
+            backdrop.remove();
         });
     }
 
@@ -1143,7 +1301,125 @@ else if (esPreparacion) {
     if (!tieneItems) {
       container.innerHTML = '<p class="pedido-empty-text">Agregue platillos desde el menú.</p>';
     }
-  }
+}
+
+/**
+ * Renderiza la lista de notificaciones y habilita la navegación al detalle del pedido.
+ */
+function actualizarBadgeNotificaciones() {
+    const badge = document.getElementById("notificacionesBadge");
+    if (!badge) return;
+
+    const contadorNoLeidas = notificacionesMesero.filter((n) => !n.leida && esNotificacionDeHoy(n.fecha)).length;
+    if (contadorNoLeidas > 0) {
+        badge.textContent = contadorNoLeidas;
+        badge.style.display = "inline-block";
+    } else {
+        badge.style.display = "none";
+    }
+}
+
+function renderNotificaciones(notificaciones = []) {
+    const container = document.getElementById("notificacionesList");
+    if (!container) return;
+
+    const notificacionesHoy = notificaciones
+        .filter((n) => esNotificacionDeHoy(n.fecha))
+        .filter((n, index, array) => array.findIndex((item) => String(item.id_notificacion) === String(n.id_notificacion)) === index)
+        .sort((a, b) => new Date(b.fecha) - new Date(a.fecha));
+
+    if (notificacionesHoy.length === 0) {
+        container.innerHTML = `<p class="empty">No hay notificaciones del día</p>`;
+        actualizarBadgeNotificaciones();
+        return;
+    }
+
+    container.innerHTML = notificacionesHoy.map((n) => {
+        const fecha = new Date(n.fecha);
+        const fechaStr = Number.isNaN(fecha.getTime())
+            ? ""
+            : fecha.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        return `
+            <div class="notificacion-item ${n.leida ? "leida" : "no-leida"}" 
+                 onclick="procesarClickNotificacion('${n.id_notificacion}', '${n.id_pedido || ""}')"
+                 style="cursor: pointer;">
+                <div class="notif-body">
+                    <p>${n.mensaje}</p>
+                    <small>${fechaStr}</small>
+                </div>
+                <div class="notif-actions">
+                    ${!n.leida ? `<button type="button" class="btn-marcar-leida" onclick="marcarNotificacionComoLeida(event, '${n.id_notificacion}')">Marcar leída</button>` : `<span class="badge-leida">Leída</span>`}
+                </div>
+            </div>
+        `;
+    }).join("");
+
+    actualizarBadgeNotificaciones();
+}
+
+async function marcarNotificacionLeidaApi(idNotificacion) {
+    if (!idNotificacion) return;
+
+    const res = await fetch(`/api/notificaciones/${encodeURIComponent(idNotificacion)}/leida`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+    });
+
+    if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+    }
+
+    return res.json();
+}
+
+window.marcarNotificacionComoLeida = async function(event, idNotificacion) {
+    if (event && typeof event.stopPropagation === "function") {
+        event.stopPropagation();
+    }
+
+    if (!idNotificacion) return;
+
+    notificacionesMesero = notificacionesMesero.map((n) =>
+        String(n.id_notificacion) === String(idNotificacion) ? { ...n, leida: true } : n
+    );
+
+    renderNotificaciones(notificacionesMesero);
+    actualizarBadgeNotificaciones();
+
+    try {
+        await marcarNotificacionLeidaApi(idNotificacion);
+    } catch (error) {
+        console.error("Error marcando notificación como leída:", error);
+        if (typeof toast === "function") {
+            toast("error", "No se pudo marcar la notificación como leída");
+        }
+    }
+};
+
+window.procesarClickNotificacion = async function(idNotificacion, idPedido) {
+    if (!idNotificacion) return;
+
+    notificacionesMesero = notificacionesMesero.map((n) =>
+        String(n.id_notificacion) === String(idNotificacion) ? { ...n, leida: true } : n
+    );
+    renderNotificaciones(notificacionesMesero);
+    actualizarBadgeNotificaciones();
+
+    try {
+        await marcarNotificacionLeidaApi(idNotificacion);
+    } catch (error) {
+        console.warn("No se pudo actualizar la notificación en el servidor:", error);
+    }
+
+    if (idPedido && typeof abrirDetallePedido === "function") {
+        await abrirDetallePedido(idPedido);
+    }
+};
+
+// Asegúrate de llamar a esta inicialización dentro de tu función init()
+// renderNotificaciones(notificacionesMesero);
 
   function setupTipoPedidoSelector() {
     document.querySelectorAll(".pedido-type-btn").forEach((btn) => {
@@ -1317,7 +1593,7 @@ else if (esPreparacion) {
               actualizarEstadoBotonesMenu();
             } catch (err) {
               console.error(err);
-              toast("error", err.message || "No se pudo eliminar el platillo");
+              toast("error", "No se pudo eliminar el platillo");
             }
           } else {
             row.remove();
@@ -1457,6 +1733,8 @@ else if (esPreparacion) {
         const action = btn.dataset.action;
         const idPedido = btn.dataset.id;
 
+        if (!idPedido) return;
+
         if (action === "entregado") {
           await marcarPedidoEntregadoConAnimacion(idPedido, btn.closest(".pedido-activo-card"));
         }
@@ -1478,6 +1756,36 @@ else if (esPreparacion) {
     }
   }
 
+  async function marcarPedidoListo(idPedido) {
+    const confirmar = await Swal.fire({
+      title: "¿Marcar pedido como listo?",
+      text: "El pedido pasará a estado 'Listo para entregar'",
+      icon: "question",
+      showCancelButton: true,
+      confirmButtonText: "Sí, marcar listo",
+      cancelButtonText: "Cancelar",
+      confirmButtonColor: "#28a745"
+    });
+    if (!confirmar.isConfirmed) return;
+
+    try {
+      const res = await fetch(`/api/pedidos/${idPedido}/estado`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ estado: "Listo" })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "No se pudo marcar el pedido como listo");
+
+      toast("success", "Pedido listo para entregar");
+      cargarMisPedidos();
+      cargarMesasPedido();
+    } catch (error) {
+      console.error(error);
+      toast("error", "Error al procesar el pedido");
+    }
+  }
+
   async function marcarPedidoEntregado(idPedido) {
     if (!idPedido) return;
 
@@ -1493,7 +1801,7 @@ else if (esPreparacion) {
       cargarMesasPedido();
     } catch (error) {
       console.error(error);
-      toast("error", error.message);
+      toast("error", "Error al marcar pedido como entregado");
     }
   }
 
@@ -1526,7 +1834,7 @@ else if (esPreparacion) {
       cargarMesasPedido();
     } catch (error) {
       console.error(error);
-      toast("error", error.message);
+      toast("error", "Error al marcar pedido como entregado");
     }
   }
   function obtenerItemsPedido() {
@@ -1543,6 +1851,13 @@ else if (esPreparacion) {
   }
 
   async function enviarPedido() {
+  const btnEnviar = document.getElementById("btn-enviar-pedido");
+  if (btnEnviar) {
+    btnEnviar.disabled = true;
+    btnEnviar.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Enviando...';
+  }
+
+  try {
   const typeBtn = document.querySelector(".pedido-type-btn.active");
   const tipo = typeBtn.dataset.type === "salon" ? "Salon" : "Llevar";
   const items = obtenerItemsPedido();
@@ -1557,8 +1872,6 @@ else if (esPreparacion) {
     toast("warning", "Debe seleccionar al menos un platillo válido");
     return;
   }
-
-  try {
 
     // ==================================================
     // VALIDAR STOCK ANTES DE ENVIAR
@@ -1625,9 +1938,13 @@ else if (esPreparacion) {
   } catch (error) {
 
     console.error(error);
+    toast("error", "Error al enviar pedido");
 
-    toast("error", error.message);
-
+  } finally {
+    if (btnEnviar) {
+      btnEnviar.disabled = false;
+      btnEnviar.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar a cocina';
+    }
   }
 }
 

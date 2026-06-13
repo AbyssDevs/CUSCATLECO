@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
     <meta charset="UTF-8">
@@ -58,6 +58,12 @@
                 </li>
                 <br>
 
+                <li onclick="mostrarViews('notificaciones')">
+                    <i class="fa-solid fa-bell"></i>
+                    Notificaciones
+                </li>
+                <br>
+
                 <li onclick="mostrarViews('verMesas')">
                     <i class="fas fa-border-all"></i>
                     Ver Mesas
@@ -100,28 +106,29 @@
                 <div class="tomar-pedido-layout">
 
                     <!-- COLUMNA IZQUIERDA -->
-                    <div class="pedido-left-column">
+<div class="pedido-left-column">
 
-                        <!-- TIPO PEDIDO -->
-                        <div class="pedido-type-card glass-panel">
+    <!-- NOTIFICACIONES moved to its own view -->
+    <!-- TIPO PEDIDO -->
+    <div class="pedido-type-card glass-panel">
 
-                            <h3>Tipo de Pedido</h3>
+        <h3>Tipo de Pedido</h3>
 
-                            <div class="tipo-pedido-selector">
+        <div class="tipo-pedido-selector">
 
-                                <button class="pedido-type-btn active" data-type="salon">
-                                    <i class="fas fa-chair"></i>
-                                    En Salón
-                                </button>
+            <button class="pedido-type-btn active" data-type="salon">
+                <i class="fas fa-chair"></i>
+                En Salón
+            </button>
 
-                                <button class="pedido-type-btn" data-type="llevar">
-                                    <i class="fas fa-bag-shopping"></i>
-                                    Para Llevar
-                                </button>
+            <button class="pedido-type-btn" data-type="llevar">
+                <i class="fas fa-bag-shopping"></i>
+                Para Llevar
+            </button>
 
-                            </div>
+        </div>
 
-                        </div>
+    </div>
 
                         <!-- MESAS -->
                         <div class="pedido-type-card" id="mesa-container">
@@ -457,6 +464,44 @@
             </div>
 
             <!-- MIS PEDIDOS ACTIVOS -->
+            <!-- NOTIFICACIONES - VISTA DEDICADA -->
+            <div id="notificaciones" style="display: none;">
+                <h1>Notificaciones</h1>
+
+                <div class="pedido-type-card glass-panel" id="notificacionesMesero">
+
+                    <div class="notificaciones-header">
+
+                        <h3>
+                            <i class="fa-solid fa-bell"></i>
+                            Notificaciones
+                        </h3>
+
+                        <div class="notificaciones-header-actions">
+                            <span id="notificacionesBadge"
+                                  class="notificaciones-badge"
+                                  style="display:none; color: white; background: #d32f2f; padding: 3px 8px; border-radius: 12px; font-size: 0.95rem; font-weight: bold;">
+                                0
+                            </span>
+                            <button type="button" id="btnActualizarNotificaciones" class="btn-actualizar-pedidos" onclick="window.cargarNotificaciones && window.cargarNotificaciones()" title="Actualizar notificaciones">
+                                <i class="fa-solid fa-arrows-rotate"></i>
+                                <span>Actualizar</span>
+                            </button>
+                        </div>
+
+                    </div>
+
+                    <div id="notificacionesList">
+
+                        <p class="empty">
+                            No hay notificaciones
+                        </p>
+
+                    </div>
+
+                </div>
+            </div>
+
             <div id="pedidos-pendientes" style="display: none;">
                 <div class="mis-pedidos-header">
                     <div class="mis-pedidos-title-group">
@@ -490,43 +535,10 @@
                     <button type="button" class="btn-pag" id="btnPagSiguiente">
                         Siguiente <i class="fa-solid fa-chevron-right"></i>
                     </button>
-
-            <!-- PEDIDOS -->
-            <div id="pedidos-pendientes" style="display: none;">
-
-                <h1>Mis Pedidos</h1>
-
-                <!-- LOADING -->
-                <div id="pedidosMeseroLoading"
-                    style="
-                        display: none;
-                        margin-bottom: 15px;
-                        color: #555;
-                    ">
-
-                    Cargando pedidos...
-
                 </div>
-
-                <!-- VACIO -->
-                <div id="pedidosMeseroEmpty"
-                    style="
-                        margin-bottom: 15px;
-                        color: #777;
-                    ">
-                </div>
-
-                <!-- GRID -->
-                <div id="grid-pedidos-mesero" class="grid-pedidos">
-
-                    <!-- JS -->
-
-
-                </div>
-
-            </div>
 
         </div>
+    </div>
 
     </div>
 

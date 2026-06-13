@@ -48,6 +48,7 @@ function esAdministrador() {
 }
 
 async function eliminarMesa(mesaId) {
+  if (!mesaId) return;
   if (!esAdministrador()) {
     toast("error", "No tienes permiso para eliminar mesas.");
     return;
@@ -439,6 +440,11 @@ async function cargarMesas() {
 }
 
 async function crearMesa() {
+  const btnCrear = document.getElementById("btnCrearMesa");
+  if (btnCrear?.disabled) return;
+  if (btnCrear) btnCrear.disabled = true;
+
+  try {
   const numero = Number(document.getElementById("mesa_numero").value);
   const capacidad = Number(document.getElementById("mesa_capacidad").value);
   const ubicacion = document.getElementById("mesa_ubicacion").value.trim();
@@ -450,6 +456,11 @@ async function crearMesa() {
 
   if (!capacidad || capacidad <= 0) {
     toast("error", "La capacidad debe ser mayor que 0.");
+    return;
+  }
+
+  if (capacidad > 10) {
+    toast("error", "La capacidad maxima permitida es de 10 personas.");
     return;
   }
 
@@ -472,7 +483,6 @@ async function crearMesa() {
       mesa_estado: "Disponible",
     }));
 
-    try {
       const respuesta = await fetch("/api/mesas/bulk", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -488,15 +498,9 @@ async function crearMesa() {
       toast("success", `${cantidad} mesas creadas exitosamente.`);
       limpiarFormularioMesas();
       cargarMesas();
-    } catch (error) {
-      console.error(error);
-      toast("error", "Error de conexion. Intente nuevamente.");
-    }
-
     return;
   }
 
-  try {
     const respuesta = await fetch("/api/mesas", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -520,17 +524,10 @@ async function crearMesa() {
   } catch (error) {
     console.error(error);
     toast("error", "Error de conexion. Intente nuevamente.");
+  } finally {
+    if (btnCrear) btnCrear.disabled = false;
   }
 }
-window.addEventListener("DOMContentLoaded", () => {
-  if (document.getElementById("mesas")) {
-    actualizarFormularioModo();
-  }
-
-
-  cargarMesasDisponiblesMesero();
-});
-
 // ============================================
 // CARGAR MESAS DISPONIBLES EN PANEL MESERO
 // ============================================

@@ -83,6 +83,8 @@ function actualizarEstadoBotonesMenuCajero() {
   });
 }
 window.actualizarEstadoBotonesMenu = actualizarEstadoBotonesMenuCajero;
+window.pedidosCajeroPendientes = [];
+window.filtroPedidoCajero = "";
 
 // Pinta la lista de platillos del pedido actual (o el estado vacío).
 function renderPedidoActualCajero() {
@@ -256,7 +258,7 @@ function configurarFormularioPedidoCajero() {
       if (!response.ok) {
         const errorBody = await response.json().catch(() => null);
         const errorMessage =
-          (errorBody && (errorBody.message || errorBody.error || JSON.stringify(errorBody))) ||
+          (errorBody && (errorBody.error || errorBody.message)) ||
           "No se pudo crear el pedido.";
         throw new Error(errorMessage);
       }
@@ -293,91 +295,306 @@ function configurarFormularioPedidoCajero() {
   });
 }
 
-async function manejarRespuestaFactura(response) {
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatoDinero(value) {
+  return `$${(Number(value) || 0).toFixed(2)}`;
+}
+
+function formatoFechaHora(value) {
+  if (!value) return "--";
+  const fecha = new Date(value);
+  if (Number.isNaN(fecha.getTime())) return "--";
+  return fecha.toLocaleString("es-SV", {
+    dateStyle: "short",
+    timeStyle: "short",
+  });
+}
+
+async function obtenerJson(response, mensajeFallback) {
   if (!response.ok) {
     const errorBody = await response.json().catch(() => null);
     const errorMessage =
       (errorBody && (errorBody.message || errorBody.error || JSON.stringify(errorBody))) ||
-      "No se pudo generar la factura.";
+      mensajeFallback;
     throw new Error(errorMessage);
   }
 
-  const resultado = await response.json();
+  return response.json();
+}
 
+function renderDetalleFacturaHtml(detalle = []) {
+  return `
+    <div class="factura-detalle-wrap">
+      <table class="factura-detalle-tabla">
+        <thead>
+          <tr>
+            <th>Platillo</th>
+            <th>Cant.</th>
+            <th>Precio</th>
+            <th>Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${detalle.map((item) => `
+            <tr>
+              <td>${escapeHtml(item.nombre)}</td>
+              <td>${Number(item.cantidad) || 0}</td>
+              <td>${formatoDinero(item.precio_unitario)}</td>
+              <td>${formatoDinero(item.subtotal)}</td>
+            </tr>
+          `).join("")}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderResumenFacturaHtml(data) {
+  return `
+    <div class="factura-resumen">
+      <div><span>Subtotal sin IVA</span><strong>${formatoDinero(data.subtotal)}</strong></div>
+      <div><span>IVA 13% (informativo)</span><strong>${formatoDinero(data.iva)}</strong></div>
+      <div class="factura-total"><span>Total a pagar</span><strong>${formatoDinero(data.total)}</strong></div>
+    </div>
+  `;
+}
+
+function renderVistaFacturaHtml(factura) {
+  return `
+    <div class="factura-vista-wrap">
+      <section class="factura-vista" data-factura-id="${escapeHtml(factura.id_factura)}">
+        <header class="factura-vista-header">
+          <div>
+            <p class="factura-leyenda">Consumidor Final</p>
+            <h2>${escapeHtml(factura.numero_factura)}</h2>
+          </div>
+          <div class="factura-fecha">${escapeHtml(formatoFechaHora(factura.fecha_emision))}</div>
+        </header>
+        <div class="factura-meta">
+          <div><span>Pedido</span><strong>${escapeHtml(factura.pedido_numero || factura.id_pedido)}</strong></div>
+          <div><span>Cajero</span><strong>${escapeHtml(factura.nombre_cajero || "N/A")}</strong></div>
+          ${factura.nombre_cliente ? `<div><span>Cliente</span><strong>${escapeHtml(factura.nombre_cliente)}</strong></div>` : ""}
+          ${factura.nit_cliente ? `<div><span>NIT</span><strong>${escapeHtml(factura.nit_cliente)}</strong></div>` : ""}
+        </div>
+        ${renderDetalleFacturaHtml(factura.detalle)}
+        ${renderResumenFacturaHtml(factura)}
+        <div class="factura-leyendas">
+          <span>Consumidor Final</span>
+          <span>Documento no válido como crédito fiscal</span>
+        </div>
+      </section>
+      <div class="factura-actions">
+        <button type="button" class="btn-descargar-factura">
+          <i class="fa-solid fa-file-pdf"></i> Descargar PDF
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+async function mostrarFacturaEnPantalla(factura) {
   await Swal.fire({
-    icon: "success",
-    title: "Factura generada exitosamente",
-    text: `Factura ${resultado.numeroFactura} emitida correctamente.`,
-    timer: 2000,
+    title: "Factura generada",
+    html: renderVistaFacturaHtml(factura),
+    width: 820,
+    showCloseButton: true,
     showConfirmButton: false,
+    didOpen: () => {
+      const btnPdf = Swal.getHtmlContainer().querySelector(".btn-descargar-factura");
+      const facturaElemento = Swal.getHtmlContainer().querySelector(".factura-vista");
+      if (btnPdf && facturaElemento && typeof html2pdf !== "undefined") {
+        btnPdf.addEventListener("click", () => {
+          const filename = `factura_${escapeHtml(factura.id_factura || factura.pedido_numero || factura.id_pedido)}.pdf`;
+          html2pdf()
+            .set({
+              margin: 10,
+              filename,
+              image: { type: "jpeg", quality: 0.98 },
+              html2canvas: { scale: 2, useCORS: true },
+              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+              pagebreak: { mode: ["css", "legacy"] },
+            })
+            .from(facturaElemento)
+            .save();
+        });
+      }
+    },
   });
+}
 
-  if (typeof limpiarModalFactura === "function") {
-    limpiarModalFactura();
+async function abrirModalFactura(pedidoId) {
+  try {
+    const previewResponse = await fetch(`/api/facturas/pedido/${encodeURIComponent(pedidoId)}/previsualizar`);
+    const preview = await obtenerJson(previewResponse, "No se pudo cargar el detalle del pedido.");
+
+    const result = await Swal.fire({
+      title: "Generar factura",
+      html: `
+        <div class="factura-modal">
+          <div class="factura-pedido-numero">
+            Pedido ${escapeHtml(preview.pedido.pedido_numero || preview.pedido.id_pedido)}
+          </div>
+          ${renderDetalleFacturaHtml(preview.detalle)}
+          ${renderResumenFacturaHtml(preview)}
+          <div class="factura-form-grid">
+            <label>
+              Nombre del cliente
+              <input id="nombreFacturaCliente" class="swal2-input factura-input" type="text" maxlength="100" autocomplete="off">
+            </label>
+            <label>
+              NIT
+              <input id="nitFacturaCliente" class="swal2-input factura-input" type="text" maxlength="20" autocomplete="off">
+            </label>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: "Confirmar factura",
+      cancelButtonText: "Cancelar",
+      width: 760,
+      focusConfirm: false,
+      preConfirm: async () => {
+        const nombreCliente = document.getElementById("nombreFacturaCliente")?.value.trim() || null;
+        const nitCliente = document.getElementById("nitFacturaCliente")?.value.trim() || null;
+
+        if (nitCliente && !/^[0-9]{4}-[0-9]{6}-[0-9]{3}-[0-9]{1}$/.test(nitCliente)) {
+          Swal.showValidationMessage("Formato de NIT inválido. Use: XXXX-XXXXXX-XXX-X");
+          return false;
+        }
+
+        try {
+          const response = await fetch("/api/facturas/generar", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id_pedido: pedidoId,
+              nombre_cliente: nombreCliente,
+              nit_cliente: nitCliente,
+            }),
+          });
+          return await obtenerJson(response, "No se pudo generar la factura.");
+        } catch (error) {
+          Swal.showValidationMessage("Error al generar la factura. Verifique los datos e intente nuevamente.");
+          return false;
+        }
+      },
+    });
+
+    if (!result.isConfirmed || !result.value) return;
+
+    toast("success", "Factura generada exitosamente");
+    await mostrarFacturaEnPantalla(result.value);
+    await cargarPedidosCajero();
+  } catch (error) {
+    console.error("Error generando factura:", error);
+    await Swal.fire({
+      icon: "error",
+      title: "Error al generar factura",
+      text: error?.message || "No se pudo generar la factura.",
+    });
   }
+}
 
-  if (typeof refrescarListaPedidos === "function") {
-    refrescarListaPedidos();
+async function verFacturaExistente(idFactura) {
+  try {
+    const response = await fetch(`/api/facturas/${encodeURIComponent(idFactura)}`);
+    const factura = await obtenerJson(response, "No se pudo cargar la factura.");
+    await mostrarFacturaEnPantalla(factura);
+  } catch (error) {
+    await Swal.fire({
+      icon: "error",
+      title: "Error al cargar factura",
+      text: error?.message || "No se pudo cargar la factura.",
+    });
   }
-
-  return resultado;
 }
 
 function renderCobrosTabla(pedidos = []) {
   const tablaCobros = document.getElementById("tablaCobros");
   if (!tablaCobros) return;
 
-  tablaCobros.innerHTML = pedidos
+  const filtro = String(window.filtroPedidoCajero || "").trim().toLowerCase();
+  const pedidosFiltrados = filtro
+    ? pedidos.filter((pedido) => {
+        const texto = [
+          pedido.pedido_numero,
+          pedido.id_pedido,
+          pedido.pedido_estado,
+          pedido.estado,
+          pedido.mesa,
+          pedido.mesa_numero,
+          pedido.mesero,
+          pedido.mesero_nombre,
+          pedido.usuario,
+          pedido.pedido_tipo,
+        ]
+          .filter(Boolean)
+          .map((valor) => String(valor).toLowerCase())
+          .join(" ");
+
+        return texto.includes(filtro);
+      })
+    : pedidos;
+
+  if (pedidosFiltrados.length === 0) {
+    tablaCobros.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">No se encontraron pedidos que coincidan con la búsqueda</td></tr>`;
+    return;
+  }
+
+  tablaCobros.innerHTML = pedidosFiltrados
     .map((pedido) => {
-      // CUS-301: Validamos si tiene factura amarrada
-      const tieneFactura = Boolean(pedido.factura_id || pedido.tieneFactura || pedido.id_factura);
-      
-      // Pasamos el estado a minúsculas y limpiamos espacios para evitar fallos del backend
-      const estadoPedido = (pedido.estado || "").toLowerCase().trim();
-      
-      // CUS-302: Bloqueo por estados de cocina exactos de Jira
-      const disabledCobro = (
-        estadoPedido === "pendiente" || 
-        estadoPedido === "en preparación" || 
-        estadoPedido === "en preparacion" || 
-        estadoPedido === "preparado" ||
-        estadoPedido === "listo" || 
-        estadoPedido === "listo para entregar" || 
-        tieneFactura
-      ) ? "disabled" : "";
-
-      // CRITERIO DE ACEPTACIÓN: Bloqueo físico del botón Cancelar si el estado es exactamente "facturado"
-      const esFacturado = estadoPedido === "facturado" || tieneFactura;
-      const disabledCancelar = esFacturado ? "disabled" : "";
-      const estiloDeshabilitado = esFacturado ? "style='opacity: 0.5; cursor: not-allowed; margin-left: 6px; background: #6c757d; color: white; border: none; padding: 6px 12px; border-radius: 4px;'" : "style='margin-left: 6px; background: #dc3545; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer;'";
-
-      // Guardamos en memoria global para controlar la delegación del botón agregar platillo
-      window.estadoPedidoActualCajero = estadoPedido;
-      window.pedidoTieneFacturaActual = tieneFactura;
-
-      // Corrección del formato de moneda para que el cero (0) pinte bien como dinero
-      const totalMostrar = (pedido.total !== undefined && pedido.total !== null) ? `$${parseFloat(pedido.total).toFixed(2)}` : "--";
+      const id = pedido.id_pedido || pedido.id || "--";
+      const mesa = pedido.mesa || pedido.mesa_numero || "Sin mesa";
+      const mesero = pedido.mesero || pedido.mesero_nombre || pedido.usuario || "--";
+      const total = pedido.pedido_total !== undefined && pedido.pedido_total !== null
+        ? formatoDinero(pedido.pedido_total)
+        : pedido.total !== undefined
+          ? formatoDinero(pedido.total)
+          : "--";
+      const estado = pedido.pedido_estado || pedido.estado || "--";
+      const facturaId = pedido.factura_id || pedido.id_factura || "";
+      const tieneFactura = Boolean(facturaId || pedido.tieneFactura);
+      const mostrarEntregar = estado === "Listo";
+      const esFacturable = (estado === "Entregado" || estado === "Cerrado") && !tieneFactura;
+      const facturaGenerada = Boolean(facturaId) || tieneFactura;
 
       return `
         <tr>
-          <td>${pedido.id_pedido || pedido.id || "--"}</td>
-          <td>${pedido.mesa || "Sin mesa"}</td>
-          <td>${pedido.mesero || pedido.usuario || "--"}</td>
-          <td>${totalMostrar}</td>
-          <td>${pedido.estado || "--"}</td>
-          <td style="display: flex; gap: 4px; align-items: center;">
-            <button class="btn-completar" ${disabledCobro}>
-              Facturar y Cobrar
-            </button>
-            <button class="btn-cancelar-pedido" 
-                    ${disabledCancelar} 
-                    ${estiloDeshabilitado}
-                    data-id="${pedido.id_pedido || pedido.id || ''}" 
-                    data-mesa="${pedido.mesa || 'Sin mesa'}" 
-                    data-tipo="${pedido.tipo || 'Llevar'}" 
-                    data-estado="${pedido.estado || ''}">
-              Cancelar
-            </button>
+          <td>${escapeHtml(pedido.pedido_numero || id)}</td>
+          <td>${escapeHtml(mesa)}</td>
+          <td>${escapeHtml(mesero)}</td>
+          <td>${total}</td>
+          <td>${escapeHtml(estado)}</td>
+          <td style="display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;">
+            ${mostrarEntregar ? `
+              <button class="btn-entregar-cajero btn-completar" data-id="${escapeHtml(id)}">
+                <i class="fa-solid fa-truck-fast"></i> Marcar como entregado
+              </button>
+            ` : ""}
+            ${esFacturable ? `
+              <button class="btn-completar btn-generar-factura" data-id="${escapeHtml(id)}">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Generar factura
+              </button>
+            ` : facturaGenerada ? `
+              <button class="btn-completar" disabled>
+                <i class="fa-solid fa-file-invoice"></i> Factura generada
+              </button>
+            ` : `
+              <button class="btn-completar" disabled>
+                <i class="fa-solid fa-clock"></i> Esperando factura
+              </button>
+            `}
+            ${facturaId ? `<button class="btn-ver-factura-cajero" data-id-factura="${escapeHtml(facturaId)}" title="Ver factura">
+                    <i class="fa-solid fa-eye"></i>
+                  </button>` : ""}
           </td>
         </tr>
       `;
@@ -385,23 +602,97 @@ function renderCobrosTabla(pedidos = []) {
     .join("");
 }
 
+async function marcarPedidoEntregadoCajero(pedidoId) {
+  try {
+    const confirmation = await Swal.fire({
+      icon: "question",
+      title: "Confirmar entrega",
+      text: "¿Deseas marcar este pedido como entregado?",
+      showCancelButton: true,
+      confirmButtonText: "Sí, entregarlo",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!confirmation.isConfirmed) return;
+
+    const response = await fetch(`/api/pedidos/${encodeURIComponent(pedidoId)}/entregar`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await obtenerJson(response, "No se pudo marcar el pedido como entregado.");
+    toast("success", data.message || "Pedido entregado correctamente");
+    await cargarPedidosCajero();
+  } catch (error) {
+    console.error("Error al marcar pedido entregado:", error);
+    await Swal.fire({
+      icon: "error",
+      title: "Error al entregar pedido",
+      text: error?.message || "No se pudo marcar el pedido como entregado.",
+    });
+  }
+}
+
 function inicializarDelegacionAgregarPlatillo() {
+  // Delegamos sobre toda la vista para capturar el clic tanto en la tabla
+  // (.menu-table-body) como en las tarjetas (.menu-card-list), aunque se
+  // re-rendericen dinámicamente.
   const contenedor = document.getElementById("tomar-pedido") || document;
+
 
   contenedor.addEventListener("click", (event) => {
     const button = event.target.closest(".btn-agregar");
     if (!button || button.disabled) return;
     event.preventDefault();
 
+
     const idPlatillo =
       button.getAttribute("data-id-platillo") || button.getAttribute("data-id");
     if (!idPlatillo) return;
 
+
     agregarPlatilloAlPedidoCajero(idPlatillo);
   });
 
+
+  // menu.js renderiza cada botón con onclick="agregarAlPedidoDesdeMenu(id)"
+  // (función del flujo de mesero). En el cajero el clic ya se maneja por la
+  // delegación de arriba, así que dejamos este global inofensivo para no
+  // agregar el platillo dos veces por clic.
   window.agregarAlPedidoDesdeMenu = function () {};
 }
+
+function inicializarFacturacionCajero() {
+  const tablaCobros = document.getElementById("tablaCobros");
+  if (!tablaCobros) return;
+
+  tablaCobros.addEventListener("click", async (event) => {
+    const btnEntregar = event.target.closest(".btn-entregar-cajero");
+    if (btnEntregar && !btnEntregar.disabled) {
+      event.preventDefault();
+      if (!btnEntregar.dataset.id) return;
+      await marcarPedidoEntregadoCajero(btnEntregar.dataset.id);
+      return;
+    }
+
+    const btnGenerar = event.target.closest(".btn-generar-factura");
+    if (btnGenerar && !btnGenerar.disabled) {
+      event.preventDefault();
+      if (!btnGenerar.dataset.id) return;
+      await abrirModalFactura(btnGenerar.dataset.id);
+      return;
+    }
+
+    const btnVer = event.target.closest(".btn-ver-factura-cajero");
+    if (btnVer && btnVer.dataset.idFactura) {
+      event.preventDefault();
+      await verFacturaExistente(btnVer.dataset.idFactura);
+    }
+  });
+}
+
 
 function configurarCajeroPedido() {
   const tipoButtons = document.querySelectorAll(".pedido-type-btn");
@@ -417,9 +708,76 @@ function configurarCajeroPedido() {
   configurarFormularioPedidoCajero();
   inicializarDelegacionAgregarPlatillo();
   inicializarControlesPedidoActual();
+  inicializarFacturacionCajero();
+  inicializarBusquedaCobro();
   renderPedidoActualCajero();
 }
 
-window.addEventListener("DOMContentLoaded", () => {
+function inicializarBusquedaCobro() {
+  const inputBusqueda = document.getElementById("buscarMesaCobro");
+  if (!inputBusqueda) return;
+
+  inputBusqueda.addEventListener("input", (event) => {
+    window.filtroPedidoCajero = String(event.target.value || "");
+    renderCobrosTabla(window.pedidosCajeroPendientes);
+  });
+}
+
+async function cargarPedidosCajero() {
+  try {
+    const res = await fetch("/api/pedidos/cajero/pendientes");
+    if (!res.ok) throw new Error("Error al cargar pedidos");
+    const pedidos = await res.json();
+    window.pedidosCajeroPendientes = pedidos;
+    renderCobrosTabla(pedidos);
+  } catch (error) {
+    console.error(error);
+    const tabla = document.getElementById("tablaCobros");
+    if (tabla) tabla.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:30px;color:#999;">No hay pedidos pendientes</td></tr>`;
+  }
+}
+
+window.refrescarListaPedidos = cargarPedidosCajero;
+
+window.mostrarViews = function(id) {
+  document.querySelectorAll(".contenido > div").forEach(section => {
+    if (section.id === "cobros" || section.id === "menu-restaurante" || section.id === "tomar-pedido") {
+      section.style.display = section.id === id ? "block" : "none";
+    }
+  });
+
+  window.activeViewId = id;
+  
+  // Cargar platillos cuando se muestra la sección de tomar-pedido
+  if (id === "tomar-pedido" && typeof loadMenu === "function") {
+    loadMenu();
+  }
+  
+  if (id === "cobros") cargarPedidosCajero();
+};
+
+window.toggleMenu = function() {
+  const sidebar = document.getElementById("sidebar");
+  const backdrop = document.getElementById("menuBackdrop");
+  sidebar.classList.toggle("show");
+  sidebar.classList.toggle("active");
+  backdrop.classList.toggle("show");
+  backdrop.classList.toggle("active");
+};
+
+window.cerrarSesion = function() {
+  localStorage.clear();
+  sessionStorage.clear();
+  window.location.href = "/logout";
+};
+
+document.addEventListener("DOMContentLoaded", () => {
+  // Cargar platillos del menú para el cajero
+  if (typeof loadMenu === "function") {
+    loadMenu();
+  }
+  
   configurarCajeroPedido();
+  cargarPedidosCajero();
+  setInterval(cargarPedidosCajero, 15000);
 });

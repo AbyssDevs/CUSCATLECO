@@ -1,4 +1,5 @@
 import * as platillosService from "../services/platillos.service.js";
+import { handleControllerError } from "../utils/errorHandler.js";
 import upload from "../config/uploadConfig.js";
 
 // CREAR
@@ -22,7 +23,7 @@ export const crearPlatillo = async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    res.status(error.status || 500).json({ error: error.message });
+    handleControllerError(res, error, "Error al crear platillo");
   }
 };
 
@@ -35,7 +36,7 @@ export const obtenerPlatillos = async (req, res) => {
     );
     res.json(data);
   } catch (error) {
-    res.status(500).json({ error: "Error al obtener platillos" });
+    handleControllerError(res, error, "Error al obtener platillos");
   }
 };
 
@@ -48,7 +49,7 @@ export const obtenerPlatillo = async (req, res) => {
     );
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({ error: error.message });
+    handleControllerError(res, error, "Error al obtener platillo");
   }
 };
 
@@ -69,7 +70,7 @@ export const editarPlatillo = async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(error.status || 500).json({ error: error.message });
+    handleControllerError(res, error, "Error al editar platillo");
   }
 };
 
@@ -83,6 +84,6 @@ export const cambiarEstadoPlatillo = async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(error.status || 500).json({ error: error.message });
+    handleControllerError(res, error, "Error al cambiar estado del platillo");
   }
 };

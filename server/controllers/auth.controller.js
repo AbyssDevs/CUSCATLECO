@@ -16,8 +16,6 @@ export const login = async (req, res) => {
     // guardar sesión
     req.session.usuario = usuario;
 
-    console.log(`Login exitoso: ${usuario.nombre} (${usuario.rol})`);
-
     res.json({
       mensaje: "Login exitoso",
       rol: usuario.rol,
@@ -25,10 +23,8 @@ export const login = async (req, res) => {
     });
 
   } catch (error) {
-    console.error("Error en login:", error.message);
-
     res.status(401).json({
-      error: error.message || "Error del servidor"
+      error: "Credenciales inválidas"
     });
   }
 };

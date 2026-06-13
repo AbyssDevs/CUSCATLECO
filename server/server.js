@@ -17,6 +17,8 @@ import empleadosRoutes from "./routes/empleados.routes.js";
 import platillosRoutes from "./routes/platillos.routes.js";
 import mesasRoutes from "./routes/mesas.routes.js";
 import pedidosRoutes from "./routes/pedido.routes.js"
+import notificacionesRoutes from "./routes/notificaciones.route.js";
+import facturasRoutes from "./routes/facturas.routes.js";
 
 const app = express();
 const PORT = 3000;
@@ -79,6 +81,10 @@ app.get("/cajero", requirePermission("ver_cajero"), (req, res) => {
 });
 
 // Evitar acceso directo a los archivos .html en /views
+app.get("/404", (req, res) => {
+  res.sendFile(path.join(__dirname, "../public/views/404.html"));
+});
+
 app.use("/views", (req, res) => {
   res.redirect("/");
 });
@@ -89,6 +95,16 @@ app.use("/api/empleados", requirePermission("gestionar_usuarios"), empleadosRout
 app.use("/api/platillos", auditoriaMiddleware, platillosRoutes);
 app.use("/api/mesas", auditoriaMiddleware, mesasRoutes);
 app.use("/api/pedidos", pedidosRoutes)
+app.use("/api/notificaciones", notificacionesRoutes);
+app.use("/api/facturas", facturasRoutes);
+
+// Catch-all 404
+app.use((req, res) => {
+  if (req.originalUrl.startsWith("/api")) {
+    return res.status(404).json({ error: "Ruta no encontrada" });
+  }
+  res.status(404).sendFile(path.join(__dirname, "../public/views/404.html"));
+});
 
 // Iniciar el servidor
 app.listen(PORT, () => {

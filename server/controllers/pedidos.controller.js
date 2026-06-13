@@ -1,4 +1,5 @@
 import * as pedidosService from '../services/pedidos.service.js';
+import { handleControllerError } from '../utils/errorHandler.js';
 
 
 export const crearPedido = async (req, res) => {
@@ -9,18 +10,15 @@ export const crearPedido = async (req, res) => {
     });
 
     return res.status(201).json(data);
-
   } catch (error) {
-    return res.status(error.status || 500).json({
-      error: error.message || "Error al crear pedido"
-    });
+    handleControllerError(res, error, "Error al crear pedido");
   }
 };
 
 
 export const iniciarPedido = async (req, res) => {
   try {
-    const data = await pedidosService.iniciarPedido({                                        
+    const data = await pedidosService.iniciarPedido({
       ...req.body,
       userId: req.user.id
     });
@@ -28,9 +26,7 @@ export const iniciarPedido = async (req, res) => {
     return res.status(201).json(data);
 
   } catch (error) {
-    return res.status(error.status || 500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al iniciar pedido");
   }
 };
 
@@ -39,19 +35,20 @@ export const agregarItemsPedido = async (req, res) => {
   try {
     const data = await pedidosService.agregarItemsPedido({
       id_pedido: req.params.id,
-      items: req.body.items
+      items: req.body.items,
+      notas: req.body.notas,
+      observaciones: req.body.observaciones,
+      pedido_observaciones: req.body.pedido_observaciones
     });
 
     return res.status(200).json(data);
 
   } catch (error) {
-    return res.status(error.status || 500).json({
-      error: error.message || "Error al agregar platillos al pedido"
-    });
+    handleControllerError(res, error, "Error al agregar platillos al pedido");
   }
 };
 
- 
+
 export const agregarPlatilloAPedido = async (req, res) => {
   try {
     const data = await pedidosService.agregarPlatilloAPedido({
@@ -61,12 +58,10 @@ export const agregarPlatilloAPedido = async (req, res) => {
 
     res.status(201).json(data);
   } catch (error) {
-    res.status(error.status || 500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al agregar platillo al pedido");
   }
 };
- 
+
 
 
 export const eliminarPlatilloPedido = async (req, res) => {
@@ -80,10 +75,7 @@ export const eliminarPlatilloPedido = async (req, res) => {
     res.json(data);
 
   } catch (error) {
-
-    res.status(error.status || 500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al eliminar platillo");
   }
 };
 
@@ -100,16 +92,13 @@ export const cancelarPedido = async (req, res) => {
     res.json(data);
 
   } catch (error) {
-
-    res.status(error.status || 500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al cancelar pedido");
   }
 };
 
 export const modificarCantidadPlatillo = async (req, res) => {
   try {
-  
+
     const data = await pedidosService.modificarCantidadPlatillo({
       id_detalle: req.params.id_detalle,
       cantidad: req.body.cantidad
@@ -118,10 +107,7 @@ export const modificarCantidadPlatillo = async (req, res) => {
     res.json(data);
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(error.status || 500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al modificar cantidad");
   }
 };
 
@@ -137,9 +123,7 @@ export const marcarPedidoEntregado = async (req, res) => {
 
     res.json(data);
   } catch (error) {
-    res.status(error.status || 500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al marcar pedido como entregado");
   }
 };
 
@@ -155,11 +139,7 @@ export const obtenerPedidosActivosMesero = async (req, res) => {
     res.json(data);
 
   } catch (error) {
-
-
-    res.status(error.status || 500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al obtener pedidos activos");
   }
 
 
@@ -170,17 +150,15 @@ export const enviarPedidoACocina = async (req, res) => {
   try {
     const { id_pedido } = req.params;
 
-    const data = await pedidosService.enviarPedidoACocina(id_pedido);
+    const data = await pedidosService.enviarPedidoACocina(id_pedido, req.user.id);
 
     return res.json(data);
 
   } catch (error) {
-    return res.status(error.status || 500).json({
-      error: error.message || "Error al enviar pedido a cocina"
-    });
+    handleControllerError(res, error, "Error al enviar pedido a cocina");
   }
 };
- 
+
 
 export const obtenerPedidosPendientesCocina = async (req, res) => {
 
@@ -192,10 +170,7 @@ export const obtenerPedidosPendientesCocina = async (req, res) => {
     res.json(data);
 
   } catch (error) {
-
-    res.status(500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al obtener pedidos pendientes");
   }
 };
 
@@ -215,17 +190,29 @@ export const cambiarEstadoPedidoCocina = async (
     res.json(data);
 
   } catch (error) {
-
-    res.status(error.status || 500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al cambiar estado del pedido");
   }
 };
 
 
+export const obtenerPedidosPendientesCajero = async (req, res) => {
+  try {
+    const data = await pedidosService.obtenerPedidosPendientesCajero();
+    res.json(data);
+  } catch (error) {
+    handleControllerError(res, error, "Error al obtener pedidos pendientes");
+  }
+};
 
 
-
+export const marcarPedidoListo = async (req, res) => {
+  try {
+    const data = await pedidosService.marcarPedidoListo(req.params.id, req.user.id);
+    res.json(data);
+  } catch (error) {
+    handleControllerError(res, error, "Error al marcar pedido como listo");
+  }
+};
 
 
 export const obtenerDetallePedido = async (req, res) => {
@@ -233,28 +220,13 @@ export const obtenerDetallePedido = async (req, res) => {
 
     const { id_pedido } = req.params;
 
-    const data = await pedidosService.obtenerDetallePedido(id_pedido);
+    const data = await pedidosService.obtenerDetallePedido(id_pedido, req.user.id);
 
     res.json(data);
 
   } catch (error) {
-
-    res.status(error.status || 500).json({
-      error: error.message
-    });
+    handleControllerError(res, error, "Error al obtener detalle del pedido");
   }
 };
 
 
-export const obtenerPedidosCocina = async (req, res) => {
-  try {
-    const data = await pedidosService.obtenerPedidosCocina();
-
-    return res.json(data);
-
-  } catch (error) {
-    return res.status(500).json({
-      error: error.message || "Error al obtener pedidos de cocina"
-    });
-  }
-};
